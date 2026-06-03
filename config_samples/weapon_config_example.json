@@ -1,0 +1,9 @@
+{
+  "weapon_id": "energy_gun",
+  "weapon_name": "能量枪",
+  "damage": 25,
+  "range": 15.0,
+  "cooldown": 0.5,
+  "description": "MVP 基础武器，射线攻击",
+  "is_active": true
+}

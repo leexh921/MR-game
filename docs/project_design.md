@@ -466,3 +466,61 @@ Unity 管理端创建多人房间
 → 对局结果写入数据库
 → 管理端显示结果
 ```
+
+---
+
+## 12. 开发阶段记录
+
+### 阶段 2A：协议冻结与样例数据设计
+
+完成时间：2026-06-03
+负责人：AI / Codex（李潇涵审核）
+本阶段目标：冻结地图 JSON、房间配置 JSON、数据库字段映射和样例数据，不实现 Unity C# 逻辑。
+
+修改文件：
+- docs/json_protocol.md（match_finished 增加 match_id 和 map_id）
+- docs/database_design.md（room_config 增加 treasure_refresh_interval 和 supply_refresh_interval）
+- docs/project_design.md（追加本阶段记录）
+- map_samples/normalized/test_map_01.json（新建）
+- config_samples/room_config_example.json（新建）
+- config_samples/weapon_config_example.json（新建）
+- config_samples/treasure_config_example.json（新建）
+- database/schema.sql（新建）
+- database/seed_data.sql（新建）
+
+已完成功能：
+- 地图 JSON 协议完整：spawn_zones / respawn_zones / team_bases / treasure_spawn_points / supply_boxes / bounds / objects
+- 房间配置 JSON 完整：game_mode / map_id / match_time / player_max_hp / respawn_countdown / weapon_config / treasure_scores
+- 网络消息完整：join_room / switch_team / start_match / pickup_treasure / submit_treasure / attack / ghost_retreat / respawn_countdown_started / player_respawned / room_state_update / match_finished
+- 错误码完整：覆盖房间、玩家、宝物、武器、复活等所有操作
+- 数据库 5 张核心表：player / map_info / room_config / match_result / player_match_stat
+- room_config 表字段覆盖 RoomConfig JSON 全部字段
+- match_result + player_match_stat 覆盖 match_finished 消息全部字段
+- 样例地图 test_map_01.json（对称小地图，红蓝各 spawn/respawn/base，4 个宝物点，1 个物资箱）
+- 样例配置 3 份（room_config / weapon_config / treasure_config）
+- schema.sql 和 seed_data.sql 可执行
+
+未完成功能：
+- MapLoader / MapJsonModels / PrefabRegistry / MapValidator（阶段 2B）
+- 服务端加载地图 JSON 逻辑
+- Unity 中实际生成 Cube 占位物体
+
+验收结果：
+- docs/json_protocol.md 字段完整且自洽 ✓
+- map_samples/normalized/test_map_01.json 合法 JSON ✓
+- config_samples 下 3 个 JSON 均合法 ✓
+- 数据库字段能映射 RoomConfig 和 MatchResult ✓
+- 没有新增正式单人模式 ✓
+- 没有修改 Unity C# 代码 ✓
+
+发现问题：
+- 无阻塞性问题
+- RoomState 枚举比任务要求多了 Countdown 状态，属于合理扩展，保留
+
+下一阶段建议：
+- 阶段 2B：MapJsonModels + MapLoader + MapValidator
+- 在 Unity 中用 Cube/Capsule 加载 test_map_01.json 验证地图生成
+
+是否修改协议字段：是（match_finished 增加 match_id 和 map_id）
+是否影响数据库：是（room_config 增加 treasure_refresh_interval 和 supply_refresh_interval）
+是否影响服务器权威：否

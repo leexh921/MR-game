@@ -1,0 +1,25 @@
+{
+  "treasures": [
+    {
+      "treasure_type": "Normal",
+      "score_value": 10,
+      "refresh_interval": 10.0,
+      "description": "普通宝物，分值较低，刷新较快",
+      "is_active": true
+    },
+    {
+      "treasure_type": "Rare",
+      "score_value": 30,
+      "refresh_interval": 20.0,
+      "description": "稀有宝物，分值中等",
+      "is_active": true
+    },
+    {
+      "treasure_type": "Final",
+      "score_value": 50,
+      "refresh_interval": 60.0,
+      "description": "最终宝物，分值最高，刷新最慢",
+      "is_active": true
+    }
+  ]
+}

@@ -583,7 +583,9 @@ Submitted：宝物已提交并计分。
 ```json
 {
   "type": "match_finished",
+  "match_id": "match_001",
   "room_id": "room_001",
+  "map_id": "test_map_01",
   "red_score": 80,
   "blue_score": 60,
   "winner_team": "Red",

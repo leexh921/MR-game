@@ -152,6 +152,8 @@ description: MVP 测试用小型地图
 | normal_treasure_score | INTEGER | 普通宝物分值 |
 | rare_treasure_score | INTEGER | 稀有宝物分值 |
 | final_treasure_score | INTEGER | 最终宝物分值 |
+| treasure_refresh_interval | REAL / FLOAT | 宝物刷新间隔，秒 |
+| supply_refresh_interval | REAL / FLOAT | 物资箱刷新间隔，秒 |
 | created_at | DATETIME | 创建时间 |
 
 ### 6.3 示例
@@ -168,6 +170,8 @@ respawn_countdown: 5
 normal_treasure_score: 10
 rare_treasure_score: 30
 final_treasure_score: 50
+treasure_refresh_interval: 10
+supply_refresh_interval: 20
 ```
 
 ---
@@ -347,6 +351,8 @@ CREATE TABLE IF NOT EXISTS room_config (
     normal_treasure_score INTEGER NOT NULL,
     rare_treasure_score INTEGER NOT NULL,
     final_treasure_score INTEGER NOT NULL,
+    treasure_refresh_interval REAL NOT NULL DEFAULT 10.0,
+    supply_refresh_interval REAL NOT NULL DEFAULT 20.0,
     created_at TEXT NOT NULL,
     FOREIGN KEY (map_id) REFERENCES map_info(map_id)
 );
