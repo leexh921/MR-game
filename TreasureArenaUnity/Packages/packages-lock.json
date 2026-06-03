@@ -216,7 +216,7 @@
       "url": "https://packages.unity.cn"
     },
     "com.unity.xr.picoxr": {
-      "version": "file:D:/桌面/PICO Unity Integration SDK-3.4.0-20260226",
+      "version": "file:D:/PICO Unity Integration SDK-3.4.0-20260226",
       "depth": 0,
       "source": "local",
       "dependencies": {
