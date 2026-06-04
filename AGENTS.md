@@ -28,7 +28,7 @@ TreasureArenaMR
 项目类型：
 
 ```text
-基于 Pico 4 的 VR/MR 多人联机双队夺宝竞技游戏
+基于 Pico 4 的 MR 多人联机双队夺宝竞技游戏
 ```
 
 核心架构：

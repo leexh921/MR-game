@@ -314,10 +314,8 @@ MVP 阶段也可以先手动插入地图记录。
 
 ---
 
-## 12. SQLite 建表 SQL
+## 12.MYSQL建表 SQL
 
-MVP 阶段建议优先使用 SQLite，部署简单，适合课程项目。  
-如果老师要求 MySQL，后续可以调整字段类型。
 
 ```sql
 CREATE TABLE IF NOT EXISTS player (
@@ -390,7 +388,7 @@ CREATE TABLE IF NOT EXISTS player_match_stat (
 ## 13. 初始测试数据
 
 ```sql
-INSERT OR IGNORE INTO map_info (
+INSERT IGNORE INTO map_info (
     map_id,
     map_name,
     json_path,
@@ -401,16 +399,16 @@ INSERT OR IGNORE INTO map_info (
     '测试地图 01',
     'StreamingAssets/Maps/test_map_01.json',
     'MVP 测试用小型对称地图',
-    datetime('now')
+    NOW()
 );
 
-INSERT OR IGNORE INTO player (
+INSERT IGNORE INTO player (
     player_id,
     nickname,
     created_at
 ) VALUES
-('p_test_red', 'RedTestPlayer', datetime('now')),
-('p_test_blue', 'BlueTestPlayer', datetime('now'));
+('p_test_red', 'RedTestPlayer', NOW()),
+('p_test_blue', 'BlueTestPlayer', NOW());
 ```
 
 ---
@@ -443,5 +441,5 @@ Scripts/Database/MatchRepository.cs
 3. 对局结束后再批量写入结果。
 4. 房间配置应保存快照，避免后续管理端修改配置导致历史对局不一致。
 5. player_match_stat 用于展示个人表现，不影响实时对局逻辑。
-6. MVP 可以先使用 SQLite，减少部署成本。
+6. MVP 使用 MySQL 数据库。
 ```
