@@ -1,10 +1,23 @@
 namespace TreasureArenaMR.Core
 {
     /// <summary>
-    /// Shared project constants placeholder for scene names, config paths, and runtime settings.
+    /// Shared project constants for scene names, config paths, and runtime settings.
     /// </summary>
     public static class ProjectConstants
     {
         public const string ProjectRootFolder = "Assets/_Project";
+
+        public const string SceneBoot = "Boot";
+        public const string SceneHome = "Home";
+        public const string SceneGame = "Game";
+        public const string SceneMapPreview = "MapPreview";
+
+        public const string MapFolder = "StreamingAssets/Maps/";
+        public const string ConfigFolder = "StreamingAssets/Configs/";
+
+        public const string DefaultMapId = "test_map_01";
+        public const string DefaultWeaponId = "energy_gun";
+
+        public const string DbFileName = "treasure_arena.db";
     }
 }
