@@ -107,12 +107,10 @@ MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。
 ```text
 1. 地图基本信息
 2. 地图物体
-3. 红蓝出生区
-4. 红蓝复活区
-5. 红蓝基地区
-6. 宝物刷新点
-7. 物资箱点，可选
-8. 地图边界，可选
+3. 红蓝基地区（同时作为出生区和复活区）
+4. 宝物刷新点
+5. 物资箱点，可选
+6. 地图边界，可选
 ```
 
 ### 3.2 MapJson 示例
@@ -131,34 +129,6 @@ MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。
       "rotation": { "x": 0.0, "y": 90.0, "z": 0.0 },
       "scale": { "x": 1.0, "y": 1.0, "z": 1.0 },
       "has_collider": true
-    }
-  ],
-  "spawn_zones": [
-    {
-      "zone_id": "red_spawn",
-      "team": "Red",
-      "position": { "x": -4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    },
-    {
-      "zone_id": "blue_spawn",
-      "team": "Blue",
-      "position": { "x": 4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    }
-  ],
-  "respawn_zones": [
-    {
-      "zone_id": "red_respawn",
-      "team": "Red",
-      "position": { "x": -4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
-    },
-    {
-      "zone_id": "blue_respawn",
-      "team": "Blue",
-      "position": { "x": 4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
     }
   ],
   "team_bases": [
@@ -212,9 +182,7 @@ MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。
 | map_name | string | 是 | 地图显示名称 |
 | version | string | 是 | 地图协议版本 |
 | objects | array | 否 | 普通地图物体 |
-| spawn_zones | array | 是 | 出生区，至少红蓝各一个 |
-| respawn_zones | array | 是 | 复活区，至少红蓝各一个 |
-| team_bases | array | 是 | 提交宝物的基地，至少红蓝各一个 |
+| team_bases | array | 是 | 基地区（同时作为出生区和复活区），至少红蓝各一个 |
 | treasure_spawn_points | array | 是 | 宝物刷新点 |
 | supply_boxes | array | 否 | 物资箱点 |
 | bounds | object | 否 | 地图边界 |

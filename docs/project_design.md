@@ -27,7 +27,7 @@ MVP 阶段地图处理方式改为：
 1. 开发组先手动制作测试地图。
 2. 地图可以先用 Unity 场景中的基础物体搭建。
 3. 同时定义我们自己的地图 JSON 协议。
-4. 地图 JSON 用于描述出生区、复活区、基地、宝物刷新点、物资箱和地图物体。
+4. 地图 JSON 用于描述基地区（同时作为出生区和复活区）、宝物刷新点、物资箱和地图物体。
 5. 后续如果时间允许，再开发地图编辑器或地图导出工具。
 ```
 
@@ -489,14 +489,14 @@ Unity 管理端创建多人房间
 - database/seed_data.sql（新建）
 
 已完成功能：
-- 地图 JSON 协议完整：spawn_zones / respawn_zones / team_bases / treasure_spawn_points / supply_boxes / bounds / objects
+- 地图 JSON 协议完整：team_bases（合并出生区/复活区/基地）/ treasure_spawn_points / supply_boxes / bounds / objects
 - 房间配置 JSON 完整：game_mode / map_id / match_time / player_max_hp / respawn_countdown / weapon_config / treasure_scores
 - 网络消息完整：join_room / switch_team / start_match / pickup_treasure / submit_treasure / attack / ghost_retreat / respawn_countdown_started / player_respawned / room_state_update / match_finished
 - 错误码完整：覆盖房间、玩家、宝物、武器、复活等所有操作
 - 数据库 5 张核心表：player / map_info / room_config / match_result / player_match_stat
 - room_config 表字段覆盖 RoomConfig JSON 全部字段
 - match_result + player_match_stat 覆盖 match_finished 消息全部字段
-- 样例地图 test_map_01.json（对称小地图，红蓝各 spawn/respawn/base，4 个宝物点，1 个物资箱）
+- 样例地图 test_map_01.json（对称小地图，红蓝各一个基地，4 个宝物点，1 个物资箱）
 - 样例配置 3 份（room_config / weapon_config / treasure_config）
 - schema.sql 和 seed_data.sql 可执行
 
