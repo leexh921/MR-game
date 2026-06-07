@@ -8,5 +8,9 @@ namespace TreasureArenaMR.Shared
     [Serializable]
     public sealed class WeaponConfig
     {
+        public string weapon_id = "energy_gun";
+        public int damage = 25;
+        public float range = 15f;
+        public float cooldown = 0.5f;
     }
 }

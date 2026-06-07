@@ -8,5 +8,13 @@ namespace TreasureArenaMR.Shared
     [Serializable]
     public sealed class PlayerInfo
     {
+        public string player_id;
+        public string nickname;
+        public TeamType team = TeamType.None;
+        public PlayerState state = PlayerState.Alive;
+        public int hp = 100;
+        public int max_hp = 100;
+        public bool is_connected = true;
+        public string carried_treasure_id;
     }
 }

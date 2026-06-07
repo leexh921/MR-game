@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace TreasureArenaMR.Shared
 {
@@ -8,5 +9,11 @@ namespace TreasureArenaMR.Shared
     [Serializable]
     public sealed class TreasureRuntimeState
     {
+        public string treasure_id;
+        public TreasureType treasure_type = TreasureType.Normal;
+        public TreasureState state = TreasureState.Spawned;
+        public int score_value;
+        public Vector3 position;
+        public string carrier_player_id;
     }
 }
