@@ -141,7 +141,7 @@ namespace TreasureArenaMR.Map.Editor
             }
         }
 
-        private static string ToMapId(string sceneName)
+        public static string ToMapId(string sceneName)
         {
             if (string.IsNullOrEmpty(sceneName))
             {
