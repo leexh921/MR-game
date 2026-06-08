@@ -13,10 +13,15 @@ namespace TreasureArenaMR.MapEditor.Editor
         private const string PlacedRootName = "RuntimePlacedObjects";
         private const string RayOriginName = "EditorFallbackRayOrigin";
         private const string PanelName = "MapEditorRuntimePanel";
+        private const string DockedCanvasName = "MapEditorDockedCanvas";
+        private const string MapEditorPrefabRoot = "Assets/_Project/Prefabs/MapEditor";
+        private const string PaletteDir = "Assets/_Project/Prefabs/MapEditor/Palette";
+        private const string BasicShapesDir = "Assets/_Project/Prefabs/MapEditor/Palette/Basic Shapes";
         private static readonly string[] BrushSearchFolders =
         {
             "Assets/_Project/Prefabs/MapEditor/MapObjects",
-            "Assets/_Project/Prefabs/MapEditor/GameplayMarkers"
+            "Assets/_Project/Prefabs/MapEditor/GameplayMarkers",
+            "Assets/_Project/Prefabs/MapEditor/Palette"
         };
 
         [MenuItem("Tools/TreasureArena/地图编辑器/创建 MR 运行时输入控制器")]
@@ -69,13 +74,83 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
             serializedController.ApplyModifiedProperties();
 
-            CreateOrUpdateRuntimePanel(controller, exporter);
+            CreateOrUpdateDockedCanvas(controller, exporter);
 
             Selection.activeGameObject = runtimeRoot;
             EditorUtility.SetDirty(runtimeRoot);
             EditorUtility.SetDirty(placedRoot);
             EditorUtility.SetDirty(rayOrigin);
             Debug.Log("MapEditor MR runtime input controller created. Save the scene to keep it.");
+        }
+
+        private static void CreateOrUpdateDockedCanvas(MapEditorRuntimeController controller, MapEditorRuntimeExporter exporter)
+        {
+            EnsureEventSystem();
+
+            GameObject oldPanel = GameObject.Find(PanelName);
+            if (oldPanel != null)
+            {
+                Undo.DestroyObjectImmediate(oldPanel);
+            }
+
+            GameObject[] existingCanvases = GameObject.FindObjectsOfType<GameObject>(true);
+            for (int i = 0; i < existingCanvases.Length; i++)
+            {
+                if (existingCanvases[i].name == DockedCanvasName)
+                {
+                    Undo.DestroyObjectImmediate(existingCanvases[i]);
+                }
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MapEditorDockedUiPrefabBuilder.PrefabPath);
+            if (prefab == null)
+            {
+                prefab = MapEditorDockedUiPrefabBuilder.CreateOrUpdatePrefab();
+            }
+
+            GameObject canvasGo = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            if (canvasGo != null)
+            {
+                Undo.RegisterCreatedObjectUndo(canvasGo, "Create MapEditor Docked Canvas");
+            }
+
+            if (canvasGo == null)
+            {
+                Debug.LogError("Failed to create MapEditorDockedCanvas.");
+                return;
+            }
+
+            PlacePanelNearCamera(canvasGo.transform);
+            canvasGo.transform.localScale = Vector3.one * 0.0024f;
+
+            Canvas canvas = canvasGo.GetComponent<Canvas>();
+            if (canvas != null)
+            {
+                canvas.renderMode = RenderMode.WorldSpace;
+                canvas.worldCamera = Camera.main;
+            }
+
+            MapEditorDockedUiController dockedUi = canvasGo.GetComponent<MapEditorDockedUiController>();
+            if (dockedUi != null)
+            {
+                SerializedObject serializedUi = new SerializedObject(dockedUi);
+                serializedUi.FindProperty("controller").objectReferenceValue = controller;
+                serializedUi.FindProperty("exporter").objectReferenceValue = exporter;
+                serializedUi.FindProperty("targetCamera").objectReferenceValue = Camera.main;
+                serializedUi.ApplyModifiedProperties();
+                EditorUtility.SetDirty(dockedUi);
+            }
+
+            MapEditorObjectInspector inspector = canvasGo.GetComponentInChildren<MapEditorObjectInspector>(true);
+            if (inspector != null)
+            {
+                SerializedObject serializedInspector = new SerializedObject(inspector);
+                serializedInspector.FindProperty("controller").objectReferenceValue = controller;
+                serializedInspector.ApplyModifiedProperties();
+                EditorUtility.SetDirty(inspector);
+            }
+
+            EditorUtility.SetDirty(canvasGo);
         }
 
         private static void CreateOrUpdateRuntimePanel(MapEditorRuntimeController controller, MapEditorRuntimeExporter exporter)
@@ -350,6 +425,7 @@ namespace TreasureArenaMR.MapEditor.Editor
 
         private static void FillDefaultBrushes(SerializedProperty brushes)
         {
+            EnsureDefaultPalettePrefabs();
             brushes.ClearArray();
 
             string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", BrushSearchFolders);
@@ -381,15 +457,113 @@ namespace TreasureArenaMR.MapEditor.Editor
             brushes.InsertArrayElementAtIndex(index);
             SerializedProperty brush = brushes.GetArrayElementAtIndex(index);
             brush.FindPropertyRelative("label").stringValue = ObjectNames.NicifyVariableName(prefab.name);
+            brush.FindPropertyRelative("folder").stringValue = GetBrushFolder(prefabPath);
             brush.FindPropertyRelative("prefab").objectReferenceValue = prefab;
             brush.FindPropertyRelative("prefab_id").stringValue = prefabId;
-            brush.FindPropertyRelative("marker_type").enumValueIndex = marker != null ? (int)marker.marker_type : (int)MapExportMarkerType.MapObject;
-            brush.FindPropertyRelative("team").enumValueIndex = marker != null ? (int)marker.team : (int)TeamType.None;
-            brush.FindPropertyRelative("treasure_type").enumValueIndex = marker != null ? (int)marker.treasure_type : (int)TreasureType.Normal;
+            ApplyBrushMarkerDefaults(brush, prefab.name, marker);
             brush.FindPropertyRelative("supply_type").stringValue = marker != null ? marker.supply_type : "WeaponRandom";
             brush.FindPropertyRelative("radius").floatValue = marker != null ? marker.radius : 1f;
             brush.FindPropertyRelative("refresh_interval").floatValue = marker != null ? marker.refresh_interval : 20f;
             brush.FindPropertyRelative("has_collider").boolValue = prefab.GetComponentInChildren<Collider>() != null;
+        }
+
+        private static void ApplyBrushMarkerDefaults(SerializedProperty brush, string prefabName, MapExportMarker marker)
+        {
+            foreach (var entry in sGameplayMarkerDefaults)
+            {
+                if (prefabName == entry.prefabName)
+                {
+                    brush.FindPropertyRelative("marker_type").enumValueIndex = (int)entry.markerType;
+                    brush.FindPropertyRelative("team").enumValueIndex = (int)entry.team;
+                    brush.FindPropertyRelative("treasure_type").enumValueIndex = (int)entry.treasureType;
+                    return;
+                }
+            }
+
+            brush.FindPropertyRelative("marker_type").enumValueIndex = marker != null ? (int)marker.marker_type : (int)MapExportMarkerType.MapObject;
+            brush.FindPropertyRelative("team").enumValueIndex = marker != null ? (int)marker.team : (int)TeamType.None;
+            brush.FindPropertyRelative("treasure_type").enumValueIndex = marker != null ? (int)marker.treasure_type : (int)TreasureType.Normal;
+        }
+
+        private static readonly BrushMarkerDefault[] sGameplayMarkerDefaults = new BrushMarkerDefault[]
+        {
+            new BrushMarkerDefault("TeamBase_Red",    MapExportMarkerType.TeamBase,           TeamType.Red,   TreasureType.Normal),
+            new BrushMarkerDefault("TeamBase_Blue",   MapExportMarkerType.TeamBase,           TeamType.Blue,  TreasureType.Normal),
+            new BrushMarkerDefault("Treasure_Normal", MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Normal),
+            new BrushMarkerDefault("Treasure_Rare",   MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Rare),
+            new BrushMarkerDefault("Treasure_Final",  MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Final),
+            new BrushMarkerDefault("SupplyBox",       MapExportMarkerType.SupplyBox,          TeamType.None,  TreasureType.Normal),
+            new BrushMarkerDefault("Bounds",          MapExportMarkerType.Bounds,             TeamType.None,  TreasureType.Normal),
+        };
+
+        private struct BrushMarkerDefault
+        {
+            public readonly string prefabName;
+            public readonly MapExportMarkerType markerType;
+            public readonly TeamType team;
+            public readonly TreasureType treasureType;
+            public BrushMarkerDefault(string prefabName, MapExportMarkerType markerType, TeamType team, TreasureType treasureType)
+            {
+                this.prefabName = prefabName;
+                this.markerType = markerType;
+                this.team = team;
+                this.treasureType = treasureType;
+            }
+        }
+
+        private static string GetBrushFolder(string prefabPath)
+        {
+            string directory = System.IO.Path.GetDirectoryName(prefabPath)?.Replace('\\', '/');
+            if (string.IsNullOrEmpty(directory) || !directory.StartsWith(MapEditorPrefabRoot))
+            {
+                return "Imported";
+            }
+
+            string folder = directory.Substring(MapEditorPrefabRoot.Length).Trim('/');
+            if (folder.StartsWith("Palette/"))
+            {
+                folder = folder.Substring("Palette/".Length);
+            }
+
+            return string.IsNullOrEmpty(folder) ? "MapEditor" : folder;
+        }
+
+        private static void EnsureDefaultPalettePrefabs()
+        {
+            EnsureFolder(MapEditorPrefabRoot, "Palette");
+            EnsureFolder(PaletteDir, "Basic Shapes");
+            EnsurePrimitivePrefab("Basic_Cube", PrimitiveType.Cube, Vector3.one);
+            EnsurePrimitivePrefab("Basic_Cylinder", PrimitiveType.Cylinder, Vector3.one);
+            EnsurePrimitivePrefab("Basic_Circle", PrimitiveType.Cylinder, new Vector3(1f, 0.04f, 1f));
+        }
+
+        private static void EnsureFolder(string parent, string folderName)
+        {
+            string path = parent + "/" + folderName;
+            if (!AssetDatabase.IsValidFolder(path))
+            {
+                AssetDatabase.CreateFolder(parent, folderName);
+            }
+        }
+
+        private static void EnsurePrimitivePrefab(string prefabName, PrimitiveType primitiveType, Vector3 scale)
+        {
+            string path = BasicShapesDir + "/" + prefabName + ".prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null)
+            {
+                return;
+            }
+
+            GameObject go = GameObject.CreatePrimitive(primitiveType);
+            go.name = prefabName;
+            go.transform.localScale = scale;
+            MapExportMarker marker = go.AddComponent<MapExportMarker>();
+            marker.marker_type = MapExportMarkerType.MapObject;
+            marker.id = prefabName;
+            marker.prefab_id = prefabName;
+            marker.has_collider = true;
+            PrefabUtility.SaveAsPrefabAsset(go, path);
+            Object.DestroyImmediate(go);
         }
 
         private static void PlacePanelNearCamera(Transform panel)

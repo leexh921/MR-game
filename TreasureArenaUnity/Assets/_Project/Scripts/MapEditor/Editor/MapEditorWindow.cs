@@ -477,37 +477,7 @@ namespace TreasureArenaMR.MapEditor
 
         private MapJsonModels.MapJson BuildMapFromScene()
         {
-            MapJsonModels.MapJson map = new MapJsonModels.MapJson
-            {
-                map_id = MapSceneJsonExporter.ToMapId(mapName),
-                map_name = mapName,
-                version = "1.0.0",
-                description = mapDescription
-            };
-
-            foreach (MapExportMarker m in FindObjectsOfType<MapExportMarker>(true))
-            {
-                if (m == null) continue;
-                switch (m.marker_type)
-                {
-                    case MapExportMarkerType.MapObject:
-                        map.objects.Add(new MapJsonModels.MapObjectJson { object_id = m.GetDefaultId(), prefab_id = string.IsNullOrEmpty(m.prefab_id) ? m.gameObject.name : m.prefab_id, position = V(m.transform.position), rotation = R(m.transform.eulerAngles), scale = S(m.transform.localScale), has_collider = m.has_collider });
-                        break;
-                    case MapExportMarkerType.TeamBase:
-                        map.team_bases.Add(new MapJsonModels.TeamBaseJson { base_id = m.GetDefaultId(), team = m.team.ToString(), position = V(m.transform.position), radius = m.radius });
-                        break;
-                    case MapExportMarkerType.TreasureSpawnPoint:
-                        map.treasure_spawn_points.Add(new MapJsonModels.TreasureSpawnPointJson { point_id = m.GetDefaultId(), treasure_type = m.treasure_type.ToString(), position = V(m.transform.position), radius = m.radius });
-                        break;
-                    case MapExportMarkerType.SupplyBox:
-                        map.supply_boxes.Add(new MapJsonModels.SupplyBoxJson { box_id = m.GetDefaultId(), position = V(m.transform.position), supply_type = m.supply_type, refresh_interval = m.refresh_interval });
-                        break;
-                    case MapExportMarkerType.Bounds:
-                        map.bounds = new MapJsonModels.BoundsJson { center = V(m.transform.position), size = V(m.transform.localScale) };
-                        break;
-                }
-            }
-            return map;
+            return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
         }
 
         private void RefreshMapList()
@@ -643,9 +613,5 @@ namespace TreasureArenaMR.MapEditor
         }
 
         private void SetStatus(string msg) { statusMessage = msg; statusClearTime = EditorApplication.timeSinceStartup + 5.0; Repaint(); }
-
-        private static MapJsonModels.Vector3Json V(Vector3 v)   => new MapJsonModels.Vector3Json { x = v.x, y = v.y, z = v.z };
-        private static MapJsonModels.RotationJson R(Vector3 v) => new MapJsonModels.RotationJson { x = v.x, y = v.y, z = v.z };
-        private static MapJsonModels.ScaleJson    S(Vector3 v) => new MapJsonModels.ScaleJson    { x = v.x, y = v.y, z = v.z };
     }
 }
