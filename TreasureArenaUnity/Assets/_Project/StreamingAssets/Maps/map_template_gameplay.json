@@ -5,12 +5,12 @@
     "description": "Exported from Unity scene: MapTemplate_Gameplay",
     "objects": [
         {
-            "object_id": "obj_floor_plane",
-            "prefab_id": "floor_plane",
+            "object_id": "Wall_02",
+            "prefab_id": "Wall",
             "position": {
-                "x": 0.0,
+                "x": 10.5,
                 "y": 0.0,
-                "z": 0.0
+                "z": 8.0
             },
             "rotation": {
                 "x": 0.0,
@@ -18,99 +18,19 @@
                 "z": 0.0
             },
             "scale": {
-                "x": 1.2000000476837159,
-                "y": 1.0,
-                "z": 0.800000011920929
-            },
-            "has_collider": true
-        },
-        {
-            "object_id": "obj_cover_mid_right",
-            "prefab_id": "cover_mid_right",
-            "position": {
                 "x": 2.0,
-                "y": 0.44999998807907107,
-                "z": -1.7999999523162842
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 1.5,
-                "y": 0.8999999761581421,
-                "z": 0.5
-            },
-            "has_collider": true
-        },
-        {
-            "object_id": "obj_cover_mid_left",
-            "prefab_id": "cover_mid_left",
-            "position": {
-                "x": -2.0,
-                "y": 0.44999998807907107,
-                "z": 1.7999999523162842
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 1.5,
-                "y": 0.8999999761581421,
-                "z": 0.5
-            },
-            "has_collider": true
-        },
-        {
-            "object_id": "obj_cover_center_column",
-            "prefab_id": "cover_center_column",
-            "position": {
-                "x": 0.0,
-                "y": 0.75,
-                "z": 0.0
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.8999999761581421,
-                "y": 1.5,
-                "z": 0.8999999761581421
-            },
-            "has_collider": true
-        },
-        {
-            "object_id": "obj_wall_west",
-            "prefab_id": "wall_west",
-            "position": {
-                "x": -6.0,
-                "y": 0.5,
-                "z": 0.0
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 0.25,
                 "y": 1.0,
-                "z": 8.0
+                "z": 0.30000001192092898
             },
             "has_collider": true
         },
         {
-            "object_id": "obj_wall_east",
-            "prefab_id": "wall_east",
+            "object_id": "Floor_02",
+            "prefab_id": "Floor",
             "position": {
-                "x": 6.0,
-                "y": 0.5,
-                "z": 0.0
+                "x": 10.0,
+                "y": 0.0,
+                "z": 7.0
             },
             "rotation": {
                 "x": 0.0,
@@ -118,19 +38,19 @@
                 "z": 0.0
             },
             "scale": {
-                "x": 0.25,
+                "x": 2.0,
                 "y": 1.0,
-                "z": 8.0
+                "z": 2.0
             },
             "has_collider": true
         },
         {
-            "object_id": "obj_wall_south",
-            "prefab_id": "wall_south",
+            "object_id": "Cover_03",
+            "prefab_id": "Cover",
             "position": {
-                "x": 0.0,
-                "y": 0.5,
-                "z": -4.0
+                "x": 10.0,
+                "y": 0.0,
+                "z": 9.0
             },
             "rotation": {
                 "x": 0.0,
@@ -138,19 +58,19 @@
                 "z": 0.0
             },
             "scale": {
-                "x": 12.0,
+                "x": 1.0,
                 "y": 1.0,
-                "z": 0.25
+                "z": 0.30000001192092898
             },
             "has_collider": true
         },
         {
-            "object_id": "obj_wall_north",
-            "prefab_id": "wall_north",
+            "object_id": "Cover_02",
+            "prefab_id": "Cover",
             "position": {
-                "x": 0.0,
-                "y": 0.5,
-                "z": 4.0
+                "x": 11.0,
+                "y": 0.0,
+                "z": 9.0
             },
             "rotation": {
                 "x": 0.0,
@@ -158,74 +78,74 @@
                 "z": 0.0
             },
             "scale": {
-                "x": 12.0,
+                "x": 1.0,
                 "y": 1.0,
-                "z": 0.25
+                "z": 0.30000001192092898
             },
             "has_collider": true
         }
     ],
     "team_bases": [
         {
-            "base_id": "blue_base",
+            "base_id": "TeamBase_Blue_02",
             "team": "Blue",
             "position": {
-                "x": 4.0,
-                "y": 0.029999999329447748,
-                "z": 0.0
+                "x": 8.0,
+                "y": 0.05999999865889549,
+                "z": 6.5
             },
-            "radius": 1.2000000476837159
+            "radius": 1.0
         },
         {
-            "base_id": "red_base",
+            "base_id": "TeamBase_Red_02",
             "team": "Red",
             "position": {
-                "x": -4.0,
-                "y": 0.029999999329447748,
-                "z": 0.0
+                "x": 13.5,
+                "y": 0.05999999865889549,
+                "z": 10.0
             },
-            "radius": 1.2000000476837159
+            "radius": 1.0
         }
     ],
     "treasure_spawn_points": [
         {
-            "point_id": "treasure_point_003",
+            "point_id": "Treasure_Final_02",
             "treasure_type": "Final",
             "position": {
-                "x": 0.0,
-                "y": 0.20000000298023225,
-                "z": -2.700000047683716
+                "x": 12.0,
+                "y": 0.0,
+                "z": 6.0
             },
-            "radius": 0.5
+            "radius": 1.0
         },
         {
-            "point_id": "treasure_point_002",
+            "point_id": "Treasure_Rare_02",
             "treasure_type": "Rare",
             "position": {
-                "x": 0.0,
-                "y": 0.20000000298023225,
-                "z": 2.700000047683716
+                "x": 12.5,
+                "y": 0.0,
+                "z": 8.0
             },
-            "radius": 0.5
+            "radius": 1.0
         },
         {
-            "point_id": "treasure_point_001",
+            "point_id": "Treasure_Normal_02",
             "treasure_type": "Normal",
             "position": {
-                "x": 0.0,
-                "y": 0.20000000298023225,
-                "z": 0.0
+                "x": 10.5,
+                "y": 0.0,
+                "z": 10.5
             },
-            "radius": 0.5
+            "radius": 1.0
         }
     ],
     "supply_boxes": [
         {
-            "box_id": "supply_001",
+            "box_id": "SupplyBox_02",
             "position": {
-                "x": 0.0,
-                "y": 0.3499999940395355,
-                "z": -3.4000000953674318
+                "x": 8.5,
+                "y": 0.0,
+                "z": 9.0
             },
             "supply_type": "WeaponRandom",
             "refresh_interval": 20.0
@@ -238,9 +158,9 @@
             "z": 0.0
         },
         "size": {
-            "x": 12.0,
-            "y": 3.0,
-            "z": 8.0
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
         }
     }
 }

@@ -1,0 +1,145 @@
+{
+    "map_id": "map_editor",
+    "map_name": "MapEditor",
+    "version": "1.0.0",
+    "description": "Exported from Unity scene: MapEditor",
+    "objects": [],
+    "team_bases": [
+        {
+            "base_id": "TeamBase_Blue_02",
+            "team": "Blue",
+            "position": {
+                "x": -20.0,
+                "y": 0.0,
+                "z": 6.5
+            },
+            "radius": 1.0
+        },
+        {
+            "base_id": "TeamBase_Red_02",
+            "team": "Red",
+            "position": {
+                "x": -26.0,
+                "y": 0.0,
+                "z": 14.0
+            },
+            "radius": 1.0
+        }
+    ],
+    "treasure_spawn_points": [
+        {
+            "point_id": "Treasure_Final_02",
+            "treasure_type": "Final",
+            "position": {
+                "x": -23.0,
+                "y": 0.0,
+                "z": 10.5
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Rare_02",
+            "treasure_type": "Rare",
+            "position": {
+                "x": -21.0,
+                "y": 0.0,
+                "z": 8.5
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_06",
+            "treasure_type": "Normal",
+            "position": {
+                "x": -20.5,
+                "y": 0.0,
+                "z": 12.0
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_05",
+            "treasure_type": "Normal",
+            "position": {
+                "x": -23.5,
+                "y": 0.0,
+                "z": 9.0
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_04",
+            "treasure_type": "Normal",
+            "position": {
+                "x": -25.5,
+                "y": 0.0,
+                "z": 10.5
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_03",
+            "treasure_type": "Normal",
+            "position": {
+                "x": -24.0,
+                "y": 0.0,
+                "z": 10.5
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_02",
+            "treasure_type": "Normal",
+            "position": {
+                "x": -24.5,
+                "y": 0.0,
+                "z": 13.5
+            },
+            "radius": 1.0
+        }
+    ],
+    "supply_boxes": [
+        {
+            "box_id": "SupplyBox_04",
+            "position": {
+                "x": -23.0,
+                "y": 0.0,
+                "z": 8.5
+            },
+            "supply_type": "WeaponRandom",
+            "refresh_interval": 20.0
+        },
+        {
+            "box_id": "SupplyBox_03",
+            "position": {
+                "x": -25.5,
+                "y": 0.0,
+                "z": 11.5
+            },
+            "supply_type": "WeaponRandom",
+            "refresh_interval": 20.0
+        },
+        {
+            "box_id": "SupplyBox_02",
+            "position": {
+                "x": -23.0,
+                "y": 0.0,
+                "z": 12.0
+            },
+            "supply_type": "WeaponRandom",
+            "refresh_interval": 20.0
+        }
+    ],
+    "bounds": {
+        "center": {
+            "x": -23.0,
+            "y": 0.0,
+            "z": 9.0
+        },
+        "size": {
+            "x": 12.0,
+            "y": 3.0,
+            "z": 8.0
+        }
+    }
+}
