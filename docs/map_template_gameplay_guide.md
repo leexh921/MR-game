@@ -274,6 +274,34 @@ objects
 
 正式地图中墙体、掩体、障碍物都要有 Collider，保证射线和碰撞检测能命中。
 
+### 5.7 MapExportMarker 标记导出（替换命名依赖）
+
+从本版本开始，地图 JSON 导出不再依赖 GameObject 命名，而是通过 `MapExportMarker` 组件标记每个需要导出的物体。
+
+**objects 支持两种粒度：**
+
+1. **整图整体导出（当前 MVP 推荐）：**
+   - 在 Geometry 或 StaticMapRoot 上挂一个 `MapExportMarker`（marker_type = MapObject）。
+   - 导出 1 个 objects 条目，表示整张静态地图。
+   - 子物体不需要额外挂 Marker。
+
+2. **多 prefab 拼图导出（后续 Pico 编辑器推荐）：**
+   - 每个墙体、掩体 prefab 各挂一个 `MapExportMarker`（marker_type = MapObject）。
+   - 导出 N 个 objects 条目，每个条目对应一个独立 prefab。
+
+详见 [docs/map_export_workflow.md](map_export_workflow.md)。
+
+**玩法点必须单独标记导出：**
+
+| 标记类型 | 用途 |
+|---------|------|
+| TeamBase | red_base / blue_base → team_bases |
+| TreasureSpawnPoint | treasure_point_* → treasure_spawn_points |
+| SupplyBox | supply_* → supply_boxes |
+| Bounds | 地图边界 → bounds |
+
+> 不改变 JSON 协议，不改变数据库字段。
+
 ## 6. 当前场景没有模拟什么
 
 这个模板场景目前没有做：
@@ -303,18 +331,20 @@ objects
 地图同学交付正式地图前，至少检查：
 
 ```text
-1. 场景中有 red_base。
-2. 场景中有 blue_base。
+1. 场景中有 red_base（挂 MapExportMarker，marker_type=TeamBase，team=Red）。
+2. 场景中有 blue_base（挂 MapExportMarker，marker_type=TeamBase，team=Blue）。
 3. 红蓝基地位置清晰，玩家能走进去。
 4. red_base 和 blue_base 有 Collider，后续可以作为 Trigger 检测区域。
-5. 至少有 1 个 treasure_point。
+5. 至少有 1 个 treasure_point（挂 MapExportMarker，marker_type=TreasureSpawnPoint）。
 6. 推荐至少有 Normal 和 Rare 两类宝物点。
 7. 至少有 1 个 supply 点，MVP 可先占位。
-8. 地图有边界或明显活动范围。
+8. 地图有边界或明显活动范围（如挂 MapExportMarker，marker_type=Bounds）。
 9. 墙体、掩体、障碍物有 Collider。
 10. 射线可以打到墙、掩体、玩家占位物。
-11. 不要把关键物体命名改成无法识别的随意名字。
-12. 不要删除 .meta 文件。
+11. Geometry 或 StaticMapRoot 挂 MapExportMarker（marker_type=MapObject）用于整图导出。
+12. 不要把关键物体命名改成无法识别的随意名字。
+13. 不要删除 .meta 文件。
+14. 导出前确认所有需要导出的物体都已挂 MapExportMarker。
 ```
 
 ## 8. 后续接入方向
