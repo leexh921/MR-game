@@ -231,7 +231,7 @@ MVP 必须完成：
 
 ```text
 1. 一个 Unity 工程。
-2. Boot、Home、Game、MapPreview 场景。
+2. Boot、Home、Game、MapPreview、MapEditor 场景。
 3. Unity 管理端可以创建多人房间。
 4. 管理端可以选择地图 JSON。
 5. 管理端可以配置 HP、武器伤害、复活倒计时、对局时间和宝物分值。
@@ -244,6 +244,9 @@ MVP 必须完成：
 12. 时间结束后服务端结算红蓝队胜负。
 13. 对局结果写入数据库。
 14. 管理端显示结果。
+15. MapEditor 可以选择 prefab 并放置/移动/旋转/缩放/删除对象。
+16. MapEditor 可以放置 TeamBase / TreasureSpawnPoint / SupplyBox / Bounds。
+17. MapEditor 可以导出地图 JSON，并通过 MapValidator 校验。
 ```
 
 MVP 暂不做：
@@ -256,7 +259,7 @@ MVP 暂不做：
 5. 复杂背包。
 6. 复杂弹孔和材质破坏。
 7. AI 怪物。
-8. 实时地图编辑。
+8. 对局运行中的实时地图修改。
 9. 真实物理抢夺。
 10. 跨公网联机。
 11. 复杂排行榜筛选。
@@ -296,6 +299,9 @@ C：
 从地图编辑器导出样例 JSON。
 李潇涵完成 MapJsonModels、MapLoader、PrefabRegistry 和 MapValidator。
 C 协助制作地图组件 Prefab。
+
+并行阶段：地图编辑器 MVP
+完成 MapEditor 场景、prefab/玩法标记摆放、四周停靠式基础 UI、JSON 导出和 MapValidator 校验。
 
 第 3 阶段：多人房间基础
 崔国庆完成 Server / Client 连接、玩家加入房间、房间状态同步。

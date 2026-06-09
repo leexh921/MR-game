@@ -46,7 +46,7 @@ TreasureArenaMR 是一个基于 Pico 4 的 MR 多人联机双队夺宝竞技游�
 
 ```text
 1. 复杂在线编辑 / 多人协同编辑。
-2. 精美 UI / 复杂美术资产管理。
+2. 精美 UI / 复杂美术资产管理。MVP 只做 docs/map_editor_ui_design.md 中定义的四周停靠式基础 UI。
 3. 实时地图修改同步到运行中游戏。
 4. 跨网络远程编辑。
 ```
@@ -490,6 +490,9 @@ ME-4 MapLoader 加载验证：
 
 ME-5 Pico MR 输入适配：
 编辑器中适配 Pico 手柄/射线输入，支持在 MR 环境中放置和调整物件。
+
+ME-UI 地图编辑器 UI：
+按 docs/map_editor_ui_design.md 分三阶段完成四周停靠式半透明 UI、折叠/展开/固定面板、参数编辑、校验反馈和 MR 操作优化。
 
 ME-6 Prefab 动画和交互规范：
 制定动画 prefab 导出规范，确保编辑器只保存 prefab_id 和 transform，不写入动画状态和交互状态。

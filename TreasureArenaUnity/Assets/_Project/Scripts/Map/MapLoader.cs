@@ -52,6 +52,7 @@ namespace TreasureArenaMR.Map
         public string error;
         public string path;
         public MapJsonModels.MapJson map;
+        public MapData mapData;
         public MapValidationResult validation;
 
         public static MapLoadResult Success(MapJsonModels.MapJson map, MapValidationResult validation, string path)
@@ -60,6 +61,7 @@ namespace TreasureArenaMR.Map
             {
                 ok = true,
                 map = map,
+                mapData = new MapData(map),
                 validation = validation,
                 path = path
             };
@@ -77,6 +79,7 @@ namespace TreasureArenaMR.Map
                 ok = false,
                 error = error,
                 map = map,
+                mapData = null,
                 validation = validation
             };
         }

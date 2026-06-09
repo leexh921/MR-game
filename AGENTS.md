@@ -13,6 +13,13 @@ docs/json_protocol.md
 docs/database_design.md
 ```
 
+地图编辑器相关任务还必须阅读：
+
+```text
+docs/map_editor_design.md
+docs/map_editor_ui_design.md
+```
+
 如果某些文档尚未创建，则先根据已有文件和当前任务范围执行，不要凭空补全大规模架构。
 
 ---
@@ -83,6 +90,7 @@ TreasureArenaUnity/Assets/_Project/
 15. 对协议、配置、场景引用等前置条件，优先在任务说明、命名规范、模板场景和验收标准中明确；代码中只保留必要的边界检查和明确错误提示。
 16. 如果任务是边界清楚的简单代码工作，且不需要 Unity MCP、场景编辑或复杂上下文，优先输出可交给其他 AI 执行的 prompt；由其他 AI 完成后，再由 Codex 负责复核、验收和集成建议。
 17. 每次完成代码改动后，必须输出本次改动的人工验证方式，包括打开哪个场景、使用哪个运行角色、需要点击什么、预期看到什么、Console 中应出现或不应出现什么、如果失败优先检查哪些文件或组件。
+18. MapEditor 是 MVP 必做子项目，但只负责静态地图数据编辑、导出和校验，不参与战斗判定、房间同步或数据库写入。
 
 ---
 
@@ -246,6 +254,9 @@ Scripts/UI
 
 Scripts/Mock
 Mock 多人测试数据和假服务器流程。
+
+Scripts/MapEditor
+地图编辑器运行时和 Editor 工具，例如 prefab/玩法标记摆放、四周停靠式 UI、地图校验和导出绑定。
 ```
 
 ---
