@@ -47,7 +47,7 @@ namespace TreasureArenaMR.Server
             var netPlayer = roomManager.GetNetickPlayer(playerId);
             if (netPlayer != null)
             {
-                var playerObj = netPlayer.PlayerObject;
+                var playerObj = netPlayer.PlayerObject as GameObject;
                 if (playerObj != null)
                 {
                     float dist = Vector3.Distance(playerObj.transform.position, treasurePosition);
@@ -95,13 +95,17 @@ namespace TreasureArenaMR.Server
                 if (teamBase != null)
                 {
                     var netPlayer = roomManager.GetNetickPlayer(playerId);
-                    if (netPlayer != null && netPlayer.PlayerObject != null)
+                    if (netPlayer != null)
                     {
-                        float dist = Vector3.Distance(netPlayer.PlayerObject.transform.position, teamBase.Position);
-                        if (dist > teamBase.Radius + _submitDistance)
+                        var playerObj = netPlayer.PlayerObject as GameObject;
+                        if (playerObj != null)
                         {
-                            Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.Radius + _submitDistance})");
-                            return false;
+                            float dist = Vector3.Distance(playerObj.transform.position, teamBase.Position);
+                            if (dist > teamBase.Radius + _submitDistance)
+                            {
+                                Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.Radius + _submitDistance})");
+                                return false;
+                            }
                         }
                     }
                 }
