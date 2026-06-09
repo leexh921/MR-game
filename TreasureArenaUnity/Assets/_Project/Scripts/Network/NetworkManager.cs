@@ -69,6 +69,7 @@ namespace TreasureArenaMR.Network
 
         public void StartAsServer()
         {
+            EnsureReferences();
             Debug.Log($"[NetworkManager] Starting Netick server on port {_serverPort}");
             NetickNetwork.StartAsServer(_transport, _serverPort, _sandboxPrefab, _netickConfig);
             OnServerStarted?.Invoke();
@@ -76,6 +77,7 @@ namespace TreasureArenaMR.Network
 
         public void StartAsClient(string playerId)
         {
+            EnsureReferences();
             LocalPlayerId = playerId;
             Debug.Log($"[NetworkManager] Starting Netick client, connecting to {_serverAddress}:{_serverPort}");
             var sandbox = NetickNetwork.StartAsClient(_transport, _sandboxPrefab, _netickConfig);
@@ -86,10 +88,21 @@ namespace TreasureArenaMR.Network
 
         public void StartAsHost()
         {
+            EnsureReferences();
             Debug.Log($"[NetworkManager] Starting Netick host on port {_serverPort}");
             NetickNetwork.StartAsHost(_transport, _serverPort, _sandboxPrefab, _netickConfig);
             OnServerStarted?.Invoke();
             OnClientConnected?.Invoke();
+        }
+
+        private void EnsureReferences()
+        {
+            if (_transport == null)
+                _transport = Resources.Load<NetworkTransportProvider>("LiteNetLibTransport");
+            if (_sandboxPrefab == null)
+                _sandboxPrefab = Resources.Load<GameObject>("SandboxRoot");
+            if (_netickConfig == null)
+                _netickConfig = Resources.Load<NetickConfig>("netickConfig");
         }
 
         public void Shutdown()
@@ -109,7 +122,7 @@ namespace TreasureArenaMR.Network
         public void OnSandboxStarted(NetworkSandbox sandbox)
         {
             _sandbox = sandbox;
-            Debug.Log($"[NetworkManager] Sandbox ready. ServerEndPoint={sandbox.ServerEndPoint}");
+            Debug.Log($"[NetworkManager] Sandbox ready. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
         }
 
         public void OnSandboxShutdown()

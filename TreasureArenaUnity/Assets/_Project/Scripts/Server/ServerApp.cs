@@ -1,5 +1,5 @@
 using TreasureArenaMR.Core;
-using TreasureArenaMR.Database;
+using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
 using UnityEngine;
 
@@ -7,8 +7,8 @@ namespace TreasureArenaMR.Server
 {
     /// <summary>
     /// Server runtime role entry point.
-    /// Bootstraps Netick server, database, and server-side services
-    /// when running as AppRole.Server or combined Manager+Server.
+    /// Bootstraps Netick server and server-side services.
+    /// No database persistence in MVP.
     /// </summary>
     public sealed class ServerApp : MonoBehaviour
     {
@@ -45,10 +45,7 @@ namespace TreasureArenaMR.Server
 
             Debug.Log("[ServerApp] Booting server...");
 
-            // 1. Initialize database
-            DatabaseManager.Instance.Initialize();
-
-            // 2. Ensure NetworkManager exists
+            // 1. Ensure NetworkManager exists
             if (_networkManager == null)
                 _networkManager = FindObjectOfType<NetworkManager>();
             if (_networkManager == null)
@@ -70,6 +67,9 @@ namespace TreasureArenaMR.Server
             // 4. Create default room for MVP
             _roomManager.CreateRoom("room_default", "默认房间");
 
+            // 4b. Load map data (hardcoded test map, TODO: MapLoader.LoadFromMapId)
+            _roomManager.SetMapData(MapData.CreateTestMap());
+
             // 5. Start Netick server
             _networkManager.StartAsServer();
 
@@ -87,8 +87,6 @@ namespace TreasureArenaMR.Server
                 _roomManager.Shutdown();
             if (_networkManager != null)
                 _networkManager.Shutdown();
-
-            DatabaseManager.Instance.Shutdown();
 
             IsRunning = false;
             Debug.Log("[ServerApp] Server shut down");

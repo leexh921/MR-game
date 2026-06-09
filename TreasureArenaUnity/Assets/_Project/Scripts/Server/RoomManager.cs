@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Netick;
+using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
@@ -28,6 +29,7 @@ namespace TreasureArenaMR.Server
         public int RedScore { get; private set; }
         public int BlueScore { get; private set; }
         public float RemainingTime { get; private set; }
+        public MapData MapData { get; private set; }
 
         public bool IsFull => Players != null && CurrentRoomConfig != null && Players.Count >= CurrentRoomConfig.max_players;
         public bool CanJoin => CurrentRoomState == RoomState.Waiting;
@@ -160,6 +162,13 @@ namespace TreasureArenaMR.Server
             BlueScore = 0;
             Debug.Log($"[RoomManager] Room created: {roomId}");
             return CurrentRoomConfig;
+        }
+
+        public void SetMapData(MapData mapData)
+        {
+            MapData = mapData;
+            Debug.Log($"[RoomManager] MapData set: spawnZones={mapData.spawnZones.Count}, " +
+                $"bases={mapData.teamBases.Count}, respawnZones={mapData.respawnZones.Count}");
         }
 
         public bool SwitchTeam(string playerId, TeamType targetTeam)

@@ -1,6 +1,7 @@
 using Netick;
 using Netick.Unity;
 using TreasureArenaMR.Server;
+using TreasureArenaMR.Shared;
 using UnityEngine;
 using NetickPlayer = Netick.NetworkPlayer;
 
@@ -12,6 +13,9 @@ namespace TreasureArenaMR.Network
     /// </summary>
     public sealed class SandboxNetworkListener : NetworkEventsListener
     {
+        [Header("Player Spawn")]
+        [SerializeField] private GameObject _playerPrefab;
+
         private RoomManager _roomManager;
         private NetworkManager _networkManager;
 
@@ -52,12 +56,46 @@ namespace TreasureArenaMR.Network
 
             if (_roomManager != null)
             {
-                // Use player ID as nickname for MVP
                 _roomManager.AddNetworkPlayer(playerId, $"Player_{playerId}", networkPlayer);
             }
 
+            // Spawn player at team spawn position
+            SpawnPlayer(sandbox, playerId, networkPlayer);
+
             if (_networkManager != null)
                 _networkManager.RegisterPlayer(playerId);
+        }
+
+        private void SpawnPlayer(NetworkSandbox sandbox, string playerId, NetickPlayer netPlayer)
+        {
+            if (_roomManager?.MapData == null) return;
+
+            var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
+            if (playerInfo == null) return;
+
+            var teamType = playerInfo.team == "Red" ? TeamType.Red :
+                           playerInfo.team == "Blue" ? TeamType.Blue : TeamType.None;
+            if (teamType == TeamType.None) return;
+
+            var spawnZone = _roomManager.MapData.GetFirstSpawn(teamType);
+            if (spawnZone == null) return;
+
+            Debug.Log($"[SandboxNetworkListener] Spawning player {playerId} ({teamType}) at {spawnZone.position}");
+
+            if (_playerPrefab != null)
+            {
+                var playerObj = sandbox.NetworkInstantiate(_playerPrefab,
+                    spawnZone.position, Quaternion.identity, netPlayer);
+                sandbox.SetPlayerObject(netPlayer.PlayerId, playerObj);
+
+                // Attach NetworkPlayer component data
+                var netComp = playerObj.GetComponent<NetworkPlayer>();
+                if (netComp != null)
+                {
+                    netComp.Initialize(playerId, $"Player_{playerId}", teamType);
+                    netComp.NetickPlayerId = netPlayer.PlayerId;
+                }
+            }
         }
 
         public override void OnPlayerDisconnected(

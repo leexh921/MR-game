@@ -1,14 +1,12 @@
 using System;
-using System.Collections.Generic;
-using TreasureArenaMR.Database;
 using TreasureArenaMR.Shared;
 using UnityEngine;
 
 namespace TreasureArenaMR.Server
 {
     /// <summary>
-    /// Handles match finish: winner calculation, result packaging,
-    /// and persistence via MatchRepository.
+    /// Handles match finish: winner calculation and result packaging.
+    /// No database persistence in MVP — results are logged to Console only.
     /// </summary>
     public sealed class MatchSettlementService : MonoBehaviour
     {
@@ -57,9 +55,8 @@ namespace TreasureArenaMR.Server
 
         public void SaveMatchResult(MatchResult result)
         {
-            var repo = new MatchRepository();
-            repo.InsertMatchResult(result);
-            Debug.Log($"[MatchSettlementService] Match result saved: {result.match_id}");
+            Debug.Log($"[MatchSettlementService] Match result (not persisted): {result.match_id} " +
+                $"Red {result.red_score} - Blue {result.blue_score}, Winner: {result.winner_team}");
         }
 
         private string GenerateMatchId()

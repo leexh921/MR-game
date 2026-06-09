@@ -1,3 +1,4 @@
+using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace TreasureArenaMR.Server
         /// Validates: player is Alive, not already carrying, treasure is Spawned,
         /// player is within pickup range.
         /// </summary>
-        public bool TryPickup(string playerId, string treasureId, RoomManager roomManager)
+        public bool TryPickup(string playerId, string treasureId, Vector3 treasurePosition, RoomManager roomManager)
         {
             var player = roomManager.Players.Find(p => p.player_id == playerId);
             if (player == null)
@@ -42,9 +43,21 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            // TODO: Validate treasure exists and is in Spawned state
-            // TODO: Validate distance between player and treasure
-            // For MVP skeleton, assume success if basic checks pass
+            // Validate distance between player and treasure
+            var netPlayer = roomManager.GetNetickPlayer(playerId);
+            if (netPlayer != null)
+            {
+                var playerObj = netPlayer.PlayerObject;
+                if (playerObj != null)
+                {
+                    float dist = Vector3.Distance(playerObj.transform.position, treasurePosition);
+                    if (dist > _pickupDistance)
+                    {
+                        Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from treasure ({dist:F1} > {_pickupDistance})");
+                        return false;
+                    }
+                }
+            }
 
             player.carried_treasure_id = treasureId;
             Debug.Log($"[ServerTreasureAuthority] Player {playerId} picked up treasure {treasureId}");
@@ -76,8 +89,25 @@ namespace TreasureArenaMR.Server
 
             var teamType = teamStr == "Red" ? TeamType.Red : TeamType.Blue;
 
-            // TODO: Validate player is within submit range of their team base
-            // For MVP skeleton, assume success
+            // Validate player is within submit range of their team base
+            var mapData = roomManager.MapData;
+            if (mapData != null)
+            {
+                var teamBase = mapData.GetTeamBase(teamType);
+                if (teamBase != null)
+                {
+                    var netPlayer = roomManager.GetNetickPlayer(playerId);
+                    if (netPlayer != null && netPlayer.PlayerObject != null)
+                    {
+                        float dist = Vector3.Distance(netPlayer.PlayerObject.transform.position, teamBase.position);
+                        if (dist > teamBase.radius + _submitDistance)
+                        {
+                            Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.radius + _submitDistance})");
+                            return false;
+                        }
+                    }
+                }
+            }
 
             int scoreValue = GetTreasureScore(player.carried_treasure_id, roomManager);
             roomManager.AddScore(teamType, scoreValue);
