@@ -1,0 +1,166 @@
+{
+    "map_id": "map_template_gameplay",
+    "map_name": "MapTemplate_Gameplay",
+    "version": "1.0.0",
+    "description": "Exported from Unity scene: MapTemplate_Gameplay",
+    "objects": [
+        {
+            "object_id": "Wall_02",
+            "prefab_id": "Wall",
+            "position": {
+                "x": 10.5,
+                "y": 0.0,
+                "z": 8.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 1.0,
+                "z": 0.30000001192092898
+            },
+            "has_collider": true
+        },
+        {
+            "object_id": "Floor_02",
+            "prefab_id": "Floor",
+            "position": {
+                "x": 10.0,
+                "y": 0.0,
+                "z": 7.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 2.0,
+                "y": 1.0,
+                "z": 2.0
+            },
+            "has_collider": true
+        },
+        {
+            "object_id": "Cover_03",
+            "prefab_id": "Cover",
+            "position": {
+                "x": 10.0,
+                "y": 0.0,
+                "z": 9.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.30000001192092898
+            },
+            "has_collider": true
+        },
+        {
+            "object_id": "Cover_02",
+            "prefab_id": "Cover",
+            "position": {
+                "x": 11.0,
+                "y": 0.0,
+                "z": 9.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 0.30000001192092898
+            },
+            "has_collider": true
+        }
+    ],
+    "team_bases": [
+        {
+            "base_id": "TeamBase_Blue_02",
+            "team": "Blue",
+            "position": {
+                "x": 8.0,
+                "y": 0.05999999865889549,
+                "z": 6.5
+            },
+            "radius": 1.0
+        },
+        {
+            "base_id": "TeamBase_Red_02",
+            "team": "Red",
+            "position": {
+                "x": 13.5,
+                "y": 0.05999999865889549,
+                "z": 10.0
+            },
+            "radius": 1.0
+        }
+    ],
+    "treasure_spawn_points": [
+        {
+            "point_id": "Treasure_Final_02",
+            "treasure_type": "Final",
+            "position": {
+                "x": 12.0,
+                "y": 0.0,
+                "z": 6.0
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Rare_02",
+            "treasure_type": "Rare",
+            "position": {
+                "x": 12.5,
+                "y": 0.0,
+                "z": 8.0
+            },
+            "radius": 1.0
+        },
+        {
+            "point_id": "Treasure_Normal_02",
+            "treasure_type": "Normal",
+            "position": {
+                "x": 10.5,
+                "y": 0.0,
+                "z": 10.5
+            },
+            "radius": 1.0
+        }
+    ],
+    "supply_boxes": [
+        {
+            "box_id": "SupplyBox_02",
+            "position": {
+                "x": 8.5,
+                "y": 0.0,
+                "z": 9.0
+            },
+            "supply_type": "WeaponRandom",
+            "refresh_interval": 20.0
+        }
+    ],
+    "bounds": {
+        "center": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "size": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        }
+    }
+}

@@ -15,28 +15,48 @@ TreasureArenaMR 是一个基于 Pico 4 的 MR 多人联机双队夺宝竞技游�
 
 ---
 
-## 2. 当前重要修正
+## 2. 当前重要修正与地图编辑器定位
 
-老师提到的“地图编辑 / 地图绘制软件”不是当前已有工具给我们直接使用，而是可以作为后续扩展功能开发。
+### 2.1 地图编辑器已调整为必做 MVP 子项目
 
-因此 MVP 阶段不开发地图编辑器。
-
-MVP 阶段地图处理方式改为：
+地图编辑器不再是”后续扩展功能”，而是与多人夺宝闭环**并行推进**的独立 MVP 子项目。
 
 ```text
-1. 开发组先手动制作测试地图。
-2. 地图可以先用 Unity 场景中的基础物体搭建。
-3. 同时定义我们自己的地图 JSON 协议。
-4. 地图 JSON 用于描述出生区、复活区、基地、宝物刷新点、物资箱和地图物体。
-5. 后续如果时间允许，再开发地图编辑器或地图导出工具。
+1. 地图编辑器先在 TreasureArenaUnity 工程内作为独立场景/模块开发。
+2. 后续如有需要可拆成单独的 Unity App。
+3. 编辑器 MVP 只负责摆放 prefab、玩法点、bounds，并导出当前 JSON 协议文件。
+4. 编辑器不参与战斗判定，不修改服务器权威边界。
+5. 编辑器导出的 JSON 必须通过 MapValidator 校验。
 ```
 
-当前优先级：
+### 2.2 地图编辑器 MVP 范围
 
 ```text
-先做完整多人双队夺宝闭环
-→ 再完善地图 JSON 加载
-→ 最后再考虑地图编辑器功能
+1. 独立 MapEditor 模块/场景。
+2. 可从 prefab 库中选择物件放置到场景中。
+3. 支持放置/移动/旋转/缩放/删除地图物件。
+4. 支持放置 red_base、blue_base（带 TeamBase 标记）。
+5. 支持放置 treasure points（带 TreasureSpawnPoint 标记）。
+6. 支持放置 supply boxes（带 SupplyBox 标记）。
+7. 支持放置 bounds（带 Bounds 标记）。
+8. 可导出地图 JSON，并通过 MapValidator 校验。
+```
+
+### 2.3 地图编辑器暂不做
+
+```text
+1. 复杂在线编辑 / 多人协同编辑。
+2. 精美 UI / 复杂美术资产管理。MVP 只做 docs/map_editor_ui_design.md 中定义的四周停靠式基础 UI。
+3. 实时地图修改同步到运行中游戏。
+4. 跨网络远程编辑。
+```
+
+### 2.4 当前优先级
+
+```text
+多人夺宝闭环 与 地图编辑器 MVP 并行推进
+→ 编辑器先保证导出 JSON 可验证、可加载
+→ 多人闭环验证地图 JSON 可正常加载运行
 ```
 
 ---
@@ -72,9 +92,9 @@ TreasureArenaMR
 │   └── 向服务端发送操作请求
 │
 ├── 地图 JSON
-│   ├── 由项目组自行定义
-│   ├── MVP 阶段手动编写或由简单工具生成
-│   └── 后续可接地图编辑器
+│   ├── 由项目组自行定义（已冻结）
+│   ├── 可由 MapEditor 导出、Unity 标记导出工具生成或手动编写
+│   └── 通过 MapValidator 校验后由 MapLoader 加载
 │
 └── 数据库
     ├── 保存玩家
@@ -262,7 +282,7 @@ MVP 阶段采用限时积分制：
 
 ```text
 1. 一个 Unity 工程。
-2. Boot、Home、Game、MapPreview 场景。
+2. Boot、Home、Game、MapPreview、MapEditor 场景。
 3. Unity 管理端可以创建多人房间。
 4. 管理端可以选择地图。
 5. 管理端可以配置 HP、武器伤害、复活倒计时、对局时间和宝物分值。
@@ -276,6 +296,9 @@ MVP 阶段采用限时积分制：
 13. 时间结束后服务端结算红蓝队胜负。
 14. 对局结果写入数据库。
 15. 管理端显示结果。
+16. MapEditor 独立模块/场景，可选择 prefab 并放置/移动/旋转/缩放/删除对象。
+17. MapEditor 可放置 red_base、blue_base、treasure points、supply boxes、bounds。
+18. MapEditor 可保存地图 JSON，并通过 MapValidator 校验。
 ```
 
 ### 6.2 MVP 暂不做
@@ -283,13 +306,13 @@ MVP 阶段采用限时积分制：
 ```text
 1. Web 管理端。
 2. 正式单人寻宝模式。
-3. 地图编辑器 / 地图绘制软件。
+3. 复杂在线地图编辑 / 多人协同地图编辑。
 4. 复杂账号注册登录。
 5. 多种复杂武器。
 6. 复杂背包。
 7. 复杂弹孔和材质破坏。
 8. AI 怪物。
-9. 实时地图编辑。
+9. 实时地图修改同步到运行中游戏。
 10. 真实物理抢夺。
 11. 跨公网联机。
 12. 复杂排行榜筛选。
@@ -298,7 +321,7 @@ MVP 阶段采用限时积分制：
 ### 6.3 增强版功能
 
 ```text
-1. 地图编辑器或地图绘制工具。
+1. 地图编辑器增强（多人协同编辑、在线编辑、精美 UI、拆分为独立 App）。
 2. 多种武器。
 3. 物资箱随机刷新武器和道具。
 4. 更多地图模板。
@@ -419,6 +442,8 @@ C：
 
 ## 10. 推荐开发路线
 
+### 10.1 多人夺宝闭环路线
+
 ```text
 第 1 阶段：项目骨架
 建立 Unity 工程、目录结构、Boot/Home/Game/MapPreview 场景、AppRole、RoomConfig、PlayerState 和 Mock 多人数据。
@@ -443,6 +468,37 @@ C：
 
 第 8 阶段：UI / 场景 / Prefab 美化
 A、B、C 完成管理端 UI、Pico HUD、地图组件、宝物、武器、基地、复活区和展示效果。
+```
+
+### 10.2 地图编辑器路线（与多人闭环并行推进）
+
+```text
+ME-0 文档与口径冻结：
+确定编辑器 MVP 范围、不改 JSON 协议、不改数据库，更新 project_design.md 和 json_protocol.md。
+
+ME-1 Unity Editor 模拟编辑器：
+创建 MapEditor 场景，实现 Editor 模式下的 prefab 放置、移动、旋转、缩放、删除。
+
+ME-2 玩法标记放置：
+在编辑器中支持放置 TeamBase / TreasureSpawnPoint / SupplyBox / Bounds 标记。
+
+ME-3 地图保存与验证：
+实现编辑器导出地图 JSON，确保通过 MapValidator 校验。
+
+ME-4 MapLoader 加载验证：
+使用 MapLoader 加载编辑器导出的 JSON，在场景中验证物件和标记位置正确。
+
+ME-5 Pico MR 输入适配：
+编辑器中适配 Pico 手柄/射线输入，支持在 MR 环境中放置和调整物件。
+
+ME-UI 地图编辑器 UI：
+按 docs/map_editor_ui_design.md 分三阶段完成四周停靠式半透明 UI、折叠/展开/固定面板、参数编辑、校验反馈和 MR 操作优化。
+
+ME-6 Prefab 动画和交互规范：
+制定动画 prefab 导出规范，确保编辑器只保存 prefab_id 和 transform，不写入动画状态和交互状态。
+
+ME-7 集成验收：
+编辑器导出的地图 JSON 可被多人夺宝闭环正常加载和运行。
 ```
 
 ---
@@ -489,14 +545,14 @@ Unity 管理端创建多人房间
 - database/seed_data.sql（新建）
 
 已完成功能：
-- 地图 JSON 协议完整：spawn_zones / respawn_zones / team_bases / treasure_spawn_points / supply_boxes / bounds / objects
+- 地图 JSON 协议完整：team_bases（合并出生区/复活区/基地）/ treasure_spawn_points / supply_boxes / bounds / objects
 - 房间配置 JSON 完整：game_mode / map_id / match_time / player_max_hp / respawn_countdown / weapon_config / treasure_scores
 - 网络消息完整：join_room / switch_team / start_match / pickup_treasure / submit_treasure / attack / ghost_retreat / respawn_countdown_started / player_respawned / room_state_update / match_finished
 - 错误码完整：覆盖房间、玩家、宝物、武器、复活等所有操作
 - 数据库 5 张核心表：player / map_info / room_config / match_result / player_match_stat
 - room_config 表字段覆盖 RoomConfig JSON 全部字段
 - match_result + player_match_stat 覆盖 match_finished 消息全部字段
-- 样例地图 test_map_01.json（对称小地图，红蓝各 spawn/respawn/base，4 个宝物点，1 个物资箱）
+- 样例地图 test_map_01.json（对称小地图，红蓝各一个基地，4 个宝物点，1 个物资箱）
 - 样例配置 3 份（room_config / weapon_config / treasure_config）
 - schema.sql 和 seed_data.sql 可执行
 

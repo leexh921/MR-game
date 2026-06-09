@@ -2,7 +2,7 @@
   "map_id": "test_map_01",
   "map_name": "测试地图 01",
   "version": "1.0.0",
-  "description": "MVP 测试用小型对称地图。红蓝双方各有一个出生区、复活区、基地。中央区域有宝物刷新点。",
+  "description": "MVP 测试用小型对称地图。红蓝双方各有一个基地（同时作为出生区和复活区）。中央区域有宝物刷新点。",
   "objects": [
     {
       "object_id": "obj_wall_north",
@@ -43,34 +43,6 @@
       "rotation": { "x": 0.0, "y": 0.0, "z": 0.0 },
       "scale": { "x": 0.5, "y": 1.5, "z": 0.5 },
       "has_collider": true
-    }
-  ],
-  "spawn_zones": [
-    {
-      "zone_id": "red_spawn",
-      "team": "Red",
-      "position": { "x": -4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    },
-    {
-      "zone_id": "blue_spawn",
-      "team": "Blue",
-      "position": { "x": 4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    }
-  ],
-  "respawn_zones": [
-    {
-      "zone_id": "red_respawn",
-      "team": "Red",
-      "position": { "x": -4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
-    },
-    {
-      "zone_id": "blue_respawn",
-      "team": "Blue",
-      "position": { "x": 4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
     }
   ],
   "team_bases": [

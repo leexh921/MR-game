@@ -36,13 +36,13 @@ namespace TreasureArenaMR.Network
 
         public void ApplyServerState(TreasureRuntimeState state)
         {
-            _state = ParseTreasureState(state.state);
+            _state = state.state;
             _scoreValue = state.score_value;
             _carrierPlayerId = state.carrier_player_id;
 
             if (_state == TreasureState.Spawned || _state == TreasureState.Dropped)
             {
-                transform.position = new Vector3(state.pos_x, state.pos_y, state.pos_z);
+                transform.position = state.position;
             }
         }
 
@@ -51,25 +51,12 @@ namespace TreasureArenaMR.Network
             return new TreasureRuntimeState
             {
                 treasure_id = _treasureId,
-                treasure_type = _treasureType.ToString(),
-                state = _state.ToString(),
+                treasure_type = _treasureType,
+                state = _state,
                 score_value = _scoreValue,
-                pos_x = transform.position.x,
-                pos_y = transform.position.y,
-                pos_z = transform.position.z,
+                position = transform.position,
                 carrier_player_id = _carrierPlayerId
             };
-        }
-
-        private TreasureState ParseTreasureState(string stateStr)
-        {
-            switch (stateStr)
-            {
-                case "Carried": return TreasureState.Carried;
-                case "Dropped": return TreasureState.Dropped;
-                case "Submitted": return TreasureState.Submitted;
-                default: return TreasureState.Spawned;
-            }
         }
     }
 }

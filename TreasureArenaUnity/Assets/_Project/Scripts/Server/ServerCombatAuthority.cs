@@ -54,13 +54,13 @@ namespace TreasureArenaMR.Server
         {
             var player = roomManager.Players.Find(p => p.player_id == targetPlayerId);
             if (player == null) return -1;
-            if (player.state != "Alive") return -1;
+            if (player.state != PlayerState.Alive) return -1;
 
             player.hp -= damage;
             if (player.hp <= 0)
             {
                 player.hp = 0;
-                player.state = "GhostRetreat";
+                player.state = PlayerState.GhostRetreat;
 
                 // Drop carried treasure
                 if (!string.IsNullOrEmpty(player.carried_treasure_id))

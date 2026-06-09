@@ -102,7 +102,7 @@ created_at: 2026-06-02 20:00:00
 
 ### 5.1 作用
 
-保存地图信息。MVP 阶段地图由项目组手动制作或手动编写 JSON，不开发地图编辑器。
+保存地图信息。MVP 阶段地图 JSON 可以由 MapEditor 导出、Unity 标记导出工具生成或手动编写。数据库只记录地图元信息和 JSON 路径，不保存编辑器运行时状态。
 
 ### 5.2 字段
 
@@ -314,66 +314,67 @@ MVP 阶段也可以先手动插入地图记录。
 
 ---
 
-## 12.MYSQL建表 SQL
+## 12. MySQL 建表 SQL
 
+MVP 使用 MySQL 数据库。以下 SQL 与 `database/schema.sql` 保持一致。
 
 ```sql
 CREATE TABLE IF NOT EXISTS player (
-    player_id TEXT PRIMARY KEY,
-    nickname TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    player_id VARCHAR(64) PRIMARY KEY,
+    nickname VARCHAR(128) NOT NULL,
+    created_at DATETIME NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS map_info (
-    map_id TEXT PRIMARY KEY,
-    map_name TEXT NOT NULL,
-    json_path TEXT NOT NULL,
-    description TEXT,
-    created_at TEXT NOT NULL
+    map_id VARCHAR(64) PRIMARY KEY,
+    map_name VARCHAR(128) NOT NULL,
+    json_path VARCHAR(512) NOT NULL,
+    description VARCHAR(512),
+    created_at DATETIME NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS room_config (
-    room_id TEXT PRIMARY KEY,
-    room_name TEXT NOT NULL,
-    map_id TEXT NOT NULL,
-    game_mode TEXT NOT NULL,
+    room_id VARCHAR(64) PRIMARY KEY,
+    room_name VARCHAR(128) NOT NULL,
+    map_id VARCHAR(64) NOT NULL,
+    game_mode VARCHAR(64) NOT NULL,
     max_players INTEGER NOT NULL,
-    match_time REAL NOT NULL,
+    match_time FLOAT NOT NULL,
     round_count INTEGER NOT NULL,
     player_max_hp INTEGER NOT NULL,
-    weapon_id TEXT NOT NULL,
+    weapon_id VARCHAR(64) NOT NULL,
     weapon_damage INTEGER NOT NULL,
-    weapon_range REAL NOT NULL,
-    weapon_cooldown REAL NOT NULL,
-    respawn_countdown REAL NOT NULL,
+    weapon_range FLOAT NOT NULL,
+    weapon_cooldown FLOAT NOT NULL,
+    respawn_countdown FLOAT NOT NULL,
     normal_treasure_score INTEGER NOT NULL,
     rare_treasure_score INTEGER NOT NULL,
     final_treasure_score INTEGER NOT NULL,
-    treasure_refresh_interval REAL NOT NULL DEFAULT 10.0,
-    supply_refresh_interval REAL NOT NULL DEFAULT 20.0,
-    created_at TEXT NOT NULL,
+    treasure_refresh_interval FLOAT NOT NULL DEFAULT 10.0,
+    supply_refresh_interval FLOAT NOT NULL DEFAULT 20.0,
+    created_at DATETIME NOT NULL,
     FOREIGN KEY (map_id) REFERENCES map_info(map_id)
 );
 
 CREATE TABLE IF NOT EXISTS match_result (
-    match_id TEXT PRIMARY KEY,
-    room_id TEXT NOT NULL,
-    map_id TEXT NOT NULL,
+    match_id VARCHAR(64) PRIMARY KEY,
+    room_id VARCHAR(64) NOT NULL,
+    map_id VARCHAR(64) NOT NULL,
     red_score INTEGER NOT NULL,
     blue_score INTEGER NOT NULL,
-    winner_team TEXT NOT NULL,
-    duration REAL NOT NULL,
-    started_at TEXT NOT NULL,
-    ended_at TEXT NOT NULL,
+    winner_team VARCHAR(16) NOT NULL,
+    duration FLOAT NOT NULL,
+    started_at DATETIME NOT NULL,
+    ended_at DATETIME NOT NULL,
     FOREIGN KEY (room_id) REFERENCES room_config(room_id),
     FOREIGN KEY (map_id) REFERENCES map_info(map_id)
 );
 
 CREATE TABLE IF NOT EXISTS player_match_stat (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    match_id TEXT NOT NULL,
-    player_id TEXT NOT NULL,
-    team TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    match_id VARCHAR(64) NOT NULL,
+    player_id VARCHAR(64) NOT NULL,
+    team VARCHAR(16) NOT NULL,
     kills INTEGER NOT NULL DEFAULT 0,
     deaths INTEGER NOT NULL DEFAULT 0,
     treasures_submitted INTEGER NOT NULL DEFAULT 0,

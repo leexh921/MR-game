@@ -2,7 +2,7 @@
 
 > 责任人：李潇涵 + 崔国庆  
 > 文档作用：定义地图 JSON、房间配置 JSON、玩家、武器、宝物、网络请求字段和错误码。  
-> 注意：MVP 阶段不开发地图编辑器，地图 JSON 协议由项目组自行确定，测试地图可手动编写或由简单工具生成。
+> 注意：地图 JSON 协议已冻结。地图编辑器作为必做 MVP 子项目，必须按本协议导出地图 JSON，不得新增/改名字段。如确需变更协议，必须先提交协议变更建议并等待确认。测试地图可由 MapEditor 导出、Unity 标记导出工具生成或手动编写。
 
 ---
 
@@ -99,21 +99,26 @@ LocalTest 只作为开发调试角色，不作为正式玩法模式。
 
 ### 3.1 设计说明
 
-MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。  
-测试地图可以通过手写 JSON、Unity 中手动摆放后导出、或后续简单编辑工具生成。
+地图 JSON 协议已冻结，可由以下方式生成：
 
-地图 JSON 至少要描述：
+```text
+1. Pico 端 MR 地图编辑器（MapEditor）导出。
+2. Unity Editor 中通过 MapExportMarker 标记后使用 MapSceneJsonExporter 导出。
+3. 开发期手写 JSON。
+```
+
+地图 JSON 至少描述：
 
 ```text
 1. 地图基本信息
-2. 地图物体
-3. 红蓝出生区
-4. 红蓝复活区
-5. 红蓝基地区
-6. 宝物刷新点
-7. 物资箱点，可选
-8. 地图边界，可选
+2. 地图物体（objects：整图或逐 prefab）
+3. 红蓝基地区（team_bases：合并出生区、复活区和提交区语义）
+4. 宝物刷新点（treasure_spawn_points）
+5. 物资箱点（supply_boxes），可选
+6. 地图边界（bounds），可选
 ```
+
+> 动画物体只保存 `prefab_id` 和 transform，动画状态、交互状态不写入地图 JSON。
 
 ### 3.2 MapJson 示例
 
@@ -131,34 +136,6 @@ MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。
       "rotation": { "x": 0.0, "y": 90.0, "z": 0.0 },
       "scale": { "x": 1.0, "y": 1.0, "z": 1.0 },
       "has_collider": true
-    }
-  ],
-  "spawn_zones": [
-    {
-      "zone_id": "red_spawn",
-      "team": "Red",
-      "position": { "x": -4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    },
-    {
-      "zone_id": "blue_spawn",
-      "team": "Blue",
-      "position": { "x": 4.0, "y": 0.0, "z": 0.0 },
-      "radius": 1.0
-    }
-  ],
-  "respawn_zones": [
-    {
-      "zone_id": "red_respawn",
-      "team": "Red",
-      "position": { "x": -4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
-    },
-    {
-      "zone_id": "blue_respawn",
-      "team": "Blue",
-      "position": { "x": 4.5, "y": 0.0, "z": 0.0 },
-      "radius": 1.2
     }
   ],
   "team_bases": [
@@ -212,9 +189,7 @@ MVP 阶段不开发地图编辑器，地图 JSON 由项目组自行定义。
 | map_name | string | 是 | 地图显示名称 |
 | version | string | 是 | 地图协议版本 |
 | objects | array | 否 | 普通地图物体 |
-| spawn_zones | array | 是 | 出生区，至少红蓝各一个 |
-| respawn_zones | array | 是 | 复活区，至少红蓝各一个 |
-| team_bases | array | 是 | 提交宝物的基地，至少红蓝各一个 |
+| team_bases | array | 是 | 基地区（同时作为出生区和复活区），至少红蓝各一个 |
 | treasure_spawn_points | array | 是 | 宝物刷新点 |
 | supply_boxes | array | 否 | 物资箱点 |
 | bounds | object | 否 | 地图边界 |

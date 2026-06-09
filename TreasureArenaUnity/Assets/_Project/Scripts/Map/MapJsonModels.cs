@@ -1,105 +1,94 @@
+using System;
 using System.Collections.Generic;
-using TreasureArenaMR.Shared;
-using UnityEngine;
 
 namespace TreasureArenaMR.Map
 {
     /// <summary>
-    /// A single zone on the map (spawn, respawn, base, treasure point, supply box).
-    /// Maps to json_protocol.md spawn_zones / respawn_zones / team_bases entries.
+    /// C# models that match the MVP map JSON protocol.
     /// </summary>
-    [System.Serializable]
-    public sealed class MapZone
+    public sealed class MapJsonModels
     {
-        public string zone_id;
-        public string team;
-        public Vector3 position;
-        public float radius;
-
-        public MapZone() { }
-
-        public MapZone(string zoneId, string team, Vector3 pos, float radius)
+        [Serializable]
+        public sealed class MapJson
         {
-            zone_id = zoneId;
-            this.team = team;
-            position = pos;
-            this.radius = radius;
+            public string map_id;
+            public string map_name;
+            public string version = "1.0.0";
+            public string description;
+            public List<MapObjectJson> objects = new List<MapObjectJson>();
+            public List<TeamBaseJson> team_bases = new List<TeamBaseJson>();
+            public List<TreasureSpawnPointJson> treasure_spawn_points = new List<TreasureSpawnPointJson>();
+            public List<SupplyBoxJson> supply_boxes = new List<SupplyBoxJson>();
+            public BoundsJson bounds;
         }
 
-        public TeamType TeamEnum
+        [Serializable]
+        public sealed class MapObjectJson
         {
-            get
-            {
-                if (team == "Red") return TeamType.Red;
-                if (team == "Blue") return TeamType.Blue;
-                return TeamType.None;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Parsed map data ready for Server authority use.
-    /// Provides coordinate access for spawn/respawn/base/treasure zones.
-    /// 
-    /// MVP: uses hardcoded test_map_01 data until MapLoader reads JSON.
-    /// When MapLoader is ready, replace CreateTestMap() with real parsing.
-    /// </summary>
-    public sealed class MapData
-    {
-        public List<MapZone> spawnZones      = new List<MapZone>();
-        public List<MapZone> respawnZones    = new List<MapZone>();
-        public List<MapZone> teamBases       = new List<MapZone>();
-        public List<MapZone> treasurePoints  = new List<MapZone>();
-
-        public List<MapZone> GetSpawnZones(TeamType team)
-        {
-            string t = team == TeamType.Red ? "Red" : "Blue";
-            return spawnZones.FindAll(z => z.team == t);
+            public string object_id;
+            public string prefab_id;
+            public Vector3Json position;
+            public RotationJson rotation;
+            public ScaleJson scale;
+            public bool has_collider;
         }
 
-        public MapZone GetTeamBase(TeamType team)
+        [Serializable]
+        public sealed class TeamBaseJson
         {
-            string t = team == TeamType.Red ? "Red" : "Blue";
-            return teamBases.Find(z => z.team == t);
+            public string base_id;
+            public string team;
+            public Vector3Json position;
+            public float radius = 1f;
         }
 
-        public MapZone GetRespawnZone(TeamType team)
+        [Serializable]
+        public sealed class TreasureSpawnPointJson
         {
-            string t = team == TeamType.Red ? "Red" : "Blue";
-            return respawnZones.Find(z => z.team == t);
+            public string point_id;
+            public string treasure_type;
+            public Vector3Json position;
+            public float radius = 0.5f;
         }
 
-        public MapZone GetFirstSpawn(TeamType team)
+        [Serializable]
+        public sealed class SupplyBoxJson
         {
-            string t = team == TeamType.Red ? "Red" : "Blue";
-            return spawnZones.Find(z => z.team == t);
+            public string box_id;
+            public Vector3Json position;
+            public string supply_type;
+            public float refresh_interval = 20f;
         }
 
-        /// <summary>
-        /// Hardcoded test_map_01 data matching StreamingAssets/Maps/test_map_01.json.
-        /// TODO: Replace with MapLoader.LoadFromMapId() when ready.
-        /// </summary>
-        public static MapData CreateTestMap()
+        [Serializable]
+        public sealed class BoundsJson
         {
-            var map = new MapData();
+            public Vector3Json center;
+            public Vector3Json size;
+        }
 
-            map.spawnZones.Add(new MapZone("red_spawn_1", "Red",  new Vector3(-4f, 0f, 1.5f),  1.0f));
-            map.spawnZones.Add(new MapZone("red_spawn_2", "Red",  new Vector3(-4f, 0f, -1.5f), 1.0f));
-            map.spawnZones.Add(new MapZone("blue_spawn_1", "Blue", new Vector3(4f, 0f, 1.5f),  1.0f));
-            map.spawnZones.Add(new MapZone("blue_spawn_2", "Blue", new Vector3(4f, 0f, -1.5f), 1.0f));
+        [Serializable]
+        public sealed class Vector3Json
+        {
+            public float x;
+            public float y;
+            public float z;
+        }
 
-            map.respawnZones.Add(new MapZone("red_respawn", "Red",   new Vector3(-5f, 0f, 0f), 1.5f));
-            map.respawnZones.Add(new MapZone("blue_respawn", "Blue", new Vector3(5f, 0f, 0f),  1.5f));
+        [Serializable]
+        public sealed class RotationJson
+        {
+            public float x;
+            public float y;
+            public float z;
+        }
 
-            map.teamBases.Add(new MapZone("red_base", "Red",   new Vector3(-5.5f, 0f, 0f), 1.5f));
-            map.teamBases.Add(new MapZone("blue_base", "Blue", new Vector3(5.5f, 0f, 0f),  1.5f));
-
-            map.treasurePoints.Add(new MapZone("treasure_n_001", "None", new Vector3(0f, 0.5f, 2.5f),  0.5f));
-            map.treasurePoints.Add(new MapZone("treasure_n_002", "None", new Vector3(0f, 0.5f, -2.5f), 0.5f));
-            map.treasurePoints.Add(new MapZone("treasure_r_001", "None", new Vector3(-2f, 0.5f, 0f),  0.5f));
-            map.treasurePoints.Add(new MapZone("treasure_r_002", "None", new Vector3(2f, 0.5f, 0f),   0.5f));
-
-            return map;
+        [Serializable]
+        public sealed class ScaleJson
+        {
+            public float x = 1f;
+            public float y = 1f;
+            public float z = 1f;
         }
     }
 }

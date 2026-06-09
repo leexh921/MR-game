@@ -20,18 +20,16 @@ namespace TreasureArenaMR.Server
                 map_id = config.map_id,
                 red_score = roomManager.RedScore,
                 blue_score = roomManager.BlueScore,
-                duration = config.match_time - roomManager.RemainingTime,
-                started_at = config.created_at,
-                ended_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+                duration = config.match_time - roomManager.RemainingTime
             };
 
             // Determine winner
             if (result.red_score > result.blue_score)
-                result.winner_team = "Red";
+                result.winner_team = TeamType.Red;
             else if (result.blue_score > result.red_score)
-                result.winner_team = "Blue";
+                result.winner_team = TeamType.Blue;
             else
-                result.winner_team = "Draw";
+                result.winner_team = TeamType.None;
 
             // Build player stats (MVP: placeholder stats)
             foreach (var player in roomManager.Players)

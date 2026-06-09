@@ -7,6 +7,7 @@ namespace TreasureArenaMR.Shared
     {
         Waiting,
         Ready,
+        Countdown,
         Playing,
         Finished
     }

@@ -70,7 +70,9 @@ TreasureArenaMR/
 ├── docs/
 │   ├── project_design.md
 │   ├── json_protocol.md
-│   └── database_design.md
+│   ├── database_design.md
+│   ├── map_editor_design.md
+│   └── map_editor_ui_design.md
 │
 ├── TreasureArenaUnity/
 │   ├── Assets/
@@ -139,6 +141,9 @@ Game.unity
 
 MapPreview.unity
 地图预览场景。用于测试地图编辑器导出的 JSON 是否能正确生成场景。
+
+MapEditor.unity
+地图编辑器场景。用于在 Unity Editor 或 Pico MR 环境中摆放 prefab、玩法标记和 bounds，并导出地图 JSON。
 ```
 
 ---
@@ -223,6 +228,8 @@ C：
 13. 时间结束后服务端结算红蓝队胜负。
 14. 对局结束后写入数据库。
 15. 管理端显示本局结果。
+16. MapEditor 可以摆放地图物件和玩法标记。
+17. MapEditor 可以导出符合协议的地图 JSON，并通过 MapValidator 校验。
 ```
 
 ---
@@ -239,7 +246,7 @@ MVP 阶段暂不做：
 5. 复杂背包系统。
 6. 复杂弹孔和材质破坏系统。
 7. AI 怪物。
-8. 实时地图编辑。
+8. 对局运行中的实时地图修改。
 9. 真实物理抢夺。
 10. 跨公网联机。
 11. 复杂排行榜筛选。
@@ -255,6 +262,9 @@ MVP 阶段暂不做：
 
 第 2 阶段：地图 JSON
 从地图编辑器导出样例 JSON，完成 MapJsonModels、MapLoader、PrefabRegistry 和 MapValidator。
+
+地图编辑器 MVP 与多人闭环并行推进：
+MapEditor 先完成 prefab/玩法标记摆放、四周停靠式基础 UI、JSON 导出和 MapValidator 校验。
 
 第 3 阶段：多人房间基础
 完成管理端创建房间、玩家连接、红蓝分队、开始对局、房间状态同步。

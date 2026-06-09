@@ -46,11 +46,11 @@ namespace TreasureArenaMR.Network
 
         public void ApplyServerState(PlayerRuntimeState state)
         {
-            _state = ParsePlayerState(state.state);
+            _state = state.state;
             _hp = state.hp;
             _carriedTreasureId = state.carried_treasure_id;
 
-            transform.position = new Vector3(state.pos_x, state.pos_y, state.pos_z);
+            transform.position = state.position;
             transform.rotation = Quaternion.Euler(0f, state.rotation_y, 0f);
         }
 
@@ -59,25 +59,13 @@ namespace TreasureArenaMR.Network
             return new PlayerRuntimeState
             {
                 player_id = _playerId,
-                team = _team == TeamType.Red ? "Red" : (_team == TeamType.Blue ? "Blue" : "None"),
-                state = _state.ToString(),
+                team = _team,
+                state = _state,
                 hp = _hp,
-                pos_x = transform.position.x,
-                pos_y = transform.position.y,
-                pos_z = transform.position.z,
+                position = transform.position,
                 rotation_y = transform.rotation.eulerAngles.y,
                 carried_treasure_id = _carriedTreasureId
             };
-        }
-
-        private PlayerState ParsePlayerState(string stateStr)
-        {
-            switch (stateStr)
-            {
-                case "GhostRetreat": return PlayerState.GhostRetreat;
-                case "Respawning": return PlayerState.Respawning;
-                default: return PlayerState.Alive;
-            }
         }
     }
 }

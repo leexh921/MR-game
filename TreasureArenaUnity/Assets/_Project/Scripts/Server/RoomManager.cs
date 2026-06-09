@@ -86,11 +86,9 @@ namespace TreasureArenaMR.Server
             {
                 player_id = playerId,
                 nickname = nickname,
-                team = "None",
-                state = "Alive",
+                team = TeamType.None,
                 hp = CurrentRoomConfig.player_max_hp,
                 max_hp = CurrentRoomConfig.player_max_hp,
-                is_connected = true,
                 carried_treasure_id = ""
             };
 
@@ -136,23 +134,28 @@ namespace TreasureArenaMR.Server
             {
                 room_id = roomId,
                 room_name = roomName,
-                game_mode = "TeamTreasure",
+                game_mode = GameMode.TeamTreasure,
                 map_id = mapId ?? _defaultMapId,
                 max_players = _defaultMaxPlayers,
                 match_time = _defaultMatchTime,
                 round_count = 1,
                 player_max_hp = _defaultMaxHp,
                 respawn_countdown = _defaultRespawnCountdown,
-                weapon_id = "energy_gun",
-                weapon_damage = _defaultWeaponDamage,
-                weapon_range = 15f,
-                weapon_cooldown = 0.5f,
-                normal_treasure_score = 10,
-                rare_treasure_score = 30,
-                final_treasure_score = 50,
+                weapon_config = new WeaponConfig
+                {
+                    weapon_id = "energy_gun",
+                    damage = _defaultWeaponDamage,
+                    range = 15f,
+                    cooldown = 0.5f
+                },
+                treasure_scores = new TreasureScores
+                {
+                    Normal = 10,
+                    Rare = 30,
+                    Final = 50
+                },
                 treasure_refresh_interval = 10f,
-                supply_refresh_interval = 20f,
-                created_at = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+                supply_refresh_interval = 20f
             };
 
             Players.Clear();
@@ -167,8 +170,7 @@ namespace TreasureArenaMR.Server
         public void SetMapData(MapData mapData)
         {
             MapData = mapData;
-            Debug.Log($"[RoomManager] MapData set: spawnZones={mapData.spawnZones.Count}, " +
-                $"bases={mapData.teamBases.Count}, respawnZones={mapData.respawnZones.Count}");
+            Debug.Log($"[RoomManager] MapData loaded");
         }
 
         public bool SwitchTeam(string playerId, TeamType targetTeam)
@@ -178,10 +180,9 @@ namespace TreasureArenaMR.Server
             var player = Players.Find(p => p.player_id == playerId);
             if (player == null) return false;
 
-            string teamStr = targetTeam == TeamType.Red ? "Red" : "Blue";
-            player.team = teamStr;
+            player.team = targetTeam;
             OnTeamChanged?.Invoke(player, targetTeam);
-            Debug.Log($"[RoomManager] Player {playerId} switched to {teamStr}");
+            Debug.Log($"[RoomManager] Player {playerId} switched to {targetTeam}");
             return true;
         }
 
@@ -233,8 +234,7 @@ namespace TreasureArenaMR.Server
 
         public int GetPlayerCountByTeam(TeamType team)
         {
-            string teamStr = team == TeamType.Red ? "Red" : "Blue";
-            return Players.FindAll(p => p.team == teamStr).Count;
+            return Players.FindAll(p => p.team == team).Count;
         }
 
         // ---- Timer ----

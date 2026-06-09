@@ -31,7 +31,7 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            if (player.state != "Alive")
+            if (player.state != PlayerState.Alive)
             {
                 Debug.LogWarning($"[ServerTreasureAuthority] Player not Alive: {playerId}");
                 return false;
@@ -81,28 +81,26 @@ namespace TreasureArenaMR.Server
         {
             var player = roomManager.Players.Find(p => p.player_id == playerId);
             if (player == null) return false;
-            if (player.state != "Alive") return false;
+            if (player.state != PlayerState.Alive) return false;
             if (string.IsNullOrEmpty(player.carried_treasure_id)) return false;
 
-            string teamStr = player.team;
-            if (teamStr == "None") return false;
-
-            var teamType = teamStr == "Red" ? TeamType.Red : TeamType.Blue;
+            var playerTeam = player.team;
+            if (playerTeam == TeamType.None) return false;
 
             // Validate player is within submit range of their team base
             var mapData = roomManager.MapData;
             if (mapData != null)
             {
-                var teamBase = mapData.GetTeamBase(teamType);
+                var teamBase = mapData.GetTeamBase(playerTeam);
                 if (teamBase != null)
                 {
                     var netPlayer = roomManager.GetNetickPlayer(playerId);
                     if (netPlayer != null && netPlayer.PlayerObject != null)
                     {
-                        float dist = Vector3.Distance(netPlayer.PlayerObject.transform.position, teamBase.position);
-                        if (dist > teamBase.radius + _submitDistance)
+                        float dist = Vector3.Distance(netPlayer.PlayerObject.transform.position, teamBase.Position);
+                        if (dist > teamBase.Radius + _submitDistance)
                         {
-                            Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.radius + _submitDistance})");
+                            Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.Radius + _submitDistance})");
                             return false;
                         }
                     }
@@ -110,14 +108,14 @@ namespace TreasureArenaMR.Server
             }
 
             int scoreValue = GetTreasureScore(player.carried_treasure_id, roomManager);
-            roomManager.AddScore(teamType, scoreValue);
+            roomManager.AddScore(playerTeam, scoreValue);
 
             string treasureId = player.carried_treasure_id;
             player.carried_treasure_id = "";
 
-            int totalScore = teamStr == "Red" ? roomManager.RedScore : roomManager.BlueScore;
+            int totalScore = playerTeam == TeamType.Red ? roomManager.RedScore : roomManager.BlueScore;
             Debug.Log($"[ServerTreasureAuthority] Player {playerId} submitted {treasureId}, " +
-                $"team {teamStr} +{scoreValue}, total: {totalScore}");
+                $"team {playerTeam} +{scoreValue}, total: {totalScore}");
 
             return true;
         }
@@ -134,9 +132,7 @@ namespace TreasureArenaMR.Server
 
         private int GetTreasureScore(string treasureId, RoomManager roomManager)
         {
-            // TODO: Look up treasure type and return score from RoomConfig
-            // For MVP, default to Normal treasure score
-            return roomManager.CurrentRoomConfig?.normal_treasure_score ?? 10;
+            return roomManager.CurrentRoomConfig?.treasure_scores?.Normal ?? 10;
         }
     }
 }

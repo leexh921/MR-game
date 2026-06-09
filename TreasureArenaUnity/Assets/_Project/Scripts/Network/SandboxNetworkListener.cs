@@ -73,22 +73,22 @@ namespace TreasureArenaMR.Network
             var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
             if (playerInfo == null) return;
 
-            var teamType = playerInfo.team == "Red" ? TeamType.Red :
-                           playerInfo.team == "Blue" ? TeamType.Blue : TeamType.None;
+            var teamType = playerInfo.team;
             if (teamType == TeamType.None) return;
 
-            var spawnZone = _roomManager.MapData.GetFirstSpawn(teamType);
-            if (spawnZone == null) return;
+            var spawnZones = _roomManager.MapData.GetSpawnZones(teamType);
+            if (spawnZones == null || spawnZones.Count == 0) return;
 
-            Debug.Log($"[SandboxNetworkListener] Spawning player {playerId} ({teamType}) at {spawnZone.position}");
+            Vector3 spawnPos = spawnZones[0]; // First available spawn point
+
+            Debug.Log($"[SandboxNetworkListener] Spawning player {playerId} ({teamType}) at {spawnPos}");
 
             if (_playerPrefab != null)
             {
                 var playerObj = sandbox.NetworkInstantiate(_playerPrefab,
-                    spawnZone.position, Quaternion.identity, netPlayer);
+                    spawnPos, Quaternion.identity, netPlayer);
                 sandbox.SetPlayerObject(netPlayer.PlayerId, playerObj);
 
-                // Attach NetworkPlayer component data
                 var netComp = playerObj.GetComponent<NetworkPlayer>();
                 if (netComp != null)
                 {
