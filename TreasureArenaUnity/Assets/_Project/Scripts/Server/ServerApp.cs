@@ -1,4 +1,5 @@
 using TreasureArenaMR.Core;
+using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
 using UnityEngine;
 
@@ -66,8 +67,12 @@ namespace TreasureArenaMR.Server
             // 4. Create default room for MVP
             _roomManager.CreateRoom("room_default", "默认房间");
 
-            // TODO: Load map data via MapLoader when ready
-            // _roomManager.SetMapData(new MapLoader().LoadFromMapId(mapId).mapData);
+            // 4b. Load map data
+            var loadResult = new MapLoader().LoadFromMapId(_roomManager.CurrentRoomConfig.map_id);
+            if (loadResult.ok)
+                _roomManager.SetMapData(loadResult.mapData);
+            else
+                Debug.LogError($"[ServerApp] Map load failed: {loadResult.error}");
 
             // 5. Start Netick server
             _networkManager.StartAsServer();
