@@ -35,6 +35,8 @@ namespace TreasureArenaMR.Network
         public bool IsClient => _sandbox != null && _sandbox.IsClient;
         public bool IsRunning => _sandbox != null && _sandbox.IsRunning;
         public bool IsConnected => _sandbox != null && _sandbox.IsConnected;
+        public string ServerAddress => _serverAddress;
+        public int ServerPort => _serverPort;
 
         public string LocalPlayerId { get; private set; }
 
@@ -65,6 +67,14 @@ namespace TreasureArenaMR.Network
         {
             if (Instance == this)
                 Instance = null;
+        }
+
+        public void ConfigureEndpoint(string serverAddress, int serverPort)
+        {
+            if (!string.IsNullOrEmpty(serverAddress))
+                _serverAddress = serverAddress;
+            if (serverPort > 0)
+                _serverPort = serverPort;
         }
 
         public void StartAsServer()
