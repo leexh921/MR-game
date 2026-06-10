@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace TreasureArenaMR.MapEditor.Editor
 {
@@ -130,6 +131,11 @@ namespace TreasureArenaMR.MapEditor.Editor
                 canvas.worldCamera = Camera.main;
             }
 
+            if (canvasGo.GetComponent<TrackedDeviceGraphicRaycaster>() == null)
+            {
+                Undo.AddComponent<TrackedDeviceGraphicRaycaster>(canvasGo);
+            }
+
             MapEditorDockedUiController dockedUi = canvasGo.GetComponent<MapEditorDockedUiController>();
             if (dockedUi != null)
             {
@@ -213,14 +219,21 @@ namespace TreasureArenaMR.MapEditor.Editor
 
         private static void EnsureEventSystem()
         {
-            if (UnityEngine.Object.FindObjectOfType<EventSystem>() != null)
+            EventSystem eventSystem = UnityEngine.Object.FindObjectOfType<EventSystem>();
+            if (eventSystem != null)
             {
+                if (eventSystem.GetComponent<XRUIInputModule>() == null)
+                {
+                    Undo.AddComponent<XRUIInputModule>(eventSystem.gameObject);
+                    EditorUtility.SetDirty(eventSystem.gameObject);
+                }
+
                 return;
             }
 
-            GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            Undo.RegisterCreatedObjectUndo(eventSystem, "Create EventSystem");
-            EditorUtility.SetDirty(eventSystem);
+            GameObject eventSystemGo = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule), typeof(XRUIInputModule));
+            Undo.RegisterCreatedObjectUndo(eventSystemGo, "Create EventSystem");
+            EditorUtility.SetDirty(eventSystemGo);
         }
 
         private static Text EnsureText(Transform parent, string name, string text, int fontSize, Vector2 position, Vector2 size, TextAnchor anchor)

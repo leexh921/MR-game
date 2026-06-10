@@ -4,6 +4,7 @@ using TreasureArenaMR.Shared;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace TreasureArenaMR.MapEditor.Editor
 {
@@ -26,7 +27,7 @@ namespace TreasureArenaMR.MapEditor.Editor
                 AssetDatabase.Refresh();
             }
 
-            GameObject root = new GameObject("MapEditorDockedCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(MapEditorDockedUiController));
+            GameObject root = new GameObject("MapEditorDockedCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(TrackedDeviceGraphicRaycaster), typeof(MapEditorDockedUiController));
             RectTransform rootRect = root.GetComponent<RectTransform>();
             rootRect.sizeDelta = new Vector2(1200f, 720f);
             root.transform.localScale = Vector3.one * 0.0024f;
