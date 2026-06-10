@@ -16,6 +16,43 @@
 
 ---
 
+## 当前已验证进展
+
+### Pico 真机 Netick 最小接入
+
+验证时间：2026-06-10
+
+```text
+测试场景：
+TreasureArenaUnity/Assets/_Project/Scenes/PicoClient_Netick.unity
+
+测试结果：
+1. PC 端 Netick Server 监听 :7777。
+2. Pico 和 PC 位于同一 WiFi。
+3. Pico 端配置 PC 的局域网 IP + 7777。
+4. Pico 真机 Build 后可以成功连接到 Server。
+5. Server 侧可以看到 Pico 客户端接入日志。
+```
+
+当前结论：
+
+```text
+Pico 真机到 PC Netick Server 的基础网络连接已打通。
+Pico 端 Netick Client 最小接入已验证通过。
+项目可以进入多人联调阶段。
+```
+
+后续重点：
+
+```text
+1. 多台 Pico / Pico + PC Editor 多客户端同时接入测试。
+2. 玩家生成和队伍分配联调。
+3. 玩家位置、HUD、宝物、攻击、复活等同步逻辑联调。
+4. 完整多人夺宝流程测试。
+```
+
+---
+
 ## 已确认内容
 
 ### 1. 端侧结构
@@ -307,6 +344,9 @@ C 协助制作地图组件 Prefab。
 崔国庆完成 Server / Client 连接、玩家加入房间、房间状态同步。
 李潇涵完成管理端创建房间和开始对局的基础逻辑。
 A 开始制作 Home 管理端 UI。
+
+当前补充：
+Pico 真机 Netick Client 最小接入已验证通过，后续进入多客户端接入、玩家生成、队伍分配和同步逻辑联调。
 
 第 4 阶段：夺宝闭环
 李潇涵完成宝物生成、拾取、携带、提交、红蓝队计分和时间结算。
