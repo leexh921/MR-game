@@ -33,12 +33,30 @@ namespace TreasureArenaMR.MapEditor
                 return MapEditorRuntimeExportResult.Fail(errorText);
             }
 
+<<<<<<< HEAD
+=======
+#if UNITY_EDITOR
+            string directory = Path.Combine(Application.dataPath, "_Project", "StreamingAssets", "Maps");
+            Directory.CreateDirectory(directory);
+            string fileName = map.map_id + ".json";
+            string absolutePath = Path.Combine(directory, fileName);
+            File.WriteAllText(absolutePath, JsonUtility.ToJson(map, true));
+            string projectPath = Path.Combine("Assets/_Project/StreamingAssets/Maps", fileName).Replace('\\', '/');
+            UnityEditor.AssetDatabase.Refresh();
+            Debug.Log("Runtime map JSON exported: " + projectPath);
+            return MapEditorRuntimeExportResult.Success(projectPath, map);
+#else
+>>>>>>> origin/develop
             string directory = Path.Combine(Application.persistentDataPath, outputFolderName);
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, map.map_id + ".json");
             File.WriteAllText(path, JsonUtility.ToJson(map, true));
             Debug.Log("Runtime map JSON exported: " + path);
             return MapEditorRuntimeExportResult.Success(path, map);
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> origin/develop
         }
 
         public MapValidationResult ValidateCurrentMap()

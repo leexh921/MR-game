@@ -45,11 +45,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f798f1477692b54e887dc60607ffa24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  marker_type: 0
+  marker_type: 2
   id: 
   prefab_id: 
   team: 0
-  treasure_type: 0
+  treasure_type: 2
   supply_type: WeaponRandom
   refresh_interval: 20
   radius: 1

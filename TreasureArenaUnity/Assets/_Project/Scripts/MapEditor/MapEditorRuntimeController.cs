@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using TreasureArenaMR.Map;
 using UnityEngine;
+<<<<<<< HEAD
+=======
+using UnityEngine.EventSystems;
+>>>>>>> origin/develop
 using UnityEngine.XR;
 
 namespace TreasureArenaMR.MapEditor
@@ -44,6 +48,10 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private KeyCode scaleUpKey = KeyCode.Equals;
 
         private GameObject previewGhost;
+<<<<<<< HEAD
+=======
+        private GameObject moveGhost;
+>>>>>>> origin/develop
         private GameObject selectedObject;
         private readonly Dictionary<string, int> nameCounters = new Dictionary<string, int>();
         private static Material sharedGhostMaterial;
@@ -51,6 +59,10 @@ namespace TreasureArenaMR.MapEditor
         private bool gripWasPressed;
         private bool primaryWasPressed;
         private bool secondaryWasPressed;
+<<<<<<< HEAD
+=======
+        private bool isDragging;
+>>>>>>> origin/develop
         private float nextRepeatTime;
         private string statusMessage = "Map editor runtime input ready.";
 
@@ -58,12 +70,22 @@ namespace TreasureArenaMR.MapEditor
         public event Action<int> BrushChanged;
         public event Action<GameObject> SelectionChanged;
         public event Action<MapEditorRuntimeEditMode> EditModeChanged;
+<<<<<<< HEAD
+=======
+        public event Action<bool> DraggingChanged;
+>>>>>>> origin/develop
 
         public IReadOnlyList<MapEditorRuntimeBrush> Brushes => brushes;
         public int ActiveBrushIndex => activeBrushIndex;
         public GameObject SelectedObject => selectedObject;
         public MapEditorRuntimeEditMode EditMode => editMode;
         public string StatusMessage => statusMessage;
+<<<<<<< HEAD
+=======
+        public float GridSize => gridSize;
+        public float RotateStepDegrees => rotateStepDegrees;
+        public float ScaleStep => scaleStep;
+>>>>>>> origin/develop
 
         public MapEditorRuntimeBrush ActiveBrush
         {
@@ -102,6 +124,10 @@ namespace TreasureArenaMR.MapEditor
         private void OnDisable()
         {
             DestroyPreviewGhost();
+<<<<<<< HEAD
+=======
+            DestroyMoveGhost();
+>>>>>>> origin/develop
         }
 
         private void Update()
@@ -116,6 +142,7 @@ namespace TreasureArenaMR.MapEditor
             Vector3 endPoint = hasTarget ? hitPoint : ray.origin + ray.direction * maxRayDistance;
             SetRayLine(true, ray.origin, endPoint);
 
+<<<<<<< HEAD
             if (editMode == MapEditorRuntimeEditMode.Place && ActiveBrush != null && hasTarget)
             {
                 UpdatePreviewGhost(SnapToGrid(hitPoint));
@@ -129,6 +156,35 @@ namespace TreasureArenaMR.MapEditor
             HandleButtonEdges(buttons, hasTarget, hitPoint, hit);
             HandleHeldButtons(buttons, hasTarget, hitPoint);
             HandleEditorFallback(hasTarget, hitPoint, hit, !isXrValid);
+=======
+            RuntimeButtons buttons = ReadButtons();
+            if (TryHandleRuntimeUi(ray, buttons))
+            {
+                UpdateButtonMemory(buttons);
+                return;
+            }
+
+            if (editMode == MapEditorRuntimeEditMode.Place && ActiveBrush != null && hasTarget)
+            {
+                DestroyMoveGhost();
+                UpdatePreviewGhost(SnapToGrid(hitPoint));
+            }
+            else if (editMode == MapEditorRuntimeEditMode.Move && selectedObject != null && hasTarget)
+            {
+                DestroyPreviewGhost();
+                UpdateMoveGhost(SnapToGrid(hitPoint));
+            }
+            else
+            {
+                DestroyPreviewGhost();
+                DestroyMoveGhost();
+            }
+
+            HandleButtonEdges(buttons, hasTarget, hitPoint, hit);
+            HandleHeldButtons(buttons, hasTarget, hitPoint);
+            HandleEditorFallback(hasTarget, hitPoint, hit, !isXrValid);
+            UpdateDragging(selectedObject != null && editMode == MapEditorRuntimeEditMode.Move && hasTarget);
+>>>>>>> origin/develop
         }
 
         public void SelectBrush(int index)
@@ -223,6 +279,15 @@ namespace TreasureArenaMR.MapEditor
                 {
                     PlaceObject(SnapToGrid(hitPoint));
                 }
+<<<<<<< HEAD
+=======
+                else if (editMode == MapEditorRuntimeEditMode.Move && selectedObject != null && hasTarget)
+                {
+                    selectedObject.transform.position = SnapToGrid(hitPoint);
+                    SetStatus("Moved " + selectedObject.name + " to " + SnapToGrid(hitPoint));
+                    SetEditMode(MapEditorRuntimeEditMode.Place);
+                }
+>>>>>>> origin/develop
                 else
                 {
                     SelectFromHit(hit);
@@ -239,10 +304,14 @@ namespace TreasureArenaMR.MapEditor
                 CycleEditMode();
             }
 
+<<<<<<< HEAD
             triggerWasPressed = buttons.triggerPressed;
             gripWasPressed = buttons.gripPressed;
             primaryWasPressed = buttons.primaryPressed;
             secondaryWasPressed = buttons.secondaryPressed;
+=======
+            UpdateButtonMemory(buttons);
+>>>>>>> origin/develop
         }
 
         private void HandleHeldButtons(RuntimeButtons buttons, bool hasTarget, Vector3 hitPoint)
@@ -252,6 +321,7 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
+<<<<<<< HEAD
             if (buttons.gripPressed && hasTarget && editMode == MapEditorRuntimeEditMode.Move)
             {
                 selectedObject.transform.position = SnapToGrid(hitPoint);
@@ -261,6 +331,8 @@ namespace TreasureArenaMR.MapEditor
                 }
             }
 
+=======
+>>>>>>> origin/develop
             if (Time.time < nextRepeatTime)
             {
                 return;
@@ -270,12 +342,20 @@ namespace TreasureArenaMR.MapEditor
             {
                 RotateSelected(Mathf.Sign(buttons.axis.x) * rotateStepDegrees);
                 nextRepeatTime = Time.time + repeatDelay;
+<<<<<<< HEAD
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+>>>>>>> origin/develop
             }
 
             if (Mathf.Abs(buttons.axis.y) > 0.6f)
             {
                 ScaleSelected(Mathf.Sign(buttons.axis.y) * scaleStep);
                 nextRepeatTime = Time.time + repeatDelay;
+<<<<<<< HEAD
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+>>>>>>> origin/develop
             }
         }
 
@@ -296,23 +376,40 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
+<<<<<<< HEAD
             if (Input.GetMouseButtonDown(0) && hasTarget)
+=======
+            bool pointerOverUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (Input.GetMouseButtonDown(0) && hasTarget && !pointerOverUi)
+>>>>>>> origin/develop
             {
                 if (editMode == MapEditorRuntimeEditMode.Place && ActiveBrush != null)
                 {
                     PlaceObject(SnapToGrid(hitPoint));
                 }
+<<<<<<< HEAD
+=======
+                else if (editMode == MapEditorRuntimeEditMode.Move && selectedObject != null)
+                {
+                    selectedObject.transform.position = SnapToGrid(hitPoint);
+                    SetStatus("Moved " + selectedObject.name + " to " + SnapToGrid(hitPoint));
+                    SetEditMode(MapEditorRuntimeEditMode.Place);
+                }
+>>>>>>> origin/develop
                 else
                 {
                     SelectFromHit(hit);
                 }
             }
 
+<<<<<<< HEAD
             if (Input.GetMouseButton(0) && selectedObject != null && editMode == MapEditorRuntimeEditMode.Move && hasTarget)
             {
                 selectedObject.transform.position = SnapToGrid(hitPoint);
             }
 
+=======
+>>>>>>> origin/develop
             if (Input.GetKeyDown(deleteKey))
             {
                 DeleteSelected();
@@ -321,22 +418,85 @@ namespace TreasureArenaMR.MapEditor
             if (Input.GetKeyDown(rotateLeftKey))
             {
                 RotateSelected(-rotateStepDegrees);
+<<<<<<< HEAD
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+>>>>>>> origin/develop
             }
 
             if (Input.GetKeyDown(rotateRightKey))
             {
                 RotateSelected(rotateStepDegrees);
+<<<<<<< HEAD
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+>>>>>>> origin/develop
             }
 
             if (Input.GetKeyDown(scaleDownKey))
             {
                 ScaleSelected(-scaleStep);
+<<<<<<< HEAD
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+>>>>>>> origin/develop
             }
 
             if (Input.GetKeyDown(scaleUpKey))
             {
                 ScaleSelected(scaleStep);
+<<<<<<< HEAD
             }
+=======
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+            }
+
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scroll) > 0.001f && selectedObject != null && !pointerOverUi)
+            {
+                float delta = Mathf.Sign(scroll) * scaleStep;
+                ScaleSelected(delta);
+                SetEditMode(MapEditorRuntimeEditMode.Place);
+            }
+        }
+
+        private bool TryHandleRuntimeUi(Ray ray, RuntimeButtons buttons)
+        {
+            RaycastHit[] hits = Physics.RaycastAll(ray, maxRayDistance, ~0, QueryTriggerInteraction.Collide);
+            if (hits == null || hits.Length == 0)
+            {
+                return false;
+            }
+
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                MapEditorRuntimeUiHitTarget target = hits[i].collider.GetComponentInParent<MapEditorRuntimeUiHitTarget>();
+                if (target != null)
+                {
+                    DestroyPreviewGhost();
+                    DestroyMoveGhost();
+                    SetRayLine(true, ray.origin, hits[i].point);
+                    if (buttons.triggerPressed && !triggerWasPressed)
+                    {
+                        target.Activate();
+                    }
+
+                    return true;
+                }
+
+                MapEditorDockedPanel panel = hits[i].collider.GetComponentInParent<MapEditorDockedPanel>();
+                if (panel != null)
+                {
+                    DestroyPreviewGhost();
+                    DestroyMoveGhost();
+                    SetRayLine(true, ray.origin, hits[i].point);
+                    return true;
+                }
+            }
+
+            return false;
+>>>>>>> origin/develop
         }
 
         private void PlaceObject(Vector3 position)
@@ -353,6 +513,10 @@ namespace TreasureArenaMR.MapEditor
             ApplyMarker(instance, brush);
             SelectObject(instance);
             SetStatus("Placed " + instance.name + " at " + position);
+<<<<<<< HEAD
+=======
+            ClearBrush();
+>>>>>>> origin/develop
         }
 
         private void ApplyMarker(GameObject instance, MapEditorRuntimeBrush brush)
@@ -389,6 +553,14 @@ namespace TreasureArenaMR.MapEditor
         private void SelectObject(GameObject target)
         {
             selectedObject = target;
+<<<<<<< HEAD
+=======
+            if (selectedObject == null)
+            {
+                DestroyMoveGhost();
+            }
+
+>>>>>>> origin/develop
             SelectionChanged?.Invoke(selectedObject);
             SetStatus(selectedObject == null ? "Selection cleared." : "Selected " + selectedObject.name);
         }
@@ -423,6 +595,40 @@ namespace TreasureArenaMR.MapEditor
             }
         }
 
+<<<<<<< HEAD
+=======
+        private void UpdateMoveGhost(Vector3 position)
+        {
+            if (selectedObject == null)
+            {
+                DestroyMoveGhost();
+                return;
+            }
+
+            if (moveGhost == null)
+            {
+                moveGhost = Instantiate(selectedObject);
+                moveGhost.name = "MapEditorMoveGhost";
+                SetLayerRecursive(moveGhost, Physics.IgnoreRaycastLayer);
+                SetPreviewMaterial(moveGhost);
+                SetCollidersEnabled(moveGhost, false);
+            }
+
+            moveGhost.transform.position = position;
+            moveGhost.transform.rotation = selectedObject.transform.rotation;
+            moveGhost.transform.localScale = selectedObject.transform.localScale;
+        }
+
+        private void DestroyMoveGhost()
+        {
+            if (moveGhost != null)
+            {
+                Destroy(moveGhost);
+                moveGhost = null;
+            }
+        }
+
+>>>>>>> origin/develop
         private bool TryGetPointerRay(out Ray ray, out bool isXrValid)
         {
             InputDevice device = InputDevices.GetDeviceAtXRNode(controllerNode);
@@ -435,6 +641,7 @@ namespace TreasureArenaMR.MapEditor
                 return true;
             }
 
+<<<<<<< HEAD
             Transform origin = rayOrigin;
             if (origin != null)
             {
@@ -443,6 +650,8 @@ namespace TreasureArenaMR.MapEditor
                 return true;
             }
 
+=======
+>>>>>>> origin/develop
             if (fallbackCamera == null)
             {
                 fallbackCamera = Camera.main;
@@ -479,10 +688,30 @@ namespace TreasureArenaMR.MapEditor
 
         private bool TryGetPlacementPoint(Ray ray, out Vector3 point, out RaycastHit hit)
         {
+<<<<<<< HEAD
             if (Physics.Raycast(ray, out hit, maxRayDistance, placementMask, QueryTriggerInteraction.Ignore))
             {
                 point = hit.point;
                 return true;
+=======
+            RaycastHit[] hits = Physics.RaycastAll(ray, maxRayDistance, placementMask, QueryTriggerInteraction.Ignore);
+            if (hits != null && hits.Length > 0)
+            {
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+                for (int i = 0; i < hits.Length; i++)
+                {
+                    if (selectedObject != null && hits[i].collider != null
+                        && (hits[i].collider.transform == selectedObject.transform
+                            || hits[i].collider.transform.IsChildOf(selectedObject.transform)))
+                    {
+                        continue;
+                    }
+
+                    hit = hits[i];
+                    point = hit.point;
+                    return true;
+                }
+>>>>>>> origin/develop
             }
 
             Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
@@ -543,6 +772,28 @@ namespace TreasureArenaMR.MapEditor
             StatusChanged?.Invoke(statusMessage);
         }
 
+<<<<<<< HEAD
+=======
+        private void UpdateButtonMemory(RuntimeButtons buttons)
+        {
+            triggerWasPressed = buttons.triggerPressed;
+            gripWasPressed = buttons.gripPressed;
+            primaryWasPressed = buttons.primaryPressed;
+            secondaryWasPressed = buttons.secondaryPressed;
+        }
+
+        private void UpdateDragging(bool value)
+        {
+            if (isDragging == value)
+            {
+                return;
+            }
+
+            isDragging = value;
+            DraggingChanged?.Invoke(isDragging);
+        }
+
+>>>>>>> origin/develop
         private static void SetCollidersEnabled(GameObject root, bool enabled)
         {
             Collider[] colliders = root.GetComponentsInChildren<Collider>(true);

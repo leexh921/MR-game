@@ -9,6 +9,10 @@ namespace TreasureArenaMR.MapEditor
     public sealed class MapEditorRuntimeBrush
     {
         public string label;
+<<<<<<< HEAD
+=======
+        public string folder = "MapObjects";
+>>>>>>> origin/develop
         public GameObject prefab;
         public string prefab_id;
         public MapExportMarkerType marker_type = MapExportMarkerType.MapObject;

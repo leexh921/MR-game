@@ -477,6 +477,7 @@ namespace TreasureArenaMR.MapEditor
 
         private MapJsonModels.MapJson BuildMapFromScene()
         {
+<<<<<<< HEAD
             MapJsonModels.MapJson map = new MapJsonModels.MapJson
             {
                 map_id = MapSceneJsonExporter.ToMapId(mapName),
@@ -508,6 +509,9 @@ namespace TreasureArenaMR.MapEditor
                 }
             }
             return map;
+=======
+            return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
+>>>>>>> origin/develop
         }
 
         private void RefreshMapList()
@@ -643,9 +647,12 @@ namespace TreasureArenaMR.MapEditor
         }
 
         private void SetStatus(string msg) { statusMessage = msg; statusClearTime = EditorApplication.timeSinceStartup + 5.0; Repaint(); }
+<<<<<<< HEAD
 
         private static MapJsonModels.Vector3Json V(Vector3 v)   => new MapJsonModels.Vector3Json { x = v.x, y = v.y, z = v.z };
         private static MapJsonModels.RotationJson R(Vector3 v) => new MapJsonModels.RotationJson { x = v.x, y = v.y, z = v.z };
         private static MapJsonModels.ScaleJson    S(Vector3 v) => new MapJsonModels.ScaleJson    { x = v.x, y = v.y, z = v.z };
+=======
+>>>>>>> origin/develop
     }
 }

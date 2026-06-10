@@ -1,0 +1,65 @@
+{
+    "map_id": "pico_map",
+    "map_name": "PicoMap",
+    "version": "1.0.0",
+    "description": "Exported from Pico MR map editor.",
+    "objects": [],
+    "team_bases": [
+        {
+            "base_id": "TeamBase_Red_01",
+            "team": "Red",
+            "position": {
+                "x": -1.0,
+                "y": 1.5,
+                "z": 0.0
+            },
+            "radius": 1.0
+        },
+        {
+            "base_id": "TeamBase_Blue_01",
+            "team": "Blue",
+            "position": {
+                "x": 1.0,
+                "y": 1.5,
+                "z": -3.0
+            },
+            "radius": 1.0
+        }
+    ],
+    "treasure_spawn_points": [
+        {
+            "point_id": "Treasure_Final_01",
+            "treasure_type": "Final",
+            "position": {
+                "x": -1.0,
+                "y": 1.5,
+                "z": -4.0
+            },
+            "radius": 1.0
+        }
+    ],
+    "supply_boxes": [
+        {
+            "box_id": "SupplyBox_01",
+            "position": {
+                "x": -4.0,
+                "y": 1.5,
+                "z": -2.0
+            },
+            "supply_type": "WeaponRandom",
+            "refresh_interval": 20.0
+        }
+    ],
+    "bounds": {
+        "center": {
+            "x": -0.5,
+            "y": 0.0,
+            "z": -0.5
+        },
+        "size": {
+            "x": 12.0,
+            "y": 3.0,
+            "z": 8.0
+        }
+    }
+}
