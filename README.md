@@ -144,6 +144,9 @@ MapPreview.unity
 
 MapEditor.unity
 地图编辑器场景。用于在 Unity Editor 或 Pico MR 环境中摆放 prefab、玩法标记和 bounds，并导出地图 JSON。
+
+PicoClient_Netick.unity
+Pico 真机 Netick Client 最小接入测试场景。用于配置 PC Server 局域网 IP 和端口，验证 Pico 真机可连接到 PC 端 Netick Server。
 ```
 
 ---
@@ -273,7 +276,7 @@ MapEditor 先完成 prefab/玩法标记摆放、四周停靠式基础 UI、JSON 
 完成地图加载、宝物生成、拾取、携带、提交、红蓝队计分和时间结算。
 
 第 5 阶段：Netick 多人联机
-完成 PC Server / Manager 与 Pico Client 的连接，使用 Editor 模拟第二客户端。
+已验证 Pico 真机可通过局域网连接 PC 端 Netick Server。下一步完成多台 Pico / Pico + PC Editor 多客户端接入、玩家生成、队伍分配和同步联调。
 
 第 6 阶段：战斗和濒死撤离
 完成攻击请求、服务端命中判定、扣血、进入 GhostRetreat、掉落宝物、复活区倒计时复活。
