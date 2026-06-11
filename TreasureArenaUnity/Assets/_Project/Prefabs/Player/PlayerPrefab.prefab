@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 5056566650803207073}
   - component: {fileID: 4425692734464070757}
   - component: {fileID: 6343447335396089901}
+  - component: {fileID: 1708684420419457740}
+  - component: {fileID: 1599867230441905754}
+  - component: {fileID: 2480934603323094163}
   m_Layer: 0
   m_Name: PlayerPrefab
   m_TagString: Untagged
@@ -152,3 +155,68 @@ MonoBehaviour:
   _PrefabId: -1
   _SceneId: -534760042
   _RuntimeSceneId: -1
+--- !u!54 &1708684420419457740
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4200167340183698189}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 0
+--- !u!114 &1599867230441905754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4200167340183698189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1266966383, guid: da78c2c9df60edc4fb5f65b59fa57c41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  RenderTransform: {fileID: 0}
+  TeleportDistance: 50
+  PositionPrecision: 3
+  Settings: 31
+  TransformSpace: 1
+  UseForAOIPosition: 1
+  EnablePredictionErrorCorrectionSmoothing: 0
+  CorrectionMultiplier: 3
+  TeleportErrorThreshold: 50
+  _interpolationSource: 0
+--- !u!114 &2480934603323094163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4200167340183698189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d22a4564f5534e649bddbd98e94ed109, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  trackingTarget: {fileID: 0}
+  useMainCameraFallback: 1
+  preserveSpawnHeight: 1
+  syncYaw: 1
