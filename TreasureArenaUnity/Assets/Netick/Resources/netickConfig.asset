@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 2061283162, guid: da78c2c9df60edc4fb5f65b59fa57c41, type: 3}
   m_Name: netickConfig
   m_EditorClassIdentifier: 
-  Prefabs: []
+  Prefabs:
+  - {fileID: 6343447335396089901, guid: 24eb6e3707d2b2145adcc2a764936bdc, type: 3}
   AutoGetPrefabs: 1
   PrefabsPath: Assets/
   TickRate: 30
