@@ -458,7 +458,7 @@ C：
 完成地图加载、宝物生成、拾取、携带、提交、红蓝队计分和时间结算。
 
 第 5 阶段：Netick 多人联机
-完成 PC Server / Manager 与 Pico Client 的连接，使用 Editor 模拟第二客户端。
+Pico 真机到 PC Netick Server 的最小接入已验证通过。下一步完成多台 Pico / Pico + PC Editor 多客户端接入、玩家生成、队伍分配和同步联调。
 
 第 6 阶段：战斗和濒死撤离
 完成攻击请求、服务端命中判定、扣血、进入 GhostRetreat、掉落宝物、复活区倒计时复活。
@@ -579,4 +579,37 @@ Unity 管理端创建多人房间
 
 是否修改协议字段：是（match_finished 增加 match_id 和 map_id）
 是否影响数据库：是（room_config 增加 treasure_refresh_interval 和 supply_refresh_interval）
+是否影响服务器权威：否
+
+### 阶段 5A：Pico 真机 Netick Client 最小接入验证
+
+完成时间：2026-06-10
+负责人：项目组（李潇涵同步）
+本阶段目标：验证 Pico 真机 Build 后能通过局域网连接 PC 端 Netick Server，打通最小网络链路。
+
+相关场景：
+- TreasureArenaUnity/Assets/_Project/Scenes/PicoClient_Netick.unity
+
+测试环境：
+- PC 端 Netick Server 监听 :7777
+- Pico 和 PC 位于同一 WiFi
+- Pico 端配置 PC 的局域网 IP + 7777
+
+验收结果：
+- Pico 真机 Build 后可以成功连接到 Server
+- Server 侧可以看到 Pico 客户端接入日志
+- Pico 端 Netick Client 最小接入已验证通过
+
+当前结论：
+- Pico 真机到 PC Server 的基础网络连接已经打通
+- 项目可以进入多人联调阶段
+
+后续任务：
+- 多台 Pico / Pico + PC Editor 多客户端同时接入测试
+- 玩家生成和队伍分配联调
+- 玩家位置、HUD、宝物、攻击、复活等同步逻辑联调
+- 完整多人夺宝流程测试
+
+是否修改协议字段：否
+是否影响数据库：否
 是否影响服务器权威：否

@@ -40,6 +40,10 @@ namespace TreasureArenaMR.Server
         private readonly Dictionary<string, Netick.NetworkPlayer> _netickPlayers =
             new Dictionary<string, Netick.NetworkPlayer>();
 
+        // GhostRetreat respawn countdown per player
+        private readonly Dictionary<string, float> _respawnTimers =
+            new Dictionary<string, float>();
+
         public event Action<RoomState> OnRoomStateChanged;
         public event Action<PlayerInfo> OnPlayerJoined;
         public event Action<PlayerInfo> OnPlayerLeft;
@@ -52,6 +56,7 @@ namespace TreasureArenaMR.Server
         {
             _networkManager = networkManager;
             Players = new List<PlayerInfo>();
+            _respawnTimers.Clear();
             CurrentRoomState = RoomState.Waiting;
             RedScore = 0;
             BlueScore = 0;
@@ -62,6 +67,7 @@ namespace TreasureArenaMR.Server
         {
             Players?.Clear();
             _netickPlayers.Clear();
+            _respawnTimers.Clear();
             CurrentRoomState = RoomState.Waiting;
             Debug.Log("[RoomManager] Shutdown");
         }
@@ -252,6 +258,65 @@ namespace TreasureArenaMR.Server
         }
 
         private void Update()
+        {
+            ProcessRespawn();
+            ProcessTimer();
+        }
+
+        // ---- GhostRetreat respawn detection ----
+
+        private void ProcessRespawn()
+        {
+            if (MapData == null || CurrentRoomConfig == null) return;
+
+            for (int i = Players.Count - 1; i >= 0; i--)
+            {
+                var player = Players[i];
+                if (player.state != PlayerState.GhostRetreat && player.state != PlayerState.Respawning) continue;
+
+                var netPlayer = GetNetickPlayer(player.player_id);
+                if (netPlayer == null) continue;
+
+                var playerObj = netPlayer.PlayerObject as GameObject;
+                if (playerObj == null) continue;
+
+                var respawnZone = MapData.GetRespawnZone(player.team);
+                if (respawnZone == null) continue;
+
+                float dist = Vector3.Distance(playerObj.transform.position, respawnZone.Position);
+
+                if (dist <= respawnZone.Radius)
+                {
+                    if (player.state == PlayerState.GhostRetreat)
+                    {
+                        // Entered respawn zone: start countdown
+                        _respawnTimers[player.player_id] = CurrentRoomConfig.respawn_countdown;
+                        player.state = PlayerState.Respawning;
+                        Debug.Log($"[RoomManager] Player {player.player_id} entered respawn zone, countdown {CurrentRoomConfig.respawn_countdown}s");
+                    }
+
+                    _respawnTimers[player.player_id] -= Time.deltaTime;
+                    if (_respawnTimers[player.player_id] <= 0f)
+                    {
+                        player.hp = CurrentRoomConfig.player_max_hp;
+                        player.state = PlayerState.Alive;
+                        _respawnTimers.Remove(player.player_id);
+                        Debug.Log($"[RoomManager] Player {player.player_id} respawned");
+                    }
+                }
+                else
+                {
+                    if (player.state == PlayerState.Respawning)
+                    {
+                        _respawnTimers.Remove(player.player_id);
+                        player.state = PlayerState.GhostRetreat;
+                        Debug.Log($"[RoomManager] Player {player.player_id} left respawn zone, countdown reset");
+                    }
+                }
+            }
+        }
+
+        private void ProcessTimer()
         {
             if (!_timerRunning) return;
 
