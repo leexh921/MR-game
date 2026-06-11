@@ -79,6 +79,7 @@ namespace TreasureArenaMR.Network
 
         public void StartAsServer()
         {
+            Debug.Log($"[NetworkManager] _transport={_transport}, _sandboxPrefab={_sandboxPrefab}");
             EnsureReferences();
             Debug.Log($"[NetworkManager] Starting Netick server on port {_serverPort}");
             NetickNetwork.StartAsServer(_transport, _serverPort, _sandboxPrefab, _netickConfig);

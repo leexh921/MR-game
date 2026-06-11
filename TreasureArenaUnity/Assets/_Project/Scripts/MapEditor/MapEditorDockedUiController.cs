@@ -14,6 +14,7 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private float workbenchDistance = 0.95f;
         [SerializeField] private float workbenchVerticalOffset = 0.45f;
         [SerializeField] private float workbenchTiltDegrees = 28f;
+        [SerializeField] private float workbenchYawOffset = 180f;
         [SerializeField] private Vector2 workbenchDesignSize = new Vector2(1200f, 560f);
         [SerializeField] private float workbenchWorldScale = 0.001f;
 
@@ -114,7 +115,14 @@ namespace TreasureArenaMR.MapEditor
 
         public void ToggleWorkbench()
         {
-            gameObject.SetActive(!gameObject.activeSelf);
+            if (gameObject.activeSelf)
+            {
+                gameObject.SetActive(false);
+            }
+            else
+            {
+                RecenterWorkbench();
+            }
         }
 
         public void RecenterWorkbench(Camera cameraOverride = null)
@@ -155,7 +163,7 @@ namespace TreasureArenaMR.MapEditor
                 - Vector3.up * workbenchVerticalOffset;
 
             Quaternion faceUser = Quaternion.LookRotation(cameraTransform.position - transform.position, Vector3.up);
-            transform.rotation = faceUser * Quaternion.Euler(workbenchTiltDegrees, 0f, 0f);
+            transform.rotation = faceUser * Quaternion.Euler(workbenchTiltDegrees, workbenchYawOffset, 0f);
         }
 
         public void ValidateMap()
