@@ -1,28 +1,26 @@
-using System.Collections.Generic;
 using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
-using NetworkPlayer = TreasureArenaMR.Network.NetworkPlayer;
+using GameNetworkPlayer = TreasureArenaMR.Network.NetworkPlayer;
 
 namespace TreasureArenaMR.Server
 {
     /// <summary>
-    /// Server-authoritative combat logic: hit detection, damage calculation,
-    /// HP reduction, and GhostRetreat state transitions.
-    /// 
-    /// Clients send attack requests; this class decides hit/miss/damage.
+    /// Server-authoritative combat logic.
     /// </summary>
     public sealed class ServerCombatAuthority : MonoBehaviour
     {
         [Header("Settings")]
         [SerializeField] private float _hitRadius = 0.5f;
 
-        /// <summary>
-        /// Process an attack request from a client.
-        /// Returns the result: hit target + damage, or miss.
-        /// </summary>
-        public AttackResult ProcessAttack(string attackerId, string weaponId,
-            Vector3 origin, Vector3 direction, int weaponDamage, float weaponRange)
+        public AttackResult ProcessAttack(
+            string attackerId,
+            Vector3 origin,
+            Vector3 direction,
+            int weaponDamage,
+            float weaponRange,
+            RoomManager roomManager,
+            ServerTreasureAuthority treasureAuthority)
         {
             var result = new AttackResult
             {
@@ -30,101 +28,105 @@ namespace TreasureArenaMR.Server
                 damage = 0
             };
 
-            // Find targets within range and hit radius
-            var hitPlayerId = RaycastHit(attackerId, origin, direction, weaponRange);
+            if (roomManager == null)
+                return result;
 
-            if (!string.IsNullOrEmpty(hitPlayerId))
+            GameNetworkPlayer attacker = roomManager.GetNetworkPlayerComponent(attackerId);
+            PlayerInfo attackerInfo = roomManager.Players.Find(p => p.player_id == attackerId);
+            if (attacker == null || attackerInfo == null || attackerInfo.state != PlayerState.Alive)
+                return result;
+
+            GameNetworkPlayer target = RaycastHit(attackerId, attackerInfo.team, origin, direction, weaponRange);
+            if (target == null)
             {
-                result.target_player_id = hitPlayerId;
-                result.damage = weaponDamage;
-                result.hit = true;
+                Debug.Log("[ServerCombatAuthority] Attack from " + attackerId + ": miss");
+                return result;
             }
 
-            Debug.Log($"[ServerCombatAuthority] Attack from {attackerId}: " +
-                $"{(result.hit ? $"hit {hitPlayerId} for {weaponDamage}" : "miss")}");
+            result.hit = true;
+            result.target_player_id = target.PlayerId;
+            result.damage = weaponDamage;
+            result.target_hp_after = ApplyDamage(target.PlayerId, weaponDamage, roomManager, treasureAuthority);
 
+            Debug.Log("[ServerCombatAuthority] Attack from " + attackerId + ": hit "
+                + result.target_player_id + " for " + weaponDamage
+                + ", hp=" + result.target_hp_after);
             return result;
         }
 
-        /// <summary>
-        /// Apply damage to a target player. Returns new HP.
-        /// Returns -1 if player not found or already in GhostRetreat.
-        /// </summary>
-        public int ApplyDamage(string targetPlayerId, int damage, RoomManager roomManager)
+        public int ApplyDamage(
+            string targetPlayerId,
+            int damage,
+            RoomManager roomManager,
+            ServerTreasureAuthority treasureAuthority)
         {
-            var player = roomManager.Players.Find(p => p.player_id == targetPlayerId);
+            PlayerInfo player = roomManager.Players.Find(p => p.player_id == targetPlayerId);
             if (player == null) return -1;
             if (player.state != PlayerState.Alive) return -1;
 
-            player.hp -= damage;
+            GameNetworkPlayer networkPlayer = roomManager.GetNetworkPlayerComponent(targetPlayerId);
+            if (networkPlayer == null) return -1;
+
+            player.hp = Mathf.Max(0, player.hp - damage);
+            networkPlayer.SetHp(player.hp);
+
             if (player.hp <= 0)
             {
-                player.hp = 0;
                 player.state = PlayerState.GhostRetreat;
+                networkPlayer.SetState(PlayerState.GhostRetreat);
+                networkPlayer.SetRespawnRemaining(0f);
 
-                // Drop carried treasure
-                if (!string.IsNullOrEmpty(player.carried_treasure_id))
-                {
-                    // TODO: Notify ServerTreasureAuthority to drop treasure at player position
-                    Debug.Log($"[ServerCombatAuthority] Player {targetPlayerId} entered GhostRetreat, dropped {player.carried_treasure_id}");
-                    player.carried_treasure_id = "";
-                }
+                treasureAuthority?.DropPlayerTreasure(
+                    targetPlayerId,
+                    networkPlayer.transform.position,
+                    roomManager);
+
+                Debug.Log("[ServerCombatAuthority] Player " + targetPlayerId + " entered GhostRetreat.");
             }
 
             return player.hp;
         }
 
-        private string RaycastHit(string attackerId, Vector3 origin, Vector3 direction, float range)
+        private GameNetworkPlayer RaycastHit(
+            string attackerId,
+            TeamType attackerTeam,
+            Vector3 origin,
+            Vector3 direction,
+            float range)
         {
-            // TODO: Use Netick player positions for authoritative raycast
-            // For now, placeholder: iterate over all non-attacker Alive players
-            var networkManager = NetworkManager.Instance;
-            if (networkManager == null) return null;
+            GameNetworkPlayer bestTarget = null;
+            float bestDistance = float.MaxValue;
+            GameNetworkPlayer[] allPlayers = FindObjectsOfType<GameNetworkPlayer>();
+            Vector3 dirNormalized = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
 
-            foreach (var kvp in system_GetPlayers(networkManager))
+            for (int i = 0; i < allPlayers.Length; i++)
             {
-                var netPlayer = kvp.Value;
-                if (netPlayer.PlayerId == attackerId) continue;
-                if (netPlayer.State != PlayerState.Alive) continue;
+                GameNetworkPlayer target = allPlayers[i];
+                if (target == null) continue;
+                if (target.PlayerId == attackerId) continue;
+                if (target.State != PlayerState.Alive) continue;
+                if (target.Team == TeamType.None || target.Team == attackerTeam) continue;
 
-                Vector3 targetPos = netPlayer.transform.position;
+                Vector3 targetPos = target.transform.position + Vector3.up * 1.0f;
                 Vector3 toTarget = targetPos - origin;
-                float dist = toTarget.magnitude;
+                float forwardDistance = Vector3.Dot(toTarget, dirNormalized);
+                if (forwardDistance < 0f || forwardDistance > range) continue;
 
-                if (dist > range) continue;
+                Vector3 closestPoint = origin + dirNormalized * forwardDistance;
+                float closestDist = Vector3.Distance(targetPos, closestPoint);
+                if (closestDist > _hitRadius) continue;
 
-                // Check if within hit radius of ray
-                Vector3 dirNormalized = direction.normalized;
-                Vector3 projection = origin + dirNormalized * Vector3.Dot(toTarget, dirNormalized);
-                float closestDist = Vector3.Distance(targetPos, projection);
-
-                if (closestDist <= _hitRadius)
+                if (forwardDistance < bestDistance)
                 {
-                    return netPlayer.PlayerId;
+                    bestDistance = forwardDistance;
+                    bestTarget = target;
                 }
             }
 
-            return null;
-        }
-
-        private Dictionary<string, NetworkPlayer> system_GetPlayers(NetworkManager nm)
-        {
-            // Reflection-free access: NetworkManager tracks players internally
-            // This is a workaround for the private _players dictionary
-            var players = new Dictionary<string, NetworkPlayer>();
-            var allNetPlayers = FindObjectsOfType<NetworkPlayer>();
-            foreach (var np in allNetPlayers)
-            {
-                if (!string.IsNullOrEmpty(np.PlayerId))
-                    players[np.PlayerId] = np;
-            }
-            return players;
+            return bestTarget;
         }
     }
 
-    /// <summary>
-    /// Result of a single attack action, broadcast to clients.
-    /// </summary>
     public class AttackResult
     {
         public bool hit;

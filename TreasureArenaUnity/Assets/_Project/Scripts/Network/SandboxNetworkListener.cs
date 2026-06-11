@@ -34,6 +34,13 @@ namespace TreasureArenaMR.Network
 
             if (_networkManager != null)
                 _networkManager.OnSandboxStarted(sandbox);
+
+            if (sandbox.IsServer)
+            {
+                var serverApp = FindObjectOfType<ServerApp>();
+                if (serverApp != null)
+                    serverApp.OnNetworkReady();
+            }
         }
 
         public override void OnShutdown(NetworkSandbox sandbox)
@@ -92,7 +99,10 @@ namespace TreasureArenaMR.Network
                 var netComp = playerObj.GetComponent<NetworkPlayer>();
                 if (netComp != null)
                 {
-                    netComp.Initialize(playerId, $"Player_{playerId}", teamType);
+                    int maxHp = _roomManager.CurrentRoomConfig != null
+                        ? _roomManager.CurrentRoomConfig.player_max_hp
+                        : 100;
+                    netComp.Initialize(playerId, $"Player_{playerId}", teamType, maxHp);
                     netComp.NetickPlayerId = netPlayer.PlayerId;
                 }
             }

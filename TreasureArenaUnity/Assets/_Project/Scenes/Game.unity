@@ -4228,6 +4228,7 @@ MonoBehaviour:
   _networkManager: {fileID: 411270889}
   _roomManager: {fileID: 1927502107}
   _autoStart: 0
+  _matchStatePrefab: {fileID: 6204667256923929318, guid: ea087ccb4d88b0c41a32d626cbb35b41, type: 3}
 --- !u!114 &1927502107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4290,6 +4291,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d02745f0ae6cd042a96b6006ad1fb87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _treasurePrefab: {fileID: 6178203351684063128, guid: 03ffa62082d23854db507aca1416b140, type: 3}
   _pickupDistance: 2
   _submitDistance: 3
 --- !u!114 &1927502111

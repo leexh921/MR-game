@@ -1,16 +1,14 @@
 using TreasureArenaMR.Client;
-using TreasureArenaMR.Server;
+using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
 using UnityEngine.UI;
+using GameNetworkPlayer = TreasureArenaMR.Network.NetworkPlayer;
 
 namespace TreasureArenaMR.UI
 {
     /// <summary>
-    /// Pico HUD that displays player HP, team scores, match timer, treasure status,
-    /// and GhostRetreat / Respawn prompts on a screen-space overlay Canvas.
-    /// Reads from the local PlayerNetInput (Netick [Networked] properties) and
-    /// the server RoomManager for match-level state.
+    /// Pico HUD. Reads replicated player and match state only; no client authority.
     /// </summary>
     public sealed class HudView : MonoBehaviour
     {
@@ -34,9 +32,10 @@ namespace TreasureArenaMR.UI
         [Header("Settings")]
         [SerializeField] private float refreshInterval = 0.1f;
 
-        private PlayerNetInput _localPlayer;
-        private RoomManager _roomManager;
-        private float _refreshTimer;
+        private PlayerNetInput localInput;
+        private GameNetworkPlayer localPlayer;
+        private NetworkMatchState matchState;
+        private float refreshTimer;
 
         private void Start()
         {
@@ -45,23 +44,21 @@ namespace TreasureArenaMR.UI
 
         private void Update()
         {
-            _refreshTimer -= Time.deltaTime;
-            if (_refreshTimer > 0f) return;
-            _refreshTimer = refreshInterval;
+            refreshTimer -= Time.deltaTime;
+            if (refreshTimer > 0f) return;
+            refreshTimer = refreshInterval;
 
-            if (_localPlayer == null) FindLocalPlayer();
-            if (_roomManager == null) _roomManager = FindObjectOfType<RoomManager>();
+            if (localPlayer == null) FindLocalPlayer();
+            if (matchState == null) matchState = FindObjectOfType<NetworkMatchState>();
 
             Refresh();
         }
 
-        /// <summary>
-        /// Manually bind a specific PlayerNetInput instead of auto-discovery.
-        /// </summary>
         public void SetLocalPlayer(PlayerNetInput player)
         {
-            _localPlayer = player;
-            _refreshTimer = 0f;
+            localInput = player;
+            localPlayer = player != null ? player.GetComponent<GameNetworkPlayer>() : null;
+            refreshTimer = 0f;
         }
 
         private void FindLocalPlayer()
@@ -71,7 +68,8 @@ namespace TreasureArenaMR.UI
             {
                 if (all[i].Object != null && all[i].Object.IsInputSource)
                 {
-                    _localPlayer = all[i];
+                    localInput = all[i];
+                    localPlayer = all[i].GetComponent<GameNetworkPlayer>();
                     return;
                 }
             }
@@ -79,76 +77,83 @@ namespace TreasureArenaMR.UI
 
         private void Refresh()
         {
-            if (_localPlayer == null)
+            RefreshPlayer();
+            RefreshMatch();
+        }
+
+        private void RefreshPlayer()
+        {
+            if (localPlayer == null)
             {
                 SetText(hpText, "HP: --");
-                SetText(scoreText, "-- : --");
-                SetText(timeText, "--:--");
                 SetText(treasureStatusText, "");
+                SetPanel(ghostRetreatPanel, false);
+                SetPanel(respawnPanel, false);
+                SetText(respawnCountdownText, "");
                 return;
             }
 
-            // HP ────────────────────────────────────────────────
-            /* DEBUG: commented out — [Networked] properties on PlayerNetInput are disabled
-            SetText(hpText, $"HP: {_localPlayer.Hp}");
+            SetText(hpText, "HP: " + localPlayer.Hp + " / " + localPlayer.MaxHp);
+            SetText(treasureStatusText, localPlayer.HasTreasure
+                ? "Carrying: " + localPlayer.CarriedTreasureType
+                : "");
 
-            // Treasure ───────────────────────────────────────────
-            string treasure = string.IsNullOrEmpty(_localPlayer.CarriedTreasureId)
-                ? ""
-                : $"Carrying: {_localPlayer.CarriedTreasureId}";
-            SetText(treasureStatusText, treasure);
+            bool ghost = localPlayer.State == PlayerState.GhostRetreat;
+            bool respawning = localPlayer.State == PlayerState.Respawning;
+            SetPanel(ghostRetreatPanel, ghost);
+            SetPanel(respawnPanel, respawning);
 
-            // State panels ───────────────────────────────────────
-            bool ghost = _localPlayer.State == PlayerState.GhostRetreat;
-            bool respawning = _localPlayer.State == PlayerState.Respawning;
+            if (respawning)
+                SetText(respawnCountdownText, Mathf.CeilToInt(localPlayer.RespawnRemaining).ToString());
+            else
+                SetText(respawnCountdownText, "");
+        }
 
-            if (ghostRetreatPanel != null)
-                ghostRetreatPanel.SetActive(ghost);
-            if (respawnPanel != null)
-                respawnPanel.SetActive(respawning);
-            */
-            // DEBUG shim: placeholder display while properties are disabled
-            SetText(hpText, "HP: --");
-            SetText(treasureStatusText, "");
+        private void RefreshMatch()
+        {
+            if (matchState == null)
+            {
+                SetText(scoreText, "-- : --");
+                SetText(timeText, "--:--");
+                SetPanel(resultPanel, false);
+                return;
+            }
 
-            // Match-level state from RoomManager ──────────────────
-            if (_roomManager == null) return;
+            SetText(scoreText, "Red " + matchState.RedScore + " : " + matchState.BlueScore + " Blue");
 
-            // Score
-            SetText(scoreText, $"Red {_roomManager.RedScore} : {_roomManager.BlueScore} Blue");
-
-            // Timer
-            float t = Mathf.Max(0f, _roomManager.RemainingTime);
+            float t = Mathf.Max(0f, matchState.RemainingTime);
             int mins = Mathf.FloorToInt(t / 60f);
             int secs = Mathf.FloorToInt(t % 60f);
-            SetText(timeText, $"{mins:D2}:{secs:D2}");
+            SetText(timeText, mins.ToString("D2") + ":" + secs.ToString("D2"));
 
-            // Match finished
-            if (_roomManager.CurrentRoomState == RoomState.Finished)
+            bool finished = matchState.RoomState == RoomState.Finished;
+            SetPanel(resultPanel, finished);
+            if (finished && resultSummaryText != null)
             {
-                if (resultPanel != null) resultPanel.SetActive(true);
-
-                if (resultSummaryText != null)
-                {
-                    string winner = _roomManager.RedScore > _roomManager.BlueScore ? "Red"
-                        : _roomManager.BlueScore > _roomManager.RedScore ? "Blue"
-                        : "Draw";
-                    resultSummaryText.text =
-                        $"Match Over\nRed {_roomManager.RedScore} : {_roomManager.BlueScore} Blue\nWinner: {winner}";
-                }
+                string winner = matchState.RedScore > matchState.BlueScore ? "Red"
+                    : matchState.BlueScore > matchState.RedScore ? "Blue"
+                    : "Draw";
+                resultSummaryText.text = "Match Over\nRed " + matchState.RedScore
+                    + " : " + matchState.BlueScore + " Blue\nWinner: " + winner;
             }
         }
 
         private void HideAllPanels()
         {
-            if (ghostRetreatPanel != null) ghostRetreatPanel.SetActive(false);
-            if (respawnPanel != null) respawnPanel.SetActive(false);
-            if (resultPanel != null) resultPanel.SetActive(false);
+            SetPanel(ghostRetreatPanel, false);
+            SetPanel(respawnPanel, false);
+            SetPanel(resultPanel, false);
         }
 
         private static void SetText(Text text, string value)
         {
             if (text != null) text.text = value;
+        }
+
+        private static void SetPanel(GameObject panel, bool visible)
+        {
+            if (panel != null && panel.activeSelf != visible)
+                panel.SetActive(visible);
         }
     }
 }

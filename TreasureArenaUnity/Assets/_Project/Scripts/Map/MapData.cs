@@ -47,6 +47,30 @@ namespace TreasureArenaMR.Map
             return FindTeamBase(team);
         }
 
+        public List<TreasureSpawnPoint> GetTreasureSpawnPoints()
+        {
+            List<TreasureSpawnPoint> points = new List<TreasureSpawnPoint>();
+            if (map == null || map.treasure_spawn_points == null)
+            {
+                return points;
+            }
+
+            for (int i = 0; i < map.treasure_spawn_points.Count; i++)
+            {
+                MapJsonModels.TreasureSpawnPointJson point = map.treasure_spawn_points[i];
+                if (point == null)
+                    continue;
+
+                points.Add(new TreasureSpawnPoint(
+                    string.IsNullOrEmpty(point.point_id) ? "treasure_point_" + i : point.point_id,
+                    ParseTreasureType(point.treasure_type),
+                    ToVector3(point.position),
+                    point.radius));
+            }
+
+            return points;
+        }
+
         private MapZone FindTeamBase(TeamType team)
         {
             if (team == TeamType.None || map == null || map.team_bases == null)
@@ -76,6 +100,14 @@ namespace TreasureArenaMR.Map
 
             return new Vector3(value.x, value.y, value.z);
         }
+
+        private static TreasureType ParseTreasureType(string value)
+        {
+            if (System.Enum.TryParse(value, true, out TreasureType parsed))
+                return parsed;
+
+            return TreasureType.Normal;
+        }
     }
 
     public sealed class MapZone
@@ -86,6 +118,22 @@ namespace TreasureArenaMR.Map
             Radius = radius;
         }
 
+        public Vector3 Position { get; private set; }
+        public float Radius { get; private set; }
+    }
+
+    public sealed class TreasureSpawnPoint
+    {
+        public TreasureSpawnPoint(string pointId, TreasureType treasureType, Vector3 position, float radius)
+        {
+            PointId = pointId;
+            TreasureType = treasureType;
+            Position = position;
+            Radius = radius;
+        }
+
+        public string PointId { get; private set; }
+        public TreasureType TreasureType { get; private set; }
         public Vector3 Position { get; private set; }
         public float Radius { get; private set; }
     }
