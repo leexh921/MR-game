@@ -12,10 +12,12 @@ namespace TreasureArenaMR.MapEditor.Editor
     {
         public const string PrefabPath = "Assets/_Project/Prefabs/MapEditor/UI/MapEditorDockedCanvas.prefab";
 
-        private static readonly Color PanelColor = new Color(0.06f, 0.07f, 0.08f, 0.78f);
-        private static readonly Color ButtonColor = new Color(0.20f, 0.36f, 0.60f, 0.95f);
-        private static readonly Color DangerColor = new Color(0.72f, 0.14f, 0.12f, 0.95f);
+        private static readonly Color PanelColor = new Color(0.055f, 0.065f, 0.075f, 0.82f);
+        private static readonly Color MainPanelColor = new Color(0.065f, 0.075f, 0.085f, 0.86f);
+        private static readonly Color ButtonColor = new Color(0.18f, 0.34f, 0.58f, 0.96f);
+        private static readonly Color DangerColor = new Color(0.72f, 0.14f, 0.12f, 0.96f);
         private static readonly Color FieldColor = new Color(0.92f, 0.94f, 0.96f, 0.96f);
+        private static readonly Color CardColor = new Color(0.12f, 0.17f, 0.22f, 0.96f);
 
         [MenuItem("Tools/TreasureArena/地图编辑器/创建 Docked UI Prefab")]
         public static GameObject CreateOrUpdatePrefab()
@@ -29,73 +31,86 @@ namespace TreasureArenaMR.MapEditor.Editor
 
             GameObject root = new GameObject("MapEditorDockedCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(TrackedDeviceGraphicRaycaster), typeof(MapEditorDockedUiController));
             RectTransform rootRect = root.GetComponent<RectTransform>();
-            rootRect.sizeDelta = new Vector2(1200f, 720f);
-            root.transform.localScale = Vector3.one * 0.0024f;
+            rootRect.sizeDelta = new Vector2(1200f, 560f);
+            root.transform.localScale = Vector3.one * 0.001f;
 
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
             canvas.worldCamera = Camera.main;
-            root.GetComponent<CanvasScaler>().dynamicPixelsPerUnit = 12f;
+            root.GetComponent<CanvasScaler>().dynamicPixelsPerUnit = 16f;
 
             MapEditorValidationPresenter presenter = root.AddComponent<MapEditorValidationPresenter>();
 
-            MapEditorDockedPanel topPanel = CreatePanel(root.transform, "TopBar", "Map", new Vector2(0.5f, 1f), new Vector2(1180f, 82f), new Vector2(0f, -48f), out Transform topExpanded);
-            MapEditorDockedPanel leftPanel = CreatePanel(root.transform, "LeftPanel", "Brushes", new Vector2(0f, 0.5f), new Vector2(260f, 520f), new Vector2(150f, 0f), out Transform leftExpanded);
-            MapEditorDockedPanel rightPanel = CreatePanel(root.transform, "RightPanel", "Inspector", new Vector2(1f, 0.5f), new Vector2(300f, 520f), new Vector2(-170f, 0f), out Transform rightExpanded);
-            MapEditorDockedPanel bottomPanel = CreatePanel(root.transform, "BottomBar", "Tools", new Vector2(0.5f, 0f), new Vector2(1180f, 132f), new Vector2(0f, 76f), out Transform bottomExpanded);
+            MapEditorDockedPanel leftPanel = CreatePanel(root.transform, "LeftInfoPanel", "Map", new Vector2(0.5f, 0.5f), new Vector2(280f, 520f), new Vector2(-450f, 0f), PanelColor, out Transform leftExpanded);
+            MapEditorDockedPanel mainPanel = CreatePanel(root.transform, "MainBrushPanel", "Brushes", new Vector2(0.5f, 0.5f), new Vector2(520f, 520f), Vector2.zero, MainPanelColor, out Transform mainExpanded);
+            MapEditorDockedPanel rightPanel = CreatePanel(root.transform, "RightInspectorPanel", "Inspector", new Vector2(0.5f, 0.5f), new Vector2(340f, 520f), new Vector2(430f, 0f), PanelColor, out Transform rightExpanded);
 
-            Text mapNameText = CreateText(topExpanded, "MapNameText", "Map: new_map", 16, new Vector2(-520f, 8f), new Vector2(190f, 24f), TextAnchor.MiddleLeft);
-            Text mapIdText = CreateText(topExpanded, "MapIdText", "id: new_map", 14, new Vector2(-330f, 8f), new Vector2(170f, 24f), TextAnchor.MiddleLeft);
-            Text mapVersionText = CreateText(topExpanded, "MapVersionText", "v1", 14, new Vector2(-190f, 8f), new Vector2(70f, 24f), TextAnchor.MiddleLeft);
-            Text modeText = CreateText(topExpanded, "ModeText", "Mode: Place", 14, new Vector2(-90f, 8f), new Vector2(120f, 24f), TextAnchor.MiddleLeft);
-            Text countText = CreateText(topExpanded, "CountText", "Objects: 0", 14, new Vector2(80f, 8f), new Vector2(260f, 24f), TextAnchor.MiddleLeft);
-            Text statusText = CreateText(topExpanded, "StatusText", "Ready", 14, new Vector2(360f, 8f), new Vector2(250f, 24f), TextAnchor.MiddleLeft);
-            Button validateButton = CreateButton(topExpanded, "ValidateButton", "Validate", new Vector2(470f, -22f), new Vector2(112f, 40f), ButtonColor);
-            Button exportButton = CreateButton(topExpanded, "ExportButton", "Export", new Vector2(592f, -22f), new Vector2(96f, 40f), ButtonColor);
+            Text mapNameText = CreateText(leftExpanded, "MapNameText", "Map: new_map", 15, new Vector2(0f, 200f), new Vector2(230f, 24f), TextAnchor.MiddleLeft);
+            Text mapIdText = CreateText(leftExpanded, "MapIdText", "map_id: new_map", 13, new Vector2(0f, 174f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text mapVersionText = CreateText(leftExpanded, "MapVersionText", "version: 1.0.0", 13, new Vector2(0f, 150f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text modeText = CreateText(leftExpanded, "ModeText", "Mode: Place", 13, new Vector2(0f, 118f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text statusText = CreateText(leftExpanded, "StatusText", "Validation: Not validated", 13, new Vector2(0f, 94f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text countText = CreateText(leftExpanded, "CountText", "Objects: 0", 13, new Vector2(0f, 34f), new Vector2(230f, 86f), TextAnchor.UpperLeft);
 
-            CreateText(leftExpanded, "MapObjectsLabel", "Folders", 15, new Vector2(0f, 192f), new Vector2(220f, 24f), TextAnchor.MiddleLeft);
-            Transform mapObjectsList = CreateScrollListRoot(leftExpanded, "MapObjectsList", new Vector2(0f, -8f), new Vector2(220f, 392f));
-            CreateText(leftExpanded, "GameplayMarkersLabel", "", 15, new Vector2(0f, -224f), new Vector2(220f, 24f), TextAnchor.MiddleLeft);
-            Transform gameplayMarkersList = CreateListRoot(leftExpanded, "GameplayMarkersList", new Vector2(0f, -240f), new Vector2(220f, 1f));
-            Button brushButtonTemplate = CreateButton(leftExpanded, "BrushButtonTemplate", "Brush", new Vector2(0f, -246f), new Vector2(220f, 40f), ButtonColor);
+            Button saveButton = CreateButton(leftExpanded, "SaveButton", "Save", new Vector2(-62f, -42f), new Vector2(104f, 38f), ButtonColor);
+            Button loadButton = CreateButton(leftExpanded, "LoadButton", "Load", new Vector2(62f, -42f), new Vector2(104f, 38f), ButtonColor);
+            Button validateButton = CreateButton(leftExpanded, "ValidateButton", "Validate", new Vector2(-62f, -86f), new Vector2(104f, 38f), ButtonColor);
+            Button exportButton = CreateButton(leftExpanded, "ExportButton", "Export JSON", new Vector2(62f, -86f), new Vector2(104f, 38f), ButtonColor);
+            Button previewButton = CreateButton(leftExpanded, "PreviewButton", "Preview", new Vector2(-62f, -130f), new Vector2(104f, 38f), ButtonColor);
+            Button clearMapButton = CreateButton(leftExpanded, "ClearMapButton", "Clear Map", new Vector2(62f, -130f), new Vector2(104f, 38f), DangerColor);
+            Button mapSettingsButton = CreateButton(leftExpanded, "MapSettingsButton", "Map Settings", new Vector2(0f, -174f), new Vector2(228f, 38f), ButtonColor);
+            Text recentLogText = CreateText(leftExpanded, "RecentLogText", "Ready", 12, new Vector2(0f, -216f), new Vector2(230f, 28f), TextAnchor.UpperLeft);
+            Text errorListText = CreateText(leftExpanded, "ErrorListText", "", 11, new Vector2(0f, -244f), new Vector2(230f, 40f), TextAnchor.UpperLeft);
+
+            Text leftHandBrushText = CreateText(mainExpanded, "LeftHandBrushText", "Left Hand: None", 13, new Vector2(-126f, 200f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text rightHandBrushText = CreateText(mainExpanded, "RightHandBrushText", "Right Hand: None", 13, new Vector2(126f, 200f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text activeHandText = CreateText(mainExpanded, "ActiveHandText", "Active: Right", 13, new Vector2(-126f, 176f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text hintText = CreateText(mainExpanded, "HintText", "Hint: Aim at a surface and press Trigger.", 12, new Vector2(126f, 176f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+
+            CreateText(mainExpanded, "MapObjectsLabel", "Map Objects", 14, new Vector2(-126f, 144f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            CreateText(mainExpanded, "GameplayMarkersLabel", "Gameplay Markers", 14, new Vector2(126f, 144f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Transform mapObjectsList = CreateScrollListRoot(mainExpanded, "MapObjectsList", new Vector2(-126f, 8f), new Vector2(230f, 252f));
+            Transform gameplayMarkersList = CreateScrollListRoot(mainExpanded, "GameplayMarkersList", new Vector2(126f, 8f), new Vector2(230f, 252f));
+            Button brushButtonTemplate = CreateBrushCardButton(mainExpanded, "BrushButtonTemplate", new Vector2(0f, -250f), new Vector2(220f, 76f));
             brushButtonTemplate.gameObject.SetActive(false);
 
-            MapEditorObjectInspector inspector = rightPanel.gameObject.AddComponent<MapEditorObjectInspector>();
-            Text selectedNameText = CreateText(rightExpanded, "SelectedNameText", "Selected: none", 14, new Vector2(0f, 198f), new Vector2(250f, 24f), TextAnchor.MiddleLeft);
-            Text selectedTypeText = CreateText(rightExpanded, "SelectedTypeText", "Type: none", 14, new Vector2(0f, 174f), new Vector2(250f, 24f), TextAnchor.MiddleLeft);
-            InputField idField = CreateInputField(rightExpanded, "ObjectIdField", "id", new Vector2(0f, 138f), new Vector2(250f, 32f));
-            InputField prefabField = CreateInputField(rightExpanded, "PrefabIdField", "prefab", new Vector2(0f, 102f), new Vector2(250f, 32f));
-            InputField posX = CreateInputField(rightExpanded, "PositionX", "pos x", new Vector2(-86f, 60f), new Vector2(78f, 32f));
-            InputField posY = CreateInputField(rightExpanded, "PositionY", "y", new Vector2(0f, 60f), new Vector2(78f, 32f));
-            InputField posZ = CreateInputField(rightExpanded, "PositionZ", "z", new Vector2(86f, 60f), new Vector2(78f, 32f));
-            InputField rotX = CreateInputField(rightExpanded, "RotationX", "rot x", new Vector2(-86f, 22f), new Vector2(78f, 32f));
-            InputField rotY = CreateInputField(rightExpanded, "RotationY", "y", new Vector2(0f, 22f), new Vector2(78f, 32f));
-            InputField rotZ = CreateInputField(rightExpanded, "RotationZ", "z", new Vector2(86f, 22f), new Vector2(78f, 32f));
-            InputField scaleX = CreateInputField(rightExpanded, "ScaleX", "scale x", new Vector2(-86f, -16f), new Vector2(78f, 32f));
-            InputField scaleY = CreateInputField(rightExpanded, "ScaleY", "y", new Vector2(0f, -16f), new Vector2(78f, 32f));
-            InputField scaleZ = CreateInputField(rightExpanded, "ScaleZ", "z", new Vector2(86f, -16f), new Vector2(78f, 32f));
-            Toggle colliderToggle = CreateToggle(rightExpanded, "HasColliderToggle", "has collider", new Vector2(-68f, -54f), new Vector2(118f, 28f));
-            Dropdown teamDropdown = CreateDropdown(rightExpanded, "TeamDropdown", "team", new Vector2(70f, -54f), new Vector2(118f, 32f), new[] { TeamType.None.ToString(), TeamType.Red.ToString(), TeamType.Blue.ToString() });
-            Dropdown treasureDropdown = CreateDropdown(rightExpanded, "TreasureDropdown", "treasure", new Vector2(0f, -92f), new Vector2(250f, 32f), new[] { TreasureType.Normal.ToString(), TreasureType.Rare.ToString(), TreasureType.Final.ToString() });
-            InputField radiusField = CreateInputField(rightExpanded, "RadiusField", "radius", new Vector2(-66f, -130f), new Vector2(118f, 32f));
-            InputField supplyField = CreateInputField(rightExpanded, "SupplyTypeField", "supply", new Vector2(70f, -130f), new Vector2(118f, 32f));
-            InputField refreshField = CreateInputField(rightExpanded, "RefreshIntervalField", "refresh", new Vector2(0f, -168f), new Vector2(250f, 32f));
+            Button placeButton = CreateButton(mainExpanded, "PlaceButton", "Place", new Vector2(-204f, -156f), new Vector2(92f, 38f), ButtonColor);
+            Button moveButton = CreateButton(mainExpanded, "MoveButton", "Move", new Vector2(-102f, -156f), new Vector2(92f, 38f), ButtonColor);
+            Button rotateButton = CreateButton(mainExpanded, "RotateButton", "Rotate", new Vector2(0f, -156f), new Vector2(92f, 38f), ButtonColor);
+            Button scaleButton = CreateButton(mainExpanded, "ScaleButton", "Scale", new Vector2(102f, -156f), new Vector2(92f, 38f), ButtonColor);
+            Button deleteButton = CreateButton(mainExpanded, "DeleteButton", "Delete", new Vector2(204f, -156f), new Vector2(92f, 38f), DangerColor);
+            Button clearBrushButton = CreateButton(mainExpanded, "ClearBrushButton", "Clear Brush", new Vector2(-156f, -204f), new Vector2(132f, 38f), ButtonColor);
+            Text gridStepText = CreateText(mainExpanded, "GridStepText", "Grid 0.5m", 12, new Vector2(-12f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
+            Text rotateStepText = CreateText(mainExpanded, "RotateStepText", "Rotate 15 deg", 12, new Vector2(116f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
+            Text scaleStepText = CreateText(mainExpanded, "ScaleStepText", "Scale 0.1", 12, new Vector2(224f, -204f), new Vector2(96f, 22f), TextAnchor.MiddleLeft);
 
-            Button placeButton = CreateButton(bottomExpanded, "PlaceButton", "Place", new Vector2(-500f, 22f), new Vector2(92f, 40f), ButtonColor);
-            Button moveButton = CreateButton(bottomExpanded, "MoveButton", "Move", new Vector2(-400f, 22f), new Vector2(92f, 40f), ButtonColor);
-            Button rotateButton = CreateButton(bottomExpanded, "RotateButton", "Rotate", new Vector2(-300f, 22f), new Vector2(92f, 40f), ButtonColor);
-            Button scaleButton = CreateButton(bottomExpanded, "ScaleButton", "Scale", new Vector2(-200f, 22f), new Vector2(92f, 40f), ButtonColor);
-            Button deleteButton = CreateButton(bottomExpanded, "DeleteButton", "Delete", new Vector2(-100f, 22f), new Vector2(92f, 40f), DangerColor);
-            Button clearBrushButton = CreateButton(bottomExpanded, "ClearBrushButton", "Clear Brush", new Vector2(20f, 22f), new Vector2(124f, 40f), ButtonColor);
-            Text gridStepText = CreateText(bottomExpanded, "GridStepText", "Grid 0.5m", 13, new Vector2(-500f, -26f), new Vector2(100f, 24f), TextAnchor.MiddleLeft);
-            Text rotateStepText = CreateText(bottomExpanded, "RotateStepText", "Rotate 15 deg", 13, new Vector2(-390f, -26f), new Vector2(130f, 24f), TextAnchor.MiddleLeft);
-            Text scaleStepText = CreateText(bottomExpanded, "ScaleStepText", "Scale 0.1", 13, new Vector2(-250f, -26f), new Vector2(100f, 24f), TextAnchor.MiddleLeft);
-            Text recentLogText = CreateText(bottomExpanded, "RecentLogText", "Ready", 14, new Vector2(320f, 24f), new Vector2(430f, 36f), TextAnchor.MiddleLeft);
-            Text errorListText = CreateText(bottomExpanded, "ErrorListText", "", 13, new Vector2(300f, -32f), new Vector2(520f, 58f), TextAnchor.UpperLeft);
+            MapEditorObjectInspector inspector = rightPanel.gameObject.AddComponent<MapEditorObjectInspector>();
+            Text selectedNameText = CreateText(rightExpanded, "SelectedNameText", "Selected: none", 14, new Vector2(0f, 200f), new Vector2(280f, 24f), TextAnchor.MiddleLeft);
+            Text selectedTypeText = CreateText(rightExpanded, "SelectedTypeText", "Type: none", 13, new Vector2(0f, 176f), new Vector2(280f, 22f), TextAnchor.MiddleLeft);
+            InputField idField = CreateInputField(rightExpanded, "ObjectIdField", "object_id", new Vector2(0f, 140f), new Vector2(280f, 32f));
+            InputField prefabField = CreateInputField(rightExpanded, "PrefabIdField", "prefab_id", new Vector2(0f, 104f), new Vector2(280f, 32f));
+            InputField posX = CreateInputField(rightExpanded, "PositionX", "pos x", new Vector2(-96f, 64f), new Vector2(86f, 32f));
+            InputField posY = CreateInputField(rightExpanded, "PositionY", "y", new Vector2(0f, 64f), new Vector2(86f, 32f));
+            InputField posZ = CreateInputField(rightExpanded, "PositionZ", "z", new Vector2(96f, 64f), new Vector2(86f, 32f));
+            InputField rotX = CreateInputField(rightExpanded, "RotationX", "rot x", new Vector2(-96f, 26f), new Vector2(86f, 32f));
+            InputField rotY = CreateInputField(rightExpanded, "RotationY", "y", new Vector2(0f, 26f), new Vector2(86f, 32f));
+            InputField rotZ = CreateInputField(rightExpanded, "RotationZ", "z", new Vector2(96f, 26f), new Vector2(86f, 32f));
+            InputField scaleX = CreateInputField(rightExpanded, "ScaleX", "scale x", new Vector2(-96f, -12f), new Vector2(86f, 32f));
+            InputField scaleY = CreateInputField(rightExpanded, "ScaleY", "y", new Vector2(0f, -12f), new Vector2(86f, 32f));
+            InputField scaleZ = CreateInputField(rightExpanded, "ScaleZ", "z", new Vector2(96f, -12f), new Vector2(86f, 32f));
+            Toggle colliderToggle = CreateToggle(rightExpanded, "HasColliderToggle", "has collider", new Vector2(-78f, -52f), new Vector2(134f, 28f));
+            Dropdown teamDropdown = CreateDropdown(rightExpanded, "TeamDropdown", "team", new Vector2(78f, -52f), new Vector2(134f, 32f), new[] { TeamType.None.ToString(), TeamType.Red.ToString(), TeamType.Blue.ToString() });
+            Dropdown treasureDropdown = CreateDropdown(rightExpanded, "TreasureDropdown", "treasure", new Vector2(0f, -90f), new Vector2(280f, 32f), new[] { TreasureType.Normal.ToString(), TreasureType.Rare.ToString(), TreasureType.Final.ToString() });
+            InputField radiusField = CreateInputField(rightExpanded, "RadiusField", "radius", new Vector2(-78f, -128f), new Vector2(134f, 32f));
+            InputField supplyField = CreateInputField(rightExpanded, "SupplyTypeField", "supply", new Vector2(78f, -128f), new Vector2(134f, 32f));
+            InputField refreshField = CreateInputField(rightExpanded, "RefreshIntervalField", "refresh", new Vector2(0f, -166f), new Vector2(280f, 32f));
+            Button duplicateButton = CreateButton(rightExpanded, "DuplicateButton", "Duplicate", new Vector2(-96f, -212f), new Vector2(88f, 36f), ButtonColor);
+            Button inspectorDeleteButton = CreateButton(rightExpanded, "InspectorDeleteButton", "Delete", new Vector2(0f, -212f), new Vector2(88f, 36f), DangerColor);
+            Button resetTransformButton = CreateButton(rightExpanded, "ResetTransformButton", "Reset", new Vector2(96f, -212f), new Vector2(88f, 36f), ButtonColor);
 
             BindPresenter(presenter, recentLogText, errorListText);
-            BindInspector(inspector, selectedNameText, selectedTypeText, idField, prefabField, posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, scaleZ, colliderToggle, teamDropdown, treasureDropdown, radiusField, supplyField, refreshField);
-            BindController(root.GetComponent<MapEditorDockedUiController>(), topPanel, leftPanel, rightPanel, bottomPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, placeButton, moveButton, rotateButton, scaleButton, deleteButton, clearBrushButton, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
+            BindInspector(inspector, selectedNameText, selectedTypeText, idField, prefabField, posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, scaleZ, colliderToggle, teamDropdown, treasureDropdown, radiusField, supplyField, refreshField, duplicateButton, inspectorDeleteButton, resetTransformButton);
+            BindController(root.GetComponent<MapEditorDockedUiController>(), leftPanel, mainPanel, rightPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, saveButton, loadButton, previewButton, clearMapButton, mapSettingsButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, leftHandBrushText, rightHandBrushText, activeHandText, hintText, placeButton, moveButton, rotateButton, scaleButton, deleteButton, clearBrushButton, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -104,33 +119,33 @@ namespace TreasureArenaMR.MapEditor.Editor
             return prefab;
         }
 
-        private static MapEditorDockedPanel CreatePanel(Transform parent, string name, string title, Vector2 anchor, Vector2 size, Vector2 position, out Transform expandedRoot)
+        private static MapEditorDockedPanel CreatePanel(Transform parent, string name, string title, Vector2 anchor, Vector2 size, Vector2 position, Color color, out Transform expandedRoot)
         {
             GameObject panelGo = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(CanvasGroup), typeof(BoxCollider), typeof(MapEditorRuntimeUiHitTarget), typeof(MapEditorDockedPanel));
             panelGo.transform.SetParent(parent, false);
             RectTransform rect = panelGo.GetComponent<RectTransform>();
             rect.anchorMin = anchor;
             rect.anchorMax = anchor;
-            rect.pivot = anchor;
+            rect.pivot = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = size;
             rect.anchoredPosition = position;
-            panelGo.GetComponent<Image>().color = PanelColor;
+            panelGo.GetComponent<Image>().color = color;
             SetBoxCollider(panelGo, size);
 
             GameObject expanded = CreateRect(panelGo.transform, "Expanded", Vector2.zero, size);
             expandedRoot = expanded.transform;
-            GameObject collapsed = CreateRect(panelGo.transform, "Collapsed", Vector2.zero, new Vector2(Mathf.Min(size.x, 260f), 42f));
+            GameObject collapsed = CreateRect(panelGo.transform, "Collapsed", Vector2.zero, new Vector2(Mathf.Min(size.x, 240f), 42f));
             collapsed.SetActive(false);
 
-            Text expandedTitle = CreateText(expanded.transform, "Title", title, 16, new Vector2(-size.x * 0.5f + 70f, size.y * 0.5f - 24f), new Vector2(120f, 28f), TextAnchor.MiddleLeft);
-            Button collapseButton = CreateButton(expanded.transform, "CollapseButton", "-", new Vector2(size.x * 0.5f - 72f, size.y * 0.5f - 24f), new Vector2(40f, 34f), ButtonColor);
-            Button pinButton = CreateButton(expanded.transform, "PinButton", "Pin", new Vector2(size.x * 0.5f - 26f, size.y * 0.5f - 24f), new Vector2(48f, 34f), ButtonColor);
+            Text expandedTitle = CreateText(expanded.transform, "Title", title, 16, new Vector2(-size.x * 0.5f + 58f, size.y * 0.5f - 24f), new Vector2(120f, 28f), TextAnchor.MiddleLeft);
+            Button collapseButton = CreateButton(expanded.transform, "CollapseButton", "-", new Vector2(size.x * 0.5f - 68f, size.y * 0.5f - 24f), new Vector2(40f, 32f), ButtonColor);
+            Button pinButton = CreateButton(expanded.transform, "PinButton", "Pin", new Vector2(size.x * 0.5f - 22f, size.y * 0.5f - 24f), new Vector2(44f, 32f), ButtonColor);
             Text pinText = pinButton.GetComponentInChildren<Text>();
-            Image expandedErrorDot = CreateDot(expanded.transform, "ExpandedErrorDot", new Vector2(size.x * 0.5f - 116f, size.y * 0.5f - 24f));
+            Image expandedErrorDot = CreateDot(expanded.transform, "ExpandedErrorDot", new Vector2(size.x * 0.5f - 108f, size.y * 0.5f - 24f));
 
             Text collapsedTitle = CreateText(collapsed.transform, "CollapsedTitle", title, 14, new Vector2(12f, 0f), new Vector2(150f, 32f), TextAnchor.MiddleLeft);
-            Button expandButton = CreateButton(collapsed.transform, "ExpandButton", "+", new Vector2(100f, 0f), new Vector2(40f, 34f), ButtonColor);
-            Image collapsedErrorDot = CreateDot(collapsed.transform, "CollapsedErrorDot", new Vector2(132f, 0f));
+            Button expandButton = CreateButton(collapsed.transform, "ExpandButton", "+", new Vector2(96f, 0f), new Vector2(40f, 32f), ButtonColor);
+            Image collapsedErrorDot = CreateDot(collapsed.transform, "CollapsedErrorDot", new Vector2(128f, 0f));
 
             SerializedObject panel = new SerializedObject(panelGo.GetComponent<MapEditorDockedPanel>());
             panel.FindProperty("panelTitle").stringValue = title;
@@ -162,27 +177,17 @@ namespace TreasureArenaMR.MapEditor.Editor
             return go;
         }
 
-        private static Transform CreateListRoot(Transform parent, string name, Vector2 position, Vector2 size)
-        {
-            GameObject list = CreateRect(parent, name, position, size);
-            VerticalLayoutGroup layout = list.AddComponent<VerticalLayoutGroup>();
-            layout.childControlHeight = false;
-            layout.childControlWidth = false;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.spacing = 8f;
-            return list.transform;
-        }
-
         private static Transform CreateScrollListRoot(Transform parent, string name, Vector2 position, Vector2 size)
         {
             GameObject scrollGo = CreateRect(parent, name + "Scroll", position, size);
             Image scrollImage = scrollGo.AddComponent<Image>();
-            scrollImage.color = new Color(0f, 0f, 0f, 0.12f);
+            scrollImage.color = new Color(0f, 0f, 0f, 0.14f);
             ScrollRect scrollRect = scrollGo.AddComponent<ScrollRect>();
             scrollRect.horizontal = false;
             scrollRect.vertical = true;
             scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            SetBoxCollider(scrollGo, size);
+            scrollGo.AddComponent<MapEditorRuntimeUiHitTarget>();
 
             GameObject viewportGo = CreateRect(scrollGo.transform, "Viewport", Vector2.zero, size);
             Image viewportImage = viewportGo.AddComponent<Image>();
@@ -217,6 +222,29 @@ namespace TreasureArenaMR.MapEditor.Editor
             return contentGo.transform;
         }
 
+        private static Button CreateBrushCardButton(Transform parent, string name, Vector2 position, Vector2 size)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(BoxCollider), typeof(MapEditorRuntimeUiHitTarget));
+            go.transform.SetParent(parent, false);
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.sizeDelta = size;
+            rect.anchoredPosition = position;
+            go.GetComponent<Image>().color = CardColor;
+            Button button = go.GetComponent<Button>();
+            Image thumb = CreateImage(go.transform, "Thumbnail", new Vector2(-size.x * 0.5f + 30f, 0f), new Vector2(42f, 42f), new Color(0.25f, 0.37f, 0.45f, 1f));
+            thumb.raycastTarget = false;
+            Text nameText = CreateText(go.transform, "NameText", "Brush", 13, new Vector2(32f, 12f), new Vector2(size.x - 76f, 24f), TextAnchor.MiddleLeft);
+            nameText.raycastTarget = false;
+            Text typeText = CreateText(go.transform, "TypeText", "MapObject", 10, new Vector2(32f, -14f), new Vector2(size.x - 76f, 20f), TextAnchor.MiddleLeft);
+            typeText.color = new Color(0.8f, 0.88f, 0.95f, 1f);
+            typeText.raycastTarget = false;
+            Text handText = CreateText(go.transform, "HandMarkerText", "", 16, new Vector2(size.x * 0.5f - 22f, size.y * 0.5f - 20f), new Vector2(34f, 28f), TextAnchor.MiddleCenter);
+            handText.color = new Color(0.1f, 1f, 0.85f, 1f);
+            handText.raycastTarget = false;
+            SetBoxCollider(go, size);
+            return button;
+        }
+
         private static Text CreateText(Transform parent, string name, string text, int fontSize, Vector2 position, Vector2 size, TextAnchor anchor)
         {
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
@@ -242,10 +270,9 @@ namespace TreasureArenaMR.MapEditor.Editor
             rect.anchoredPosition = position;
             go.GetComponent<Image>().color = color;
             Button button = go.GetComponent<Button>();
-            Text text = CreateText(go.transform, "Text", label, 14, Vector2.zero, size, TextAnchor.MiddleCenter);
+            Text text = CreateText(go.transform, "Text", label, 13, Vector2.zero, size, TextAnchor.MiddleCenter);
             text.raycastTarget = false;
             SetBoxCollider(go, size);
-            BindUiHitTarget(go.GetComponent<MapEditorRuntimeUiHitTarget>(), button);
             return button;
         }
 
@@ -278,6 +305,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             Image background = CreateImage(go.transform, "Background", new Vector2(-size.x * 0.5f + 12f, 0f), new Vector2(22f, 22f), FieldColor);
             Image check = CreateImage(background.transform, "Checkmark", Vector2.zero, new Vector2(14f, 14f), ButtonColor);
             Text text = CreateText(go.transform, "Label", label, 12, new Vector2(16f, 0f), new Vector2(size.x - 34f, size.y), TextAnchor.MiddleLeft);
+            text.raycastTarget = false;
             Toggle toggle = go.GetComponent<Toggle>();
             toggle.targetGraphic = background;
             toggle.graphic = check;
@@ -379,13 +407,6 @@ namespace TreasureArenaMR.MapEditor.Editor
             collider.center = Vector3.zero;
         }
 
-        private static void BindUiHitTarget(MapEditorRuntimeUiHitTarget target, Button button)
-        {
-            SerializedObject serialized = new SerializedObject(target);
-            serialized.FindProperty("button").objectReferenceValue = button;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
         private static void BindPresenter(MapEditorValidationPresenter presenter, Text recentLogText, Text errorListText)
         {
             SerializedObject serialized = new SerializedObject(presenter);
@@ -394,7 +415,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void BindInspector(MapEditorObjectInspector inspector, Text selectedNameText, Text selectedTypeText, InputField idField, InputField prefabField, InputField posX, InputField posY, InputField posZ, InputField rotX, InputField rotY, InputField rotZ, InputField scaleX, InputField scaleY, InputField scaleZ, Toggle colliderToggle, Dropdown teamDropdown, Dropdown treasureDropdown, InputField radiusField, InputField supplyField, InputField refreshField)
+        private static void BindInspector(MapEditorObjectInspector inspector, Text selectedNameText, Text selectedTypeText, InputField idField, InputField prefabField, InputField posX, InputField posY, InputField posZ, InputField rotX, InputField rotY, InputField rotZ, InputField scaleX, InputField scaleY, InputField scaleZ, Toggle colliderToggle, Dropdown teamDropdown, Dropdown treasureDropdown, InputField radiusField, InputField supplyField, InputField refreshField, Button duplicateButton, Button deleteButton, Button resetTransformButton)
         {
             SerializedObject serialized = new SerializedObject(inspector);
             serialized.FindProperty("selectedNameText").objectReferenceValue = selectedNameText;
@@ -416,16 +437,18 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.FindProperty("radiusInput").objectReferenceValue = radiusField;
             serialized.FindProperty("supplyTypeInput").objectReferenceValue = supplyField;
             serialized.FindProperty("refreshIntervalInput").objectReferenceValue = refreshField;
+            serialized.FindProperty("duplicateButton").objectReferenceValue = duplicateButton;
+            serialized.FindProperty("deleteButton").objectReferenceValue = deleteButton;
+            serialized.FindProperty("resetTransformButton").objectReferenceValue = resetTransformButton;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void BindController(MapEditorDockedUiController controller, MapEditorDockedPanel topPanel, MapEditorDockedPanel leftPanel, MapEditorDockedPanel rightPanel, MapEditorDockedPanel bottomPanel, Text mapNameText, Text mapIdText, Text mapVersionText, Text modeText, Text countText, Text statusText, Button validateButton, Button exportButton, Transform mapObjectsList, Transform gameplayMarkersList, Button brushButtonTemplate, Button placeButton, Button moveButton, Button rotateButton, Button scaleButton, Button deleteButton, Button clearBrushButton, Text gridStepText, Text rotateStepText, Text scaleStepText, MapEditorValidationPresenter presenter, MapEditorObjectInspector inspector)
+        private static void BindController(MapEditorDockedUiController controller, MapEditorDockedPanel leftPanel, MapEditorDockedPanel mainPanel, MapEditorDockedPanel rightPanel, Text mapNameText, Text mapIdText, Text mapVersionText, Text modeText, Text countText, Text statusText, Button validateButton, Button exportButton, Button saveButton, Button loadButton, Button previewButton, Button clearMapButton, Button mapSettingsButton, Transform mapObjectsList, Transform gameplayMarkersList, Button brushButtonTemplate, Text leftHandBrushText, Text rightHandBrushText, Text activeHandText, Text hintText, Button placeButton, Button moveButton, Button rotateButton, Button scaleButton, Button deleteButton, Button clearBrushButton, Text gridStepText, Text rotateStepText, Text scaleStepText, MapEditorValidationPresenter presenter, MapEditorObjectInspector inspector)
         {
             SerializedObject serialized = new SerializedObject(controller);
-            serialized.FindProperty("topPanel").objectReferenceValue = topPanel;
-            serialized.FindProperty("leftPanel").objectReferenceValue = leftPanel;
-            serialized.FindProperty("rightPanel").objectReferenceValue = rightPanel;
-            serialized.FindProperty("bottomPanel").objectReferenceValue = bottomPanel;
+            serialized.FindProperty("leftInfoPanel").objectReferenceValue = leftPanel;
+            serialized.FindProperty("mainBrushPanel").objectReferenceValue = mainPanel;
+            serialized.FindProperty("rightInspectorPanel").objectReferenceValue = rightPanel;
             serialized.FindProperty("mapNameText").objectReferenceValue = mapNameText;
             serialized.FindProperty("mapIdText").objectReferenceValue = mapIdText;
             serialized.FindProperty("versionText").objectReferenceValue = mapVersionText;
@@ -434,9 +457,18 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.FindProperty("validationStatusText").objectReferenceValue = statusText;
             serialized.FindProperty("validateButton").objectReferenceValue = validateButton;
             serialized.FindProperty("exportButton").objectReferenceValue = exportButton;
+            serialized.FindProperty("saveButton").objectReferenceValue = saveButton;
+            serialized.FindProperty("loadButton").objectReferenceValue = loadButton;
+            serialized.FindProperty("previewButton").objectReferenceValue = previewButton;
+            serialized.FindProperty("clearMapButton").objectReferenceValue = clearMapButton;
+            serialized.FindProperty("mapSettingsButton").objectReferenceValue = mapSettingsButton;
             serialized.FindProperty("mapObjectsListRoot").objectReferenceValue = mapObjectsList;
             serialized.FindProperty("gameplayMarkersListRoot").objectReferenceValue = gameplayMarkersList;
             serialized.FindProperty("brushButtonTemplate").objectReferenceValue = brushButtonTemplate;
+            serialized.FindProperty("leftHandBrushText").objectReferenceValue = leftHandBrushText;
+            serialized.FindProperty("rightHandBrushText").objectReferenceValue = rightHandBrushText;
+            serialized.FindProperty("activeHandText").objectReferenceValue = activeHandText;
+            serialized.FindProperty("hintText").objectReferenceValue = hintText;
             serialized.FindProperty("placeButton").objectReferenceValue = placeButton;
             serialized.FindProperty("moveButton").objectReferenceValue = moveButton;
             serialized.FindProperty("rotateButton").objectReferenceValue = rotateButton;

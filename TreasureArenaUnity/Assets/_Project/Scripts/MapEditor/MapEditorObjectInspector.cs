@@ -28,6 +28,9 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private InputField radiusInput;
         [SerializeField] private InputField supplyTypeInput;
         [SerializeField] private InputField refreshIntervalInput;
+        [SerializeField] private Button duplicateButton;
+        [SerializeField] private Button deleteButton;
+        [SerializeField] private Button resetTransformButton;
 
         private GameObject selectedObject;
         private MapExportMarker selectedMarker;
@@ -146,6 +149,21 @@ namespace TreasureArenaMR.MapEditor
             if (treasureTypeDropdown != null)
             {
                 treasureTypeDropdown.onValueChanged.AddListener(ApplyTreasureType);
+            }
+
+            if (duplicateButton != null)
+            {
+                duplicateButton.onClick.AddListener(() => controller?.DuplicateSelected());
+            }
+
+            if (deleteButton != null)
+            {
+                deleteButton.onClick.AddListener(() => controller?.DeleteSelected());
+            }
+
+            if (resetTransformButton != null)
+            {
+                resetTransformButton.onClick.AddListener(() => controller?.ResetSelectedTransform());
             }
         }
 
