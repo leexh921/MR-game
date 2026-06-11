@@ -1,13 +1,14 @@
 using Netick;
 using Netick.Unity;
-using TreasureArenaMR.Server;
-using TreasureArenaMR.Shared;
+/* using TreasureArenaMR.Server; */
+/* using TreasureArenaMR.Shared; */
 using UnityEngine;
-using UnityEngine.XR;
+/* using UnityEngine.XR; */
 using NetickPlayer = Netick.NetworkPlayer;
 
 namespace TreasureArenaMR.Client
 {
+    /* ---- DEBUG: commented out to isolate connection issue ----
     [Networked]
     public struct PlayerBattleInput : INetworkInput
     {
@@ -15,6 +16,7 @@ namespace TreasureArenaMR.Client
         public NetworkBool PickupPressed;
         public NetworkBool SubmitPressed;
     }
+    */
 
     /// <summary>
     /// Drives the locally-owned network player from the Pico/XR tracking pose.
@@ -39,8 +41,7 @@ namespace TreasureArenaMR.Client
         private Vector3 calibrationPlayerPosition;
         private float calibrationPlayerY;
 
-        // ---- Server-authoritative gameplay state (synced to all clients) ----
-
+        /* ---- DEBUG: commented out to isolate connection issue ----
         [Networked] public int Hp { get; set; } = 100;
         [Networked] public PlayerState State { get; set; } = PlayerState.Alive;
         [Networked] public TeamType Team { get; set; } = TeamType.None;
@@ -53,6 +54,7 @@ namespace TreasureArenaMR.Client
         private ServerTreasureAuthority _treasureAuth;
         private RoomManager _roomManager;
         private PlayerBattleInput _lastInput;
+        */
 
         private void Awake()
         {
@@ -71,7 +73,7 @@ namespace TreasureArenaMR.Client
             hasCalibration = false;
         }
 
-        // ---- Input reading (runs on input source) ----
+        /* ---- DEBUG: commented out to isolate connection issue ----
 
         public override void NetworkUpdate()
         {
@@ -96,21 +98,25 @@ namespace TreasureArenaMR.Client
             Sandbox.SetInput(input);
         }
 
-        // ---- Tracking + combat processing (runs on input source + server) ----
+        */
+
+        // ---- Tracking processing (debug: combat stripped) ----
 
         public override void NetworkFixedUpdate()
         {
-            FetchInput(out _lastInput);
+            /* FetchInput(out _lastInput); */
 
             if (IsInputSource)
             {
                 ApplyTracking();
             }
 
+            /*
             if (IsServer)
             {
                 ProcessServerInput();
             }
+            */
         }
 
         // ---- Tracking (李潇涵 code, slightly adapted to avoid duplicate set) ----
@@ -146,7 +152,7 @@ namespace TreasureArenaMR.Client
             }
         }
 
-        // ---- Server-authoritative combat processing ----
+        /* ---- DEBUG: commented out to isolate connection issue ----
 
         private float _lastAttackProcessedTime;
 
@@ -211,9 +217,6 @@ namespace TreasureArenaMR.Client
         {
             CacheServerRefs();
             if (_treasureAuth == null || _roomManager == null) return;
-            // TODO: need nearest treasure position and id from map/gameplay layer
-            // string playerId = Object.InputSourcePlayerId.ToString();
-            // _treasureAuth.TryPickup(playerId, treasureId, treasurePosition, _roomManager);
         }
 
         private void HandleSubmit()
@@ -234,8 +237,6 @@ namespace TreasureArenaMR.Client
                 _treasureAuth = FindObjectOfType<ServerTreasureAuthority>();
         }
 
-        // ---- GhostRetreat trigger on HP zero ----
-
         [OnChanged(nameof(Hp), invokeDuringResimulation: true)]
         private void OnHpChanged(OnChangedData data)
         {
@@ -245,6 +246,8 @@ namespace TreasureArenaMR.Client
                 Debug.Log($"[PlayerNetInput] Player HP 0, entering GhostRetreat");
             }
         }
+
+        */
 
         public void SetTrackingTarget(Transform target)
         {
