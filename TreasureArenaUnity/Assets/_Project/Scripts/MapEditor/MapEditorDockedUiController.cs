@@ -83,7 +83,6 @@ namespace TreasureArenaMR.MapEditor
             BindButtons();
             BuildBrushButtons();
             RefreshAll();
-            RecenterWorkbench(targetCamera);
         }
 
         private void OnDestroy()
@@ -238,7 +237,10 @@ namespace TreasureArenaMR.MapEditor
             BindHandButton(moveButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Move, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Move));
             BindHandButton(rotateButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate));
             BindHandButton(scaleButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale));
-            BindHandButton(clearBrushButton, hand => controller?.ClearBrush(hand), () => controller?.ClearBrush());
+            if (clearBrushButton != null)
+            {
+                clearBrushButton.gameObject.SetActive(false);
+            }
             BindPlainButton(deleteButton, () => controller?.DeleteSelected());
         }
 
@@ -298,6 +300,7 @@ namespace TreasureArenaMR.MapEditor
             Text nameText = FindChildText(button.transform, "NameText");
             Text typeText = FindChildText(button.transform, "TypeText");
             Text handText = FindChildText(button.transform, "HandMarkerText");
+            Image thumbnailImage = FindChildImage(button.transform, "Thumbnail");
             if (nameText != null)
             {
                 nameText.text = brush.DisplayName;
@@ -311,6 +314,13 @@ namespace TreasureArenaMR.MapEditor
             if (handText != null)
             {
                 handText.text = "";
+            }
+
+            if (thumbnailImage != null)
+            {
+                thumbnailImage.sprite = brush.thumbnail;
+                thumbnailImage.preserveAspect = brush.thumbnail != null;
+                thumbnailImage.color = brush.thumbnail != null ? Color.white : BrushFallbackColor(brush);
             }
 
             button.onClick.AddListener(() => controller?.SelectBrush(index));
@@ -610,6 +620,39 @@ namespace TreasureArenaMR.MapEditor
         {
             Transform child = root.Find(name);
             return child != null ? child.GetComponent<Text>() : null;
+        }
+
+        private static Image FindChildImage(Transform root, string name)
+        {
+            Transform child = root.Find(name);
+            return child != null ? child.GetComponent<Image>() : null;
+        }
+
+        private static Color BrushFallbackColor(MapEditorRuntimeBrush brush)
+        {
+            if (brush == null)
+            {
+                return new Color(0.25f, 0.37f, 0.45f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.TeamBase)
+            {
+                return brush.team == TreasureArenaMR.Shared.TeamType.Red
+                    ? new Color(0.75f, 0.12f, 0.1f, 1f)
+                    : new Color(0.1f, 0.28f, 0.75f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.TreasureSpawnPoint)
+            {
+                return new Color(0.95f, 0.68f, 0.1f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.SupplyBox)
+            {
+                return new Color(0.15f, 0.65f, 0.28f, 1f);
+            }
+
+            return new Color(0.25f, 0.37f, 0.45f, 1f);
         }
 
         private static string ShortPath(string path)

@@ -131,10 +131,8 @@ namespace TreasureArenaMR.Core
             if (networkManager != null)
                 networkManager.ConfigureEndpoint(serverAddress, serverPort);
 
-            /* DEBUG: Configure method doesn't exist on PicoClientNetickBootstrap
             if (picoClientBootstrap != null)
                 picoClientBootstrap.Configure(serverAddress, serverPort, playerId, false);
-            */
         }
 
         private void StartServerRole()

@@ -317,13 +317,14 @@ namespace TreasureArenaMR.MapEditor
             RuntimeButtons buttons = ReadButtons(state.Node);
             HandleMenuButton(state, buttons);
 
-            bool hasTarget = TryGetPlacementPoint(ray, out Vector3 hitPoint, out RaycastHit hit);
+            MapEditorRuntimeBrush brush = GetBrush(state.BrushIndex);
+            bool hasTarget = TryGetPlacementPose(ray, brush, selectedObject, out PlacementResult placement);
             bool isActive = state.Hand == activeHand;
-            Vector3 placementPosition = GetPlacementPosition(hitPoint, hit);
+            Vector3 placementPosition = placement.position;
 
             if (isActive)
             {
-                Vector3 endPoint = hasTarget ? hitPoint : ray.origin + ray.direction * maxRayDistance;
+                Vector3 endPoint = hasTarget ? placement.hitPoint : ray.origin + ray.direction * maxRayDistance;
                 SetRayLine(true, ray.origin, endPoint);
             }
 
@@ -343,31 +344,35 @@ namespace TreasureArenaMR.MapEditor
             if (buttons.triggerPressed && !state.PreviousButtons.triggerPressed)
             {
                 SetActiveHand(state.Hand);
-                if (state.EditMode == MapEditorRuntimeEditMode.Place && GetBrush(state.BrushIndex) != null && hasTarget)
+                if (state.EditMode == MapEditorRuntimeEditMode.Place && brush != null && hasTarget)
                 {
-                    PlaceObject(placementPosition, state);
+                    PlaceObject(placement, state);
                 }
                 else
                 {
-                    SelectFromHit(hit);
+                    SelectFromHit(placement.hit);
                 }
             }
 
-            if (selectedObject != null && buttons.gripPressed && hasTarget)
+            if (selectedObject != null && buttons.gripPressed)
             {
                 if (!state.PreviousButtons.gripPressed)
                 {
                     SetActiveHand(state.Hand);
+                    BeginDrag(state, ray, placement);
                     SetStatus(HandLabel(state.Hand) + " moving " + selectedObject.name);
                 }
 
-                selectedObject.transform.position = placementPosition;
-                SelectionChanged?.Invoke(selectedObject);
-                draggingNow = true;
+                if (UpdateDrag(state, ray))
+                {
+                    SelectionChanged?.Invoke(selectedObject);
+                    draggingNow = true;
+                }
             }
 
             if (selectedObject != null && !buttons.gripPressed && state.PreviousButtons.gripPressed)
             {
+                EndDrag(state);
                 SetStatus("Moved " + selectedObject.name + " to " + selectedObject.transform.position);
                 SelectionChanged?.Invoke(selectedObject);
             }
@@ -414,13 +419,14 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
-            bool hasTarget = TryGetPlacementPoint(ray, out Vector3 hitPoint, out RaycastHit hit);
-            Vector3 placementPosition = GetPlacementPosition(hitPoint, hit);
-            Vector3 endPoint = hasTarget ? hitPoint : ray.origin + ray.direction * maxRayDistance;
+            HandState state = GetHandState(activeHand);
+            MapEditorRuntimeBrush brush = GetBrush(state.BrushIndex);
+            bool hasTarget = TryGetPlacementPose(ray, brush, selectedObject, out PlacementResult placement);
+            Vector3 placementPosition = placement.position;
+            Vector3 endPoint = hasTarget ? placement.hitPoint : ray.origin + ray.direction * maxRayDistance;
             SetRayLine(true, ray.origin, endPoint);
 
             bool pointerOverUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-            HandState state = GetHandState(activeHand);
 
             if (Input.GetKeyDown(clearBrushKey))
             {
@@ -434,21 +440,33 @@ namespace TreasureArenaMR.MapEditor
 
             if (Input.GetMouseButtonDown(0) && hasTarget && !pointerOverUi)
             {
-                if (state.EditMode == MapEditorRuntimeEditMode.Place && GetBrush(state.BrushIndex) != null)
+                if (state.EditMode == MapEditorRuntimeEditMode.Place && brush != null)
                 {
-                    PlaceObject(placementPosition, state);
+                    PlaceObject(placement, state);
                 }
                 else
                 {
-                    SelectFromHit(hit);
+                    SelectFromHit(placement.hit);
                 }
             }
 
-            if (Input.GetMouseButton(0) && selectedObject != null && state.EditMode == MapEditorRuntimeEditMode.Move && hasTarget && !pointerOverUi)
+            if (Input.GetMouseButtonDown(0) && selectedObject != null && state.EditMode == MapEditorRuntimeEditMode.Move && !pointerOverUi)
             {
-                selectedObject.transform.position = placementPosition;
-                SelectionChanged?.Invoke(selectedObject);
-                draggingNow = true;
+                BeginDrag(state, ray, placement);
+            }
+
+            if (Input.GetMouseButton(0) && selectedObject != null && state.EditMode == MapEditorRuntimeEditMode.Move && !pointerOverUi)
+            {
+                if (UpdateDrag(state, ray))
+                {
+                    SelectionChanged?.Invoke(selectedObject);
+                    draggingNow = true;
+                }
+            }
+
+            if (Input.GetMouseButtonUp(0) && selectedObject != null && state.EditMode == MapEditorRuntimeEditMode.Move)
+            {
+                EndDrag(state);
             }
 
             if (Input.GetKeyDown(deleteKey))
@@ -611,7 +629,7 @@ namespace TreasureArenaMR.MapEditor
             }
         }
 
-        private void PlaceObject(Vector3 position, HandState state)
+        private void PlaceObject(PlacementResult placement, HandState state)
         {
             MapEditorRuntimeBrush brush = GetBrush(state.BrushIndex);
             if (brush == null || brush.prefab == null)
@@ -620,11 +638,13 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
+            Vector3 position = placement.position;
             GameObject instance = Instantiate(brush.prefab, position, Quaternion.identity, placedObjectsRoot);
             instance.name = CreateUniqueName(brush.PrefabId);
             ApplyMarker(instance, brush);
             SelectObject(instance);
             SetStatus("Placed " + instance.name + " at " + position);
+            ConsumeBrush(state, instance.name);
         }
 
         private void ApplyMarker(GameObject instance, MapEditorRuntimeBrush brush)
@@ -768,7 +788,7 @@ namespace TreasureArenaMR.MapEditor
             return buttons;
         }
 
-        private bool TryGetPlacementPoint(Ray ray, out Vector3 point, out RaycastHit hit)
+        private bool TryGetPlacementPose(Ray ray, MapEditorRuntimeBrush brush, GameObject ignoreObject, out PlacementResult result)
         {
             RaycastHit[] hits = Physics.RaycastAll(ray, maxRayDistance, placementMask, QueryTriggerInteraction.Ignore);
             if (hits != null && hits.Length > 0)
@@ -777,20 +797,26 @@ namespace TreasureArenaMR.MapEditor
                 for (int i = 0; i < hits.Length; i++)
                 {
                     Collider collider = hits[i].collider;
-                    if (collider == null || IsRuntimeUiCollider(collider))
+                    if (IsInvalidPlacementCollider(collider, ignoreObject))
                     {
                         continue;
                     }
 
-                    if (selectedObject != null
-                        && (collider.transform == selectedObject.transform
-                            || collider.transform.IsChildOf(selectedObject.transform)))
+                    RaycastHit hit = hits[i];
+                    bool snap = ShouldSnapPlacement(hit);
+                    Vector3 hitPoint = snap ? SnapToGrid(hit.point) : hit.point;
+                    Vector3 normal = hit.normal.sqrMagnitude > 0.001f ? hit.normal.normalized : Vector3.up;
+                    result = new PlacementResult
                     {
-                        continue;
-                    }
-
-                    hit = hits[i];
-                    point = hit.point;
+                        valid = true,
+                        hit = hit,
+                        hitPoint = hit.point,
+                        normal = normal,
+                        position = hitPoint + CalculateSurfaceOffset(brush != null ? brush.prefab : null, normal),
+                        collider = collider,
+                        snapToGrid = snap,
+                        groundFallback = false
+                    };
                     return true;
                 }
             }
@@ -798,19 +824,23 @@ namespace TreasureArenaMR.MapEditor
             Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
             if (groundPlane.Raycast(ray, out float distance) && distance <= maxRayDistance)
             {
-                point = ray.GetPoint(distance);
-                hit = default;
+                Vector3 hitPoint = SnapToGrid(ray.GetPoint(distance));
+                result = new PlacementResult
+                {
+                    valid = true,
+                    hit = default,
+                    hitPoint = hitPoint,
+                    normal = Vector3.up,
+                    position = hitPoint + CalculateSurfaceOffset(brush != null ? brush.prefab : null, Vector3.up),
+                    collider = null,
+                    snapToGrid = true,
+                    groundFallback = true
+                };
                 return true;
             }
 
-            point = default;
-            hit = default;
+            result = default;
             return false;
-        }
-
-        private Vector3 GetPlacementPosition(Vector3 hitPoint, RaycastHit hit)
-        {
-            return ShouldSnapPlacement(hit) ? SnapToGrid(hitPoint) : hitPoint;
         }
 
         private bool ShouldSnapPlacement(RaycastHit hit)
@@ -839,6 +869,200 @@ namespace TreasureArenaMR.MapEditor
                 Mathf.Round(value.x / gridSize) * gridSize,
                 Mathf.Round(value.y / gridSize) * gridSize,
                 Mathf.Round(value.z / gridSize) * gridSize);
+        }
+
+        private void BeginDrag(HandState state, Ray ray, PlacementResult placement)
+        {
+            state.DraggingObject = selectedObject;
+            state.DragUsesSurface = false;
+            state.DragSurfaceCollider = null;
+            state.DragSnapToGrid = false;
+
+            if (selectedObject == null)
+            {
+                return;
+            }
+
+            bool selectedIsBounds = IsBoundsObject(selectedObject);
+            Vector3 planeNormal = Vector3.up;
+            Vector3 planePoint = selectedObject.transform.position;
+
+            if (!selectedIsBounds && placement.valid)
+            {
+                planeNormal = placement.normal.y > 0.35f ? placement.normal : Vector3.up;
+                planePoint = placement.hitPoint;
+                state.DragUsesSurface = placement.collider != null && !placement.groundFallback;
+                state.DragSurfaceCollider = placement.collider;
+                state.DragSnapToGrid = placement.snapToGrid;
+            }
+
+            state.DragPlane = new Plane(planeNormal, planePoint);
+            Vector3 anchor = GetDragAnchor(ray, state, placement.valid ? placement.position : selectedObject.transform.position);
+            state.DragOffset = selectedObject.transform.position - anchor;
+        }
+
+        private bool UpdateDrag(HandState state, Ray ray)
+        {
+            if (selectedObject == null || state.DraggingObject != selectedObject)
+            {
+                return false;
+            }
+
+            Vector3 anchor = selectedObject.transform.position - state.DragOffset;
+            if (state.DragUsesSurface
+                && TryGetPlacementPose(ray, null, selectedObject, out PlacementResult surfacePlacement)
+                && surfacePlacement.collider == state.DragSurfaceCollider)
+            {
+                anchor = surfacePlacement.position;
+            }
+            else if (state.DragPlane.Raycast(ray, out float planeDistance) && planeDistance <= maxRayDistance)
+            {
+                anchor = ray.GetPoint(planeDistance);
+                if (state.DragSnapToGrid)
+                {
+                    anchor = SnapToGrid(anchor);
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            selectedObject.transform.position = anchor + state.DragOffset;
+            return true;
+        }
+
+        private static Vector3 GetDragAnchor(Ray ray, HandState state, Vector3 fallback)
+        {
+            if (state.DragPlane.Raycast(ray, out float distance))
+            {
+                return ray.GetPoint(distance);
+            }
+
+            return fallback;
+        }
+
+        private static void EndDrag(HandState state)
+        {
+            state.DraggingObject = null;
+            state.DragSurfaceCollider = null;
+            state.DragUsesSurface = false;
+            state.DragSnapToGrid = false;
+        }
+
+        private void ConsumeBrush(HandState state, string placedName)
+        {
+            state.BrushIndex = -1;
+            activeBrushIndex = GetHandState(activeHand).BrushIndex;
+            editMode = state.EditMode;
+            DestroyPreviewGhost();
+            BrushChanged?.Invoke(activeBrushIndex);
+            HandBrushChanged?.Invoke(state.Hand, state.BrushIndex);
+            SetStatus("Placed " + placedName + ". Brush consumed.");
+        }
+
+        private bool IsInvalidPlacementCollider(Collider collider, GameObject ignoreObject)
+        {
+            if (collider == null)
+            {
+                return true;
+            }
+
+            if (IsRuntimeUiCollider(collider))
+            {
+                return true;
+            }
+
+            GameObject go = collider.gameObject;
+            if (previewGhost != null && (go == previewGhost || go.transform.IsChildOf(previewGhost.transform)))
+            {
+                return true;
+            }
+
+            if (moveGhost != null && (go == moveGhost || go.transform.IsChildOf(moveGhost.transform)))
+            {
+                return true;
+            }
+
+            if (ignoreObject != null && (go == ignoreObject || go.transform.IsChildOf(ignoreObject.transform)))
+            {
+                return true;
+            }
+
+            MapExportMarker marker = collider.GetComponentInParent<MapExportMarker>();
+            if (marker != null && marker.marker_type == MapExportMarkerType.Bounds)
+            {
+                return true;
+            }
+
+            string objectName = go.name.ToLowerInvariant();
+            string tagName = go.tag.ToLowerInvariant();
+            return objectName.Contains("controller")
+                || objectName.Contains("hand")
+                || objectName.Contains("player body")
+                || objectName.Contains("xr origin")
+                || tagName.Contains("controller")
+                || tagName.Contains("player");
+        }
+
+        private static bool IsBoundsObject(GameObject target)
+        {
+            MapExportMarker marker = target != null ? target.GetComponent<MapExportMarker>() : null;
+            return marker != null && marker.marker_type == MapExportMarkerType.Bounds;
+        }
+
+        private static Vector3 CalculateSurfaceOffset(GameObject prefab, Vector3 normal)
+        {
+            if (prefab == null)
+            {
+                return Vector3.zero;
+            }
+
+            Bounds bounds;
+            if (!TryGetPrefabBounds(prefab, out bounds))
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 absNormal = new Vector3(Mathf.Abs(normal.x), Mathf.Abs(normal.y), Mathf.Abs(normal.z));
+            float offset = Vector3.Dot(bounds.extents, absNormal);
+            return normal.normalized * offset;
+        }
+
+        private static bool TryGetPrefabBounds(GameObject prefab, out Bounds bounds)
+        {
+            bounds = default;
+            bool hasBounds = false;
+
+            Renderer[] renderers = prefab.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (!hasBounds)
+                {
+                    bounds = renderers[i].bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderers[i].bounds);
+                }
+            }
+
+            Collider[] colliders = prefab.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if (!hasBounds)
+                {
+                    bounds = colliders[i].bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(colliders[i].bounds);
+                }
+            }
+
+            return hasBounds;
         }
 
         private string CreateUniqueName(string baseName)
@@ -1019,6 +1243,12 @@ namespace TreasureArenaMR.MapEditor
             public RuntimeButtons PreviousButtons;
             public float MenuDownTime;
             public bool MenuLongPressFired;
+            public GameObject DraggingObject;
+            public Collider DragSurfaceCollider;
+            public Plane DragPlane;
+            public Vector3 DragOffset;
+            public bool DragUsesSurface;
+            public bool DragSnapToGrid;
 
             public HandState(MapEditorHand hand, XRNode node)
             {
@@ -1036,6 +1266,18 @@ namespace TreasureArenaMR.MapEditor
             public bool menuPressed;
             public bool menuAvailable;
             public Vector2 axis;
+        }
+
+        private struct PlacementResult
+        {
+            public bool valid;
+            public RaycastHit hit;
+            public Vector3 hitPoint;
+            public Vector3 normal;
+            public Vector3 position;
+            public Collider collider;
+            public bool snapToGrid;
+            public bool groundFallback;
         }
     }
 }
