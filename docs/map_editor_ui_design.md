@@ -1,349 +1,206 @@
 # 地图编辑器 UI 设计方案
 
 > 关联文档：`map_editor_design.md`、`json_protocol.md`、`map_export_workflow.md`  
-> 设计目标：让地图制作者在 Unity Editor 和 Pico MR 环境中高效摆放地图物件、编辑玩法标记、校验并导出地图 JSON，同时尽量不遮挡场景视线。
+> 设计目标：让地图制作者在 Unity Editor 和 Pico MR 环境中高效摆放地图物件、编辑玩法标记、校验并导出地图 JSON，同时尽量不遮挡 MR 场景视线。
 
 ---
 
-## 1. UI 设计原则
+## 1. 总体定位
+
+地图编辑器 UI 采用 World-Locked 固定式工作台 UI。
+
+它不是：
 
 ```text
-1. 四周停靠，不占中心视野。
-2. 面板半透明，编辑地图时能看见背后的场景轮廓。
-3. 所有面板可折叠、展开、固定。
-4. 默认只显示常用工具，详细参数按需展开。
-5. MR 中优先大按钮、少层级、可手柄射线点击。
-6. Unity Editor 中保留鼠标键盘高效操作。
-7. 不在 UI 中实现战斗、HP、得分、拾取等服务器权威逻辑。
-8. 不新增或修改地图 JSON 协议字段。
-9. MR 手柄交互不区分固定的工具手和操作手，左右手柄能力对等。
-10. 哪只手选择笔刷，哪只手进入放置模式；哪只手按 Trigger，哪只手确认放置或选择。
+屏幕四周 HUD
+头部跟随 UI
+完全竖直挡在眼前的大面板
 ```
 
-中心区域始终留给地图编辑视图。UI 只围绕四边出现，避免遮挡放置点、射线落点和已放置物体。
+而是：
+
+```text
+固定在世界空间中的一张虚拟工作台
+整体位于用户前方斜下方
+用户低头或自然垂眼即可看到
+按手柄菜单键后可收起、展开或重新定位
+```
+
+核心体验：
+
+```text
+用户低头在虚拟工作台上选择笔刷和参数。
+用户抬头看地图空间并用手柄射线放置对象。
+```
+
+UI 不参与地图 JSON 导出，不应挂载 `MapExportMarker`，不新增或修改 JSON 协议字段。
 
 ---
 
-## 2. 整体布局
+## 2. UI 空间位置
 
-### 2.1 四周面板布局
+整套 UI 初始出现在用户前方斜下方。
+
+建议位置：
+
+```text
+距离用户：0.7m～1.1m
+高度：胸口到腰部之间
+方向：整体朝向用户
+角度：整体向上倾斜 20°～35°
+状态：固定在世界空间
+```
+
+UI 不是垂直墙面，而是类似一张倾斜桌面：
+
+```text
+用户视线
+   ↓
+  ┌────────────────────────┐
+  │      虚拟工作台 UI       │
+  └────────────────────────┘
+```
+
+优点：
+
+```text
+1. 不挡住正前方地图视线。
+2. 比四周 HUD 更像真实工作台。
+3. 用户可以低头操作，也可以抬头看地图。
+4. UI 不随头转，空间感更稳定。
+5. Pico 手柄射线更容易点击大按钮和卡片。
+```
+
+---
+
+## 3. UI 重定位机制
+
+UI 不提供可点击的 `Recenter UI`、`Reset UI Position`、`召回 UI` 按钮。
+
+重定位只通过手柄按键触发：
+
+```text
+短按 Menu：
+  打开 / 收起工作台 UI
+
+长按 Menu：
+  重新定位整套 UI 到用户前方斜下方
+
+如果 Pico 端无法读取 Menu：
+  使用 Secondary Button 长按作为 fallback
+```
+
+重定位后：
+
+```text
+1. 整套 UI 移动到用户当前前方。
+2. 位于用户斜下方。
+3. 保持工作台角度。
+4. 朝向用户。
+5. 再次固定在世界空间。
+```
+
+UI 重定位是系统级操作，不作为工作台按钮出现。
+
+---
+
+## 4. 整体布局
+
+整套 UI 是一张平面化工作台，分为三块区域：
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ Top Bar：地图信息 / 模式 / 保存状态 / 校验导出                 │
-├──────────────┬──────────────────────────────┬────────────────┤
-│ Left Panel   │                              │ Right Panel    │
-│ Prefab/Marker│          Scene View          │ Object Inspect │
-│ Brush Library│      放置、选择、移动区域       │ Transform/Marker│
-│              │                              │ Parameters     │
-├──────────────┴──────────────────────────────┴────────────────┤
-│ Bottom Bar：快捷工具 / 坐标吸附 / 旋转缩放步进 / 日志提示       │
+│ 左侧信息操作区 │              中间主面板              │ 右侧参数区 │
+│               │                                     │          │
+│ 地图信息       │ 笔刷缩略图                            │ 选中对象   │
+│ 模式状态       │ 玩法标记                              │ Transform │
+│ 保存/读取      │ 编辑模式                              │ Marker参数 │
+│ 校验/导出      │ 当前笔刷提示                           │ 操作按钮   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 面板行为
-
-每个面板都有三种状态：
-
-| 状态 | 表现 | 用途 |
-|---|---|---|
-| 展开 | 显示完整内容，半透明背景 | 正在使用该面板时 |
-| 折叠 | 只显示窄条、图标和标题 | 不挡视野，保留入口 |
-| 固定 | 保持展开，不因失焦自动收起 | 需要连续操作时 |
-
-面板默认透明度建议：
-
-```text
-展开：75% 背景不透明度
-折叠：45% 背景不透明度
-悬停/射线指向：90% 背景不透明度
-编辑拖拽物体时：非固定面板自动降到 35%
-```
-
-### 2.3 MR World Space 面板布局
-
-MR 中 UI 不是贴在屏幕边缘的 HUD，而是跟随玩家视角布置的 World Space Panel。四周停靠是视觉组织方式，实际摆放应保留真实空间感：
-
-```text
-左侧工具面板：
-  方向：玩家左前方 20°～35°
-  距离：0.7m～1.0m
-  高度：胸口到视线略下
-  状态：可展开、可折叠、可 Pin
-
-右侧参数面板：
-  方向：玩家右前方 20°～35°
-  距离：0.7m～1.0m
-  高度：胸口到视线略下
-  状态：未选中对象时折叠，选中对象时展开，可 Pin
-
-Top Bar / Bottom Bar：
-  可作为同一 World Space 面板的上缘和下缘区域，也可拆为轻量浮动条。
-  不压住双手射线中心和对象放置落点。
-```
-
-工具面板和参数面板不参与地图 JSON 导出，也不应生成 MapExportMarker。
+三块区域属于同一块 UI 工作台，不再强调屏幕四周停靠，也不是分散漂浮面板。
 
 ---
 
-## 3. Top Bar：地图与导出状态
+## 5. 中间主面板：笔刷、玩法标记、编辑模式
 
-### 3.1 位置
+中间主面板是最高频操作区。
 
-屏幕顶部横向停靠。MR 中放在视野前方上缘，不压住射线中心。
-
-### 3.2 内容
+主要职责：
 
 ```text
-左侧：
-  MapEditor 标题
-  当前地图名
-  当前全局编辑状态：Place / Move / Rotate / Scale
-  左手 Brush / 右手 Brush 简写
-
-中间：
-  map_id
-  version
-  当前对象数量
-  红蓝基地数量
-  宝物点数量
-
-右侧：
-  Validate 按钮
-  Export 按钮
-  Preview Load 按钮（ME-4 可选）
-  保存/校验状态图标
+1. 选择地图物体笔刷。
+2. 显示笔刷缩略图。
+3. 选择玩法标记。
+4. 切换编辑模式。
+5. 显示左右手当前笔刷。
+6. 显示当前操作手和操作提示。
 ```
 
-### 3.3 状态提示
+### 5.1 笔刷区
 
-| 状态 | 显示 |
-|---|---|
-| 未校验 | 灰色圆点 + `Not validated` |
-| 校验通过 | 绿色圆点 + `Valid map` |
-| 校验失败 | 红色圆点 + `Fix required` |
-| 已导出 | 蓝色圆点 + 最近导出路径简写 |
-
-Top Bar 不展示长错误列表，只展示摘要。详细错误放到底部日志或右侧 Validation 面板。
-
----
-
-## 4. Left Panel：笔刷库与玩法标记
-
-### 4.1 位置
-
-左侧竖向停靠，可折叠为一列图标。Unity Editor 中建议宽度不超过视野宽度的 22%。MR 中作为玩家左前方的 World Space Panel，而不是屏幕边缘 HUD。
-
-### 4.2 Tabs
-
-```text
-Map Objects
-Gameplay Markers
-Recent
-Favorites（可选）
-```
-
-### 4.3 Map Objects
-
-用于普通地图物体：
+笔刷以缩略图卡片形式展示：
 
 ```text
 Wall
 Floor
+Box
+Obstacle
 Cover
 Column
-Obstacle
-Whole Map Root（可选）
+Platform
 ```
 
-每个条目显示：
+每个笔刷卡片包括：
 
 ```text
-缩略图或简单图标
-显示名
-prefab_id
-是否有 Collider
-```
-
-点击条目后：
-
-```text
-1. 当前点击该按钮的手柄进入 Place 模式。
-2. 只更新该手柄的 Brush 状态，不覆盖另一只手柄的 Brush。
-3. 该手柄射线指向地图或可放置表面时出现半透明幽灵预览。
-4. Top Bar 的模式显示 Place。
-5. Bottom Bar 显示放置快捷提示。
+缩略图或简易占位图
+名称
+类型说明
+当前操作手标记 L / R
 ```
 
 示例：
 
 ```text
-左手点击 Wall：
-  左手进入 Wall 放置模式。
-  左手射线落点显示 Wall 幽灵预览。
-  左手 Trigger 放置 Wall。
-
-右手点击 Box：
-  右手进入 Box 放置模式。
-  右手射线落点显示 Box 幽灵预览。
-  右手 Trigger 放置 Box。
+┌────────┐
+│ 缩略图  │
+│  Box   │
+│   L    │
+└────────┘
 ```
 
-### 4.4 Gameplay Markers
-
-固定显示 5 类玩法标记：
-
-| 标记 | 默认参数 |
-|---|---|
-| Red Base | `marker_type=TeamBase`、`team=Red`、`radius=1.2` |
-| Blue Base | `marker_type=TeamBase`、`team=Blue`、`radius=1.2` |
-| Treasure Point | `marker_type=TreasureSpawnPoint`、`treasure_type=Normal`、`radius=0.5` |
-| Supply Box | `marker_type=SupplyBox`、`supply_type=WeaponRandom`、`refresh_interval=20` |
-| Bounds | `marker_type=Bounds`、`localScale=bounds.size` |
-
-Treasure Point 点击后展开二级选择：
+含义：
 
 ```text
-Normal
-Rare
-Final
+Box 被左手选中。
+左手当前持有 Box 笔刷。
 ```
 
-### 4.5 折叠状态
+### 5.2 玩法标记区
 
-折叠后只显示：
+显示功能性地图标记：
 
 ```text
-地图物体图标
-玩法标记图标
-最近使用图标
-展开箭头
-固定图钉
+Red Base (Spawn/Respawn/Submit)
+Blue Base (Spawn/Respawn/Submit)
+Treasure Point
+Supply Box
+Bounds
 ```
 
-### 4.6 MR 交互规则
+注意：
 
 ```text
-1. 任意手柄都可以点击工具面板。
-2. 点击笔刷后，只更新当前点击手柄的 Brush 状态。
-3. 用户开始拖动或缩放对象时，工具面板自动降低透明度。
-4. 工具面板被 Pin 后保持展开，但拖动时仍可降低背景透明度。
-5. 工具面板只负责编辑器操作，不参与地图 JSON 导出。
+Spawn / Respawn / Submit 不拆成独立 JSON 字段。
+Red Base 和 Blue Base 仍导出到 team_bases。
+不得新增 Revive Area / Spawn Point 独立导出按钮。
 ```
 
----
+### 5.3 编辑模式区
 
-## 5. Right Panel：对象属性面板
-
-### 5.1 位置
-
-右侧竖向停靠。选中对象时自动展开；未选中对象时可折叠。
-
-### 5.2 未选中状态
-
-未选中对象时参数面板默认折叠，只保留标题、展开按钮和 Pin 状态。展开后显示：
-
-```text
-Selected: none
-提示：选择一个已放置对象以编辑参数
-```
-
-### 5.3 选中普通 MapObject
-
-显示字段：
-
-```text
-object_id
-prefab_id（只读）
-position x/y/z
-rotation x/y/z
-scale x/y/z
-has_collider
-```
-
-操作按钮：
-
-```text
-Duplicate
-Delete
-Focus
-Reset Transform
-```
-
-### 5.4 选中 TeamBase
-
-额外显示：
-
-```text
-base_id
-team：Red / Blue
-radius
-```
-
-提示规则：
-
-```text
-如果缺少 Red Base：显示红色提示
-如果缺少 Blue Base：显示红色提示
-如果 radius <= 0：显示错误
-```
-
-### 5.5 选中 TreasureSpawnPoint
-
-额外显示：
-
-```text
-point_id
-treasure_type：Normal / Rare / Final
-radius
-```
-
-### 5.6 选中 SupplyBox
-
-额外显示：
-
-```text
-box_id
-supply_type
-refresh_interval
-```
-
-### 5.7 选中 Bounds
-
-额外显示：
-
-```text
-bounds center（来自 position）
-bounds size（来自 localScale）
-```
-
-Bounds 面板显示警告：
-
-```text
-场景中建议只保留 1 个 Bounds。
-```
-
-### 5.8 MR 显示规则
-
-```text
-1. 未选中对象：参数面板折叠。
-2. 选中对象：参数面板展开，显示对象基础信息和对应 marker 参数。
-3. 拖动或缩放对象时：参数面板自动半透明，避免遮挡视线。
-4. 用户 Pin 参数面板后：参数面板保持展开。
-5. 位置、缩放、旋转优先通过手柄空间操作完成。
-6. 精确数值通过 + / -、Slider 或 Stepper 调整。
-7. 参数修改后，在 Bottom Bar 状态提示中显示修改结果。
-```
-
----
-
-## 6. Bottom Bar：编辑工具与反馈
-
-### 6.1 位置
-
-底部横向停靠。默认展开为低高度工具条，必要时可上拉展开日志。
-
-### 6.2 工具区
+显示：
 
 ```text
 Place
@@ -352,514 +209,366 @@ Rotate
 Scale
 Delete
 Clear Brush
-Undo（后续可选）
-Redo（后续可选）
 ```
 
-MR 中点击工具按钮时，只更新当前点击该按钮的手柄状态；Unity Editor 鼠标键盘模式下按全局编辑模式处理。
-
-### 6.3 参数区
+当前模式高亮，并在状态区显示：
 
 ```text
-Grid Snap：On/Off
-Grid Size：0.25 / 0.5 / 1.0
-Rotate Step：15 / 30 / 45
-Scale Step：0.1 / 0.25 / 0.5
+Left Hand: Box
+Right Hand: Wall
+Active: Left
+Hint: Aim at a surface and press Trigger
 ```
 
-MVP 阶段默认移动方式为 Surface Move，并保留 Grid Snap 开关。
-
-### 6.4 日志区
-
-默认显示最近 1 条状态，例如：
+MVP 规则：
 
 ```text
-Placed wall_01_03 at (1.0, 0.0, 2.5)
-Selected red_base
-Map validation failed: missing blue base
-Map exported: .../MapExports/pico_map.json
+左右手都可以各自持有 Brush。
+同一时间只显示最近 Active Hand 的幽灵预览。
+另一只手的 Brush 状态保留，但不同时显示第二个预览。
 ```
-
-展开后显示最近 10 条操作记录和校验错误列表。
 
 ---
 
-## 7. MR 手柄交互设计
+## 6. 左侧信息操作区
 
-### 7.1 双手对等基础原则
+左侧面板不放 Recenter UI。
 
-MR 地图编辑器不区分固定的“工具手”和“操作手”。左右手柄都可以独立指向 UI、选择笔刷、放置物体、选中对象和移动对象。
+主要职责：
+
+```text
+1. 显示地图信息。
+2. 显示当前模式状态。
+3. 显示保存状态。
+4. 执行 Save / Load。
+5. 执行 Validate / Export。
+6. 显示导出结果。
+```
+
+显示字段：
+
+```text
+Map Name
+Map ID
+Version
+Object Count
+Red Base Count
+Blue Base Count
+Treasure Point Count
+Supply Box Count
+Bounds Count
+Validation Status
+```
+
+操作按钮：
+
+```text
+Save
+Load
+Validate
+Export JSON
+Preview
+Clear Map
+Map Settings
+```
+
+危险操作：
+
+```text
+Clear Map 必须二次确认后再真正清空。
+MVP 如未完成二次确认，只显示 TODO 提示，不直接清空。
+```
+
+---
+
+## 7. 右侧参数区
+
+右侧参数区用于精确编辑当前选中对象。
+
+未选中对象：
+
+```text
+Selected Object: none
+Select an object to edit properties
+```
+
+选中普通物体：
+
+```text
+object_id
+prefab_id
+position x / y / z
+rotation x / y / z
+scale x / y / z
+has_collider
+```
+
+选中玩法标记：
+
+```text
+TeamBase：
+  base_id
+  team
+  radius
+  position
+
+Treasure Point：
+  point_id
+  treasure_type
+  radius
+  position
+
+Supply Box：
+  box_id
+  supply_type
+  refresh_interval
+  position
+
+Bounds：
+  bounds center
+  bounds size
+```
+
+MR 参数调整方式：
+
+```text
+Stepper：[-] 0.5 [+]
+Slider：调整 radius / scale
+Dropdown：选择 team / treasure_type
+Toggle：has_collider
+Button：Reset / Delete / Duplicate
+```
+
+---
+
+## 8. Pico 手柄交互
+
+MR 地图编辑器不区分固定的工具手和操作手。左右手柄都可以独立指向 UI、选择笔刷、放置物体、选中对象和移动对象。
 
 核心规则：
 
 ```text
-哪只手选择笔刷，哪只手进入放置模式。
-哪只手射线指向地图或可放置表面，哪只手显示幽灵预览。
-哪只手按下 Trigger，哪只手确认放置或选择。
+哪只手点击笔刷，哪只手持有笔刷。
+哪只手持有笔刷，哪只手可以成为 Active Hand。
+Active Hand 射线命中可放置表面时显示幽灵预览。
+哪只手按 Trigger，哪只手完成放置或选择。
 ```
 
-每只手柄需要独立保存：
+Pico 端 UI 点击要求：
 
 ```text
-当前 Brush
-当前编辑模式
-当前射线命中结果
-当前幽灵预览
-Trigger / Grip 状态
+1. 工作台 Canvas 使用 World Space。
+2. 保留 GraphicRaycaster 和 TrackedDeviceGraphicRaycaster。
+3. 所有可点击控件应有 BoxCollider。
+4. 所有可点击控件应挂 MapEditorRuntimeUiHitTarget。
+5. Trigger 命中 UI 时优先触发 UI，不允许同时放置地图对象。
 ```
 
-### 7.2 笔刷选择与放置
-
-```text
-1. 用户用任意一只手柄射线点击左侧工具面板中的笔刷。
-2. 被点击的手柄进入 Place 模式。
-3. 当前手柄射线指向地图、箱子、平台或其他可放置表面。
-4. 射线命中点出现半透明幽灵预览。
-5. 如果当前位置可放置，幽灵预览显示为正常状态。
-6. 如果当前位置不可放置，幽灵预览显示为警告状态。
-7. 用户按下同一只手柄的 Trigger，确认放置。
-```
-
-### 7.3 可放置表面
-
-地图编辑器不只支持地面吸附，也支持在已有物体表面继续放置物体。
-
-放置优先级：
-
-```text
-1. 优先放置到射线命中的可放置表面。
-2. 如果命中地面网格，则按网格吸附规则放置。
-3. 如果命中箱子、平台、桌面等可放置物体，则放置到对应表面。
-4. 如果没有命中任何可放置表面，则不允许放置。
-```
-
-可放置表面示例：
-
-```text
-Ground
-Grid
-BoxTop
-Platform
-Table
-MapObjectSurface
-```
-
-不可放置表面示例：
-
-```text
-UI Panel
-Player Body
-Controller Model
-Invalid Collider
-Out of Bounds Area
-```
-
-### 7.4 单手选择与移动
+按键建议：
 
 ```text
 Trigger：
-  选择射线命中的对象，或确认当前幽灵预览放置。
+  点击 UI / 放置对象 / 选择对象
 
 Grip 按住：
-  移动当前选中对象。
+  Surface Move 移动当前选中对象
 
 Grip 松开：
-  确认当前位置。
+  确认当前位置
+
+Primary Button：
+  删除选中对象
+
+Secondary Button：
+  切换编辑模式；如 Menu 不可用，则长按作为 UI 重定位 fallback
+
+Menu 短按：
+  打开 / 收起工作台
+
+Menu 长按：
+  重新定位工作台
+```
+
+---
+
+## 9. 放置逻辑
+
+表面放置规则：
+
+```text
+1. 优先使用射线命中的 Collider 表面。
+2. 没有命中 Collider 时允许地面平面 fallback。
+3. 地面 / Grid 结果应用 Grid Snap。
+4. 普通物体表面默认使用 hit point 贴合放置。
+```
+
+可放置表面：
+
+```text
+地面
+网格
+平台
+箱子顶面
+桌面
+已有地图物体表面
+```
+
+不可放置表面：
+
+```text
+UI 面板
+玩家身体
+手柄模型
+地图边界外
+非法碰撞体
+不允许叠放的对象表面
+```
+
+幽灵预览状态：
+
+```text
+可放置：蓝色 / 青色半透明
+不可放置：红色半透明
+吸附表面：显示表面高亮
+选中对象：黄色描边
+```
+
+MVP 可先实现可放置幽灵预览；非法红色预览可作为后续 TODO。
+
+---
+
+## 10. 单手移动与缩放旋转
+
+单手移动：
+
+```text
+Trigger 选中对象。
+Grip 按住对象。
+对象跟随射线命中表面或空间位置移动。
+松开 Grip 确认。
 ```
 
 移动模式：
 
 ```text
-Surface Move：
-  对象跟随手柄射线命中的可放置表面移动。
-  适用于箱子、障碍物、基地、宝物点、补给点。
-
-Grid Move：
-  对象在地图网格上吸附移动。
-  适用于规则地图块、墙体、边界点。
-
-Free Move：
-  对象保持与手柄的相对空间偏移移动。
-  适用于悬浮装饰物或特殊标记。
+Surface Move：沿可放置表面移动。
+Grid Move：按网格吸附移动。
+Free Move：跟随手柄空间移动。
 ```
 
-MVP 阶段默认使用 Surface Move，并保留 Grid Snap 开关。
-
-### 7.5 双手缩放与旋转
-
-当对象已被任意一只手选中并通过 Grip 持有时，另一只手 Grip 加入后进入双手编辑模式。
+MVP 默认：
 
 ```text
-两手距离变大：
-  对象等比放大。
-
-两手距离变小：
-  对象等比缩小。
-
-两手中点移动：
-  对象整体跟随移动。
-
-两手连线角度变化：
-  对象绕 Y 轴旋转。
+Surface Move + Grid Snap。
 ```
 
-退出规则：
+缩放和旋转：
 
 ```text
-松开副手 Grip：
-  退出双手缩放，回到单手移动。
-
-松开主手 Grip：
-  确认对象位置、缩放和旋转。
-```
-
-MVP 实现建议：
-
-```text
-第一阶段：单手 Surface Move。
-第二阶段：双手等比缩放。
-第三阶段：摇杆旋转。
-第四阶段：双手旋转。
-```
-
-### 7.6 按键映射建议
-
-| 操作 | 建议输入 |
-|---|---|
-| 射线指向 | 左/右手柄 forward ray |
-| 放置 / 选择 | 当前操作手 Trigger |
-| 移动选中对象 | 当前操作手 Grip + 手柄射线落点 |
-| 双手缩放 | 主手 Grip 持有对象 + 副手 Grip 加入 |
-| 摇杆旋转 | 当前操作手摇杆左右 |
-| 摇杆缩放 | 当前操作手摇杆上下 |
-| 切换模式 | Secondary Button |
-| 删除 | Primary Button 或 Delete 按钮 |
-| 取消笔刷 | Clear Brush 按钮 |
-
-### 7.7 UI 面板交互
-
-MR 中面板按钮需要更大：
-
-```text
-最小点击高度：36-44 px 等效视觉高度
-按钮间距：至少 8 px
-高亮状态：射线 hover 时边框变亮
-点击反馈：按钮短暂加亮 + 状态栏显示动作结果
-```
-
-### 7.8 避免遮挡策略
-
-```text
-1. 用户正在拖动物体时，未固定面板自动降低透明度。
-2. 用户射线靠近面板边缘时，面板恢复清晰。
-3. 用户长时间不操作某面板时，该面板自动折叠。
-4. Pin 后不自动折叠。
+MVP 先使用摇杆左右旋转。
+MVP 先使用摇杆上下缩放。
+也可以通过右侧参数区精确调整 Rotation / Scale。
+双手缩放和双手旋转保留为后续阶段。
 ```
 
 ---
 
-## 8. Unity Editor 交互设计
+## 11. MVP 实现顺序
 
-### 8.1 鼠标键盘
+### UI-1：固定斜下方工作台
 
 ```text
-鼠标左键：放置 / 选择
-鼠标左键拖拽：Move 模式下移动选中对象
-Tab：切换编辑模式
-Delete：删除选中对象
-Q / E：左旋 / 右旋
-- / =：缩小 / 放大
-Esc：清除当前笔刷
+实现三栏平面 UI。
+整体向上倾斜 20°～35°。
+固定在世界空间。
+按菜单键可收起、展开、召回到眼前斜下方。
 ```
 
-### 8.2 与 MR 输入互斥
+验收：
 
 ```text
-当 XR 设备有效时：
-  鼠标放置、移动、旋转、缩放输入不生效。
-  Esc / Tab 等辅助键可以保留。
-
-当 XR 设备无效时：
-  启用 Editor 鼠标键盘回退操作。
+UI 不跟随头部转动。
+UI 位于斜下方，不挡正前方视线。
+按菜单键后 UI 回到用户前方斜下方。
+左右手柄都可以点击 UI。
 ```
 
----
-
-## 9. 校验与导出 UI
-
-### 9.1 Validate 流程
-
-点击 Validate：
+### UI-2：主面板笔刷选择
 
 ```text
-1. 收集所有 MapExportMarker。
-2. 构造 MapJson。
-3. 调用 MapValidator.Validate(map)。
-4. Top Bar 显示通过/失败摘要。
-5. Bottom Bar 展开错误列表。
+笔刷显示缩略图卡片。
+玩法标记显示类型说明。
+编辑模式可切换。
+点击后显示当前操作手 L / R。
 ```
 
-### 9.2 错误展示
-
-错误按严重程度显示：
-
-| 类型 | 示例 | UI |
-|---|---|---|
-| Blocking Error | 缺少 Blue Base | 红色，阻止导出 |
-| Warning | Bounds 数量超过 1 | 黄色，可继续但建议修复 |
-| Info | supply_boxes 为空 | 灰色说明 |
-
-MVP 阶段只要 MapValidator 返回失败，就统一按 Blocking Error 处理。
-
-### 9.3 Export 流程
-
-点击 Export：
+验收：
 
 ```text
-1. 自动先执行 Validate。
-2. 失败：阻止导出，显示错误。
-3. 成功：写入 JSON。
-4. 显示导出路径。
+左手点 Box，Box 显示 L 标记。
+右手点 Wall，Wall 显示 R 标记。
+左右手 Brush 状态正确显示。
 ```
 
-导出路径：
+### UI-3：幽灵预览与表面放置
 
 ```text
-Unity Editor 导出：Assets/_Project/StreamingAssets/Maps/<map_id>.json
-Pico Runtime 导出：Application.persistentDataPath/MapExports/<map_id>.json
+Active Hand 射线显示幽灵预览。
+支持地面放置。
+支持箱子顶面放置。
+支持非法位置提示。
 ```
 
----
-
-## 10. 地图元数据面板
-
-地图元数据不常改，建议放在 Top Bar 的地图名点击弹窗中，或作为 Right Panel 的 Map Settings 标签页。
-
-字段：
+验收：
 
 ```text
-map_id
-map_name
-version
-description
+可以在地面放物体。
+可以箱子叠箱子。
+非法位置不允许放置。
 ```
 
-规则：
+### UI-4：对象参数区
 
 ```text
-map_id 可从 map_name 自动生成。
-version MVP 默认为 1.0.0。
-description 可为空，但建议填写。
+选中对象后右侧参数区更新。
+支持基础 Transform 修改。
+支持玩法标记参数修改。
+```
+
+验收：
+
+```text
+选中 Box 后显示 Box 参数。
+选中 Red Base 后显示 team / radius。
+修改参数后对象同步变化。
+```
+
+### UI-5：保存、校验、导出
+
+```text
+左侧信息操作区显示地图状态。
+Validate 检查地图合法性。
+Export JSON 导出地图。
+显示导出结果。
+```
+
+验收：
+
+```text
+缺少红蓝基地时校验失败。
+校验通过后可以导出 JSON。
+导出成功后显示路径。
 ```
 
 ---
 
-## 11. 面板视觉规范
-
-### 11.1 颜色
+## 12. 不做内容
 
 ```text
-背景：深灰半透明
-文字：白色 / 浅灰
-主按钮：低饱和蓝色
-危险操作：红色
-成功状态：绿色
-警告状态：黄色
-选中描边：青绿色
-```
-
-避免整套 UI 变成单一蓝紫色。Gameplay 标记可用队伍和类型颜色辅助识别：
-
-```text
-Red Base：红色标识
-Blue Base：蓝色标识
-Normal Treasure：白色/浅金
-Rare Treasure：紫色小标识
-Final Treasure：金色小标识
-Supply Box：橙色小标识
-Bounds：灰蓝色虚线框
-```
-
-### 11.2 半透明与可读性
-
-```text
-面板背景必须有模糊或暗色遮罩，避免文字被场景背景吃掉。
-按钮 hover / selected 状态必须明显。
-折叠条也要显示当前是否有错误，例如红点提示。
-```
-
-### 11.3 图标
-
-优先使用简单图标：
-
-```text
-房子/旗帜：基地
-钻石：宝物点
-箱子：物资箱
-方框：Bounds
-箭头十字：移动
-旋转箭头：旋转
-缩放角标：缩放
-垃圾桶：删除
-图钉：固定面板
-折叠箭头：折叠/展开
-```
-
----
-
-## 12. MVP UI 阶段实现建议
-
-### UI-1：基础四周布局
-
-```text
-目标：
-先做出四周停靠式 UI 骨架，让地图编辑器能在不遮挡中心视野的前提下完成基础操作。
-
-实现内容：
-1. Top Bar：显示地图名、当前模式、Validate、Export、校验/导出状态。
-2. Left Panel：显示 Brush 列表和 Gameplay Marker 列表。
-3. Right Panel：显示当前选中对象名称、类型和基础 Transform。
-4. Bottom Bar：显示 Place / Move / Rotate / Scale / Delete / Clear Brush 和最近一条日志。
-5. 面板使用半透明背景。
-6. 面板布局固定在四周，不覆盖中心编辑区域。
-
-验收标准：
-1. MapEditor 场景进入 Play Mode 后能看到四周 UI。
-2. 左侧能选择普通 prefab 和玩法标记。
-3. 点击 Validate / Export 能更新顶部或底部状态。
-4. 选中对象后右侧能显示对象基础信息。
-5. UI 不影响中心区域射线放置。
-```
-
-### UI-2：折叠、展开与固定
-
-```text
-目标：
-让四周面板在编辑过程中不挡视野，同时需要时可以快速展开。
-
-实现内容：
-1. 四个区域全部可折叠/展开。
-2. 支持 Pin 固定。
-3. 半透明背景和 hover 高亮。
-4. 拖动物体时自动降低非固定面板透明度。
-5. 折叠状态保留图标、标题、错误红点或状态提示。
-6. 选中对象时 Right Panel 自动展开；取消选择后可自动折叠。
-
-验收标准：
-1. 每个面板都能独立折叠和展开。
-2. Pin 后面板不会自动折叠。
-3. 拖动对象时未固定面板透明度降低。
-4. Validate 失败时，即使面板折叠也能看到错误提示状态。
-5. MR 手柄射线或鼠标都能点击折叠/固定按钮。
-```
-
-### UI-3：参数编辑、校验反馈与 MR 优化
-
-```text
-目标：
-补齐 MapExportMarker 参数编辑、校验错误反馈和 Pico MR 可用性，让 UI 达到 MVP 完整交付。
-
-实现内容：
-1. Right Panel 支持所有 MapExportMarker 参数编辑。
-2. Treasure / Supply / Bounds 显示各自专属字段。
-3. Validate 错误可点击定位到相关对象。
-4. 按钮尺寸适配手柄射线点击。
-5. 面板自动贴近 Camera.main。
-6. UI 面板不抢占放置射线。
-7. 面板折叠/展开动效轻量化。
-8. 校验失败时 Bottom Bar 展开错误列表。
-9. 导出成功时显示导出路径。
-
-验收标准：
-1. 普通 MapObject 可编辑 object_id、Transform、has_collider。
-2. TeamBase 可编辑 team 和 radius。
-3. TreasureSpawnPoint 可编辑 treasure_type 和 radius。
-4. SupplyBox 可编辑 supply_type 和 refresh_interval。
-5. Bounds 可编辑 center/size 对应的 position/localScale。
-6. 缺少红蓝基地或宝物点时 Validate 显示明确错误，并阻止导出。
-7. Pico MR 下按钮可被手柄射线稳定点击。
-8. 面板不会被导出到地图 JSON，也不会生成额外协议字段。
-```
-
-### UI-4：双手对等 MR 编辑
-
-```text
-目标：
-在 Pico MR 环境中完成左右手对等的笔刷选择、幽灵预览、放置、选择和单手移动。
-
-实现内容：
-1. 左右手柄分别维护 Brush、编辑模式、射线命中和幽灵预览状态。
-2. 任意手柄点击左侧工具面板后，仅该手柄进入对应 Place 模式。
-3. 支持射线命中 Ground / Grid / MapObjectSurface 等可放置表面。
-4. 可放置位置显示正常幽灵预览，不可放置位置显示警告幽灵预览。
-5. 当前操作手 Trigger 确认放置或选择对象。
-6. 当前操作手 Grip 按住后使用 Surface Move 移动选中对象。
-7. Grip 松开后确认对象位置，并刷新右侧参数面板。
-8. 开始拖动或缩放时，左右面板自动降低透明度。
-
-验收标准：
-1. 左手选择 Wall 后，只有左手显示 Wall 幽灵预览并可用左手 Trigger 放置。
-2. 右手选择 Box 后，只有右手显示 Box 幽灵预览并可用右手 Trigger 放置。
-3. 左右手可先后选择不同 Brush，彼此状态不互相覆盖。
-4. 对象可放置在地面网格、箱子顶部、平台或其他合法 MapObjectSurface 上。
-5. 射线命中 UI Panel、玩家身体、手柄模型或越界区域时，不允许放置。
-6. 单手 Grip 移动物体时默认使用 Surface Move。
-7. Grid Snap 开关会影响地面网格和 Grid Move 的吸附结果。
-8. 本阶段不要求双手旋转完整实现，可保留 TODO。
-```
-
----
-
-## 13. 不做内容
-
-```text
-1. 不做复杂资产商店式浏览器。
-2. 不做多人协同编辑 UI。
-3. 不做战斗配置、HP 配置、房间配置 UI。
-4. 不做数据库管理 UI。
-5. 不在地图编辑器 UI 中展示实时比分、玩家状态或对局结果。
-6. 不新增 JSON 协议字段。
-```
-
----
-
-## 14. 推荐默认界面
-
-首次进入 MapEditor：
-
-```text
-Top Bar：展开
-Left Panel：展开，默认停在 Map Objects 或 Gameplay Markers
-Right Panel：折叠，选中对象后展开
-Bottom Bar：展开为单行工具条
-所有面板：未固定
-背景透明度：75%
-中心区域：无遮挡
-默认模式：Place
-默认 Brush：无，要求用户主动选择
-左右手柄：均无 Brush，均可独立点击工具面板选择 Brush
-```
-
-当用户开始放置或移动对象：
-
-```text
-Left Panel 自动折叠。
-Right Panel 如果未固定则折叠。
-Bottom Bar 保持单行。
-Top Bar 保持可见。
-```
-
-当用户选中对象：
-
-```text
-Right Panel 自动展开。
-显示对象基础信息和对应 marker 参数。
-```
-
-当 Validate 失败：
-
-```text
-Top Bar 显示红色状态。
-Bottom Bar 日志自动上拉显示错误列表。
-如果错误关联具体对象，点击错误可选中该对象。
+1. 不做多人协同编辑 UI。
+2. 不做战斗配置、HP 配置、房间配置 UI。
+3. 不做数据库管理 UI。
+4. 不在地图编辑器 UI 中展示实时比分、玩家状态或对局结果。
+5. 不新增 JSON 协议字段。
+6. 不新增正式单人寻宝模式。
 ```

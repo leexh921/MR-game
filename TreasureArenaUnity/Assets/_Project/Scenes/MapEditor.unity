@@ -826,9 +826,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d9fc6b263ad56440b2e06429cdb6ff7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  controllerNode: 5
   rayOrigin: {fileID: 1973181144}
-  fallbackCamera: {fileID: 1887197755}
+  fallbackCamera: {fileID: 196573635}
   placementMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -840,7 +839,7 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 6598205527205639137, guid: 0d48a4ad4f311f34887aee265755c4ab, type: 3}
     prefab_id: Bounds
-    marker_type: 0
+    marker_type: 4
     team: 0
     treasure_type: 0
     supply_type: WeaponRandom
@@ -851,7 +850,7 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 4240290477946123665, guid: abe2c9fa89a6d3c4f8589425f205425d, type: 3}
     prefab_id: SupplyBox
-    marker_type: 0
+    marker_type: 3
     team: 0
     treasure_type: 0
     supply_type: WeaponRandom
@@ -862,8 +861,8 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 1980459450998137952, guid: 9d684635c65068b44aad53f33eff4193, type: 3}
     prefab_id: TeamBase_Blue
-    marker_type: 0
-    team: 0
+    marker_type: 1
+    team: 2
     treasure_type: 0
     supply_type: WeaponRandom
     radius: 1
@@ -873,8 +872,8 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 8636342711630143907, guid: 88bcc22830a48274f89294a8f19f35f3, type: 3}
     prefab_id: TeamBase_Red
-    marker_type: 0
-    team: 0
+    marker_type: 1
+    team: 1
     treasure_type: 0
     supply_type: WeaponRandom
     radius: 1
@@ -884,9 +883,9 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 1672738836372403990, guid: d58745fa076c8d444902660ffc37938d, type: 3}
     prefab_id: Treasure_Final
-    marker_type: 0
+    marker_type: 2
     team: 0
-    treasure_type: 0
+    treasure_type: 2
     supply_type: WeaponRandom
     radius: 1
     refresh_interval: 20
@@ -895,7 +894,7 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 3842835427040088677, guid: 36623bf26eef3a5458e46f93bfffde73, type: 3}
     prefab_id: Treasure_Normal
-    marker_type: 0
+    marker_type: 2
     team: 0
     treasure_type: 0
     supply_type: WeaponRandom
@@ -906,9 +905,9 @@ MonoBehaviour:
     folder: GameplayMarkers
     prefab: {fileID: 2102418813598125714, guid: 69f65eb3382ef514a8050adb5720d769, type: 3}
     prefab_id: Treasure_Rare
-    marker_type: 0
+    marker_type: 2
     team: 0
-    treasure_type: 0
+    treasure_type: 1
     supply_type: WeaponRandom
     radius: 1
     refresh_interval: 20
@@ -948,7 +947,7 @@ MonoBehaviour:
     has_collider: 1
   - label: Basic_Circle
     folder: Basic Shapes
-    prefab: {fileID: 4358779993174764371, guid: c058f4c83fb7e114a9a8711b56ae0f79, type: 3}
+    prefab: {fileID: 2110784640666686908, guid: f9f93b4c9166ca24dba44fb0621d0574, type: 3}
     prefab_id: Basic_Circle
     marker_type: 0
     team: 0
@@ -959,7 +958,7 @@ MonoBehaviour:
     has_collider: 1
   - label: Basic_Cube
     folder: Basic Shapes
-    prefab: {fileID: 1828193873345873609, guid: efa77f2db2a57d340b8a963c7ec86b40, type: 3}
+    prefab: {fileID: 1582948632628885962, guid: 94985b10e1448a54e8d77b56596bbb4f, type: 3}
     prefab_id: Basic_Cube
     marker_type: 0
     team: 0
@@ -970,7 +969,7 @@ MonoBehaviour:
     has_collider: 1
   - label: Basic_Cylinder
     folder: Basic Shapes
-    prefab: {fileID: 6254313755381917841, guid: dfcf62be9cfdcf843847202991c8d4b7, type: 3}
+    prefab: {fileID: 8915805532613080422, guid: 1c777862d07e22146a80ddee154e5107, type: 3}
     prefab_id: Basic_Cylinder
     marker_type: 0
     team: 0
@@ -979,12 +978,651 @@ MonoBehaviour:
     radius: 1
     refresh_interval: 20
     has_collider: 1
-  activeBrushIndex: 0
+  - label: Antique_light
+    folder: Prefabs
+    prefab: {fileID: 3817291492257878440, guid: c36087ba3aa748040a36f8dea33a74ba, type: 3}
+    prefab_id: antique_light
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_1
+    folder: Prefabs
+    prefab: {fileID: 1062339710358336084, guid: 17fb35b971b05f34d882726f8017b37e, type: 3}
+    prefab_id: book_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_2
+    folder: Prefabs
+    prefab: {fileID: 4354207764525239740, guid: 7bbc656a5a2921040930001b85b66a9b, type: 3}
+    prefab_id: book_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_3
+    folder: Prefabs
+    prefab: {fileID: 8905741556569397466, guid: fbabdb424d402ed458777d0129da8715, type: 3}
+    prefab_id: book_3
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_4
+    folder: Prefabs
+    prefab: {fileID: 4130218664092095341, guid: c15dec6e4c5e1ce4b94078c66af77f7f, type: 3}
+    prefab_id: book_4
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_5
+    folder: Prefabs
+    prefab: {fileID: 5374360715843893824, guid: b43a8596e67d9824396075778fde4a8b, type: 3}
+    prefab_id: book_5
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_6
+    folder: Prefabs
+    prefab: {fileID: 6441629169987709598, guid: b65140368903dbe46bf10fdcc44da458, type: 3}
+    prefab_id: book_6
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_7
+    folder: Prefabs
+    prefab: {fileID: 1786487529727756827, guid: 52089d730848597498349a6140aedc26, type: 3}
+    prefab_id: book_7
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_8
+    folder: Prefabs
+    prefab: {fileID: 9168818705262109098, guid: 3725820db807a604686552a41e3ef303, type: 3}
+    prefab_id: book_8
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Book_9
+    folder: Prefabs
+    prefab: {fileID: 3680828822987113535, guid: 485b07da022b74a4199fd464d3463a66, type: 3}
+    prefab_id: book_9
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Bookshelf
+    folder: Prefabs
+    prefab: {fileID: 8711286799572983488, guid: 34f3465958f11d24c8f1454ec3c0bbad, type: 3}
+    prefab_id: bookshelf
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Carpet_1
+    folder: Prefabs
+    prefab: {fileID: 2381939291485199137, guid: b21c3df26827f724e89c23bf4e94e351, type: 3}
+    prefab_id: carpet_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Carpet_2
+    folder: Prefabs
+    prefab: {fileID: 2087043323968248916, guid: 581b0bf70fcc866489e49ef6f45b9e71, type: 3}
+    prefab_id: carpet_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Carpet_3
+    folder: Prefabs
+    prefab: {fileID: 214260534919179402, guid: bffde5152e0f2aa48a20ced3a299df9e, type: 3}
+    prefab_id: carpet_3
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Ceiling_big
+    folder: Prefabs
+    prefab: {fileID: 6683863373998285094, guid: 3f91c1f60c297464ba87660b9252e35f, type: 3}
+    prefab_id: ceiling_big
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Ceiling_rectangle
+    folder: Prefabs
+    prefab: {fileID: 7917174004208409577, guid: 9ee305e28b937a0499314313a5f8651c, type: 3}
+    prefab_id: ceiling_rectangle
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Ceiling_small
+    folder: Prefabs
+    prefab: {fileID: 4029524281215118167, guid: 3d8ec218a2d90d94e9ac2bf71099a833, type: 3}
+    prefab_id: ceiling_small
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Ceramic_tea_glass
+    folder: Prefabs
+    prefab: {fileID: 2583848074981961899, guid: fbc78a9d716aa9945b68f3d1b2628721, type: 3}
+    prefab_id: ceramic_tea_glass
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Ceramic_teapot
+    folder: Prefabs
+    prefab: {fileID: 8077967208893431752, guid: 78868368758131c44bf677d9e2eff86a, type: 3}
+    prefab_id: ceramic_teapot
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Clock_wall
+    folder: Prefabs
+    prefab: {fileID: 8866188851930244280, guid: 0b8d5c7e9eeb301429b78c0f3235f871, type: 3}
+    prefab_id: clock_wall
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Curtain_1
+    folder: Prefabs
+    prefab: {fileID: 6475979971916395307, guid: 191e99dcaede68b4aa08b8d241a6c448, type: 3}
+    prefab_id: curtain_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Curtain_2
+    folder: Prefabs
+    prefab: {fileID: 7838492018083285178, guid: 1d4069e997b1b8249aa46cbcbf558325, type: 3}
+    prefab_id: curtain_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Floor_big
+    folder: Prefabs
+    prefab: {fileID: 4851217597381123305, guid: 9886a35847d5a77419cfa7eafe8619f1, type: 3}
+    prefab_id: floor_big
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Floor_rectangle
+    folder: Prefabs
+    prefab: {fileID: 3492452526356931769, guid: 0efb80ad42b39bd40b24eafa49466e1e, type: 3}
+    prefab_id: floor_rectangle
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Floor_small
+    folder: Prefabs
+    prefab: {fileID: 7273087425032351647, guid: 52ed5324fdf4dfc4aafd8a007972f5b6, type: 3}
+    prefab_id: floor_small
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Gramophone
+    folder: Prefabs
+    prefab: {fileID: 7250518613483048035, guid: 6d19b50da62821044a2b17db1cac42bf, type: 3}
+    prefab_id: gramophone
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Light_desk
+    folder: Prefabs
+    prefab: {fileID: 5394577084126399205, guid: 3ecfb6a6e4156d14eb7dd0d0ada4ffb8, type: 3}
+    prefab_id: light_desk
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Light_tall
+    folder: Prefabs
+    prefab: {fileID: 4770286674447967998, guid: 2844a02ad55fae143aef6ab8bb90bfd8, type: 3}
+    prefab_id: light_tall
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_1
+    folder: Prefabs
+    prefab: {fileID: 2500267644599931297, guid: 37ad79c749c155e459ccc00079502e08, type: 3}
+    prefab_id: painting_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_2
+    folder: Prefabs
+    prefab: {fileID: 1198399453231254847, guid: daeef9d53dff5694d8b8c2e4cf1fd458, type: 3}
+    prefab_id: painting_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_3
+    folder: Prefabs
+    prefab: {fileID: 7403720872247367779, guid: 0ff6072bbcc572b4dbcc534934612797, type: 3}
+    prefab_id: painting_3
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_4
+    folder: Prefabs
+    prefab: {fileID: 261970267902933399, guid: f39431b3090174e4f999d91e659277e4, type: 3}
+    prefab_id: painting_4
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_5
+    folder: Prefabs
+    prefab: {fileID: 2626327929929905503, guid: 6001f70b2a35d054fa12d4e233b84ed7, type: 3}
+    prefab_id: painting_5
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Painting_6
+    folder: Prefabs
+    prefab: {fileID: 7779488892751444336, guid: 7ebd483dcdc377f44824929a3cdb5894, type: 3}
+    prefab_id: painting_6
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Phone
+    folder: Prefabs
+    prefab: {fileID: 9085021256225398369, guid: cb26e758fb1bf2d4f90130eef1b869fa, type: 3}
+    prefab_id: phone
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_1
+    folder: Prefabs
+    prefab: {fileID: 670264178284222739, guid: 576725a004fa35441a5bc983547622fe, type: 3}
+    prefab_id: photo_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_2
+    folder: Prefabs
+    prefab: {fileID: 4264891568952243033, guid: 975e3e7b5be362d45a298ef96062eccb, type: 3}
+    prefab_id: photo_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_3
+    folder: Prefabs
+    prefab: {fileID: 4273206861078308040, guid: 25e9f205505a86c47a838bc6276e004f, type: 3}
+    prefab_id: photo_3
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_4
+    folder: Prefabs
+    prefab: {fileID: 2770028932704306450, guid: 3cd1e077d479e0c4c84810cf9cf60d5b, type: 3}
+    prefab_id: photo_4
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_5
+    folder: Prefabs
+    prefab: {fileID: 3235151529789640600, guid: 5aeeeb3b49a6a1340af99604b9dc109d, type: 3}
+    prefab_id: photo_5
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Photo_frame_desk
+    folder: Prefabs
+    prefab: {fileID: 6266855924382385277, guid: b27b4699543dd1549b20ca347d1b6196, type: 3}
+    prefab_id: photo_frame_desk
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Sofa_big
+    folder: Prefabs
+    prefab: {fileID: 1709098498722707664, guid: 670130570236f5647a06e6a3bf800cdb, type: 3}
+    prefab_id: sofa_big
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Sofa_small
+    folder: Prefabs
+    prefab: {fileID: 378501212691585537, guid: dfc2daa0e1be2ff4a930df0fa43dbd31, type: 3}
+    prefab_id: sofa_small
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Tea_table 1
+    folder: Prefabs
+    prefab: {fileID: 9164354468594182782, guid: 391d07da5c89a0f4c8935b58ba12d7aa, type: 3}
+    prefab_id: tea_table 1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Tv
+    folder: Prefabs
+    prefab: {fileID: 3622243103439998288, guid: 3261e35d275c0e342aa032c4e7817b62, type: 3}
+    prefab_id: tv
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Tv_desk
+    folder: Prefabs
+    prefab: {fileID: 6792599070559060102, guid: eb9b77f642f312f4187ece0d5548a494, type: 3}
+    prefab_id: tv_desk
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Vase_1
+    folder: Prefabs
+    prefab: {fileID: 1733502103614881885, guid: c954c2563f0cdd64ca4e4bb747d01f67, type: 3}
+    prefab_id: vase_1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Vase_2
+    folder: Prefabs
+    prefab: {fileID: 7156182268723906934, guid: 463ed343a107d734486eccf06407da2d, type: 3}
+    prefab_id: vase_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Vase_3
+    folder: Prefabs
+    prefab: {fileID: 3722319660728123607, guid: 7877af66a6ea7864592bb428a631f26c, type: 3}
+    prefab_id: vase_3
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_corner 1
+    folder: Prefabs
+    prefab: {fileID: 3584221774071633642, guid: cbfbc60fe472d62458097eac8f7a4288, type: 3}
+    prefab_id: wall_corner 1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_corner_2
+    folder: Prefabs
+    prefab: {fileID: 5028704506512673603, guid: fc52d020f3d904c4e9f8f4d39f093c27, type: 3}
+    prefab_id: wall_corner_2
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_corner_double
+    folder: Prefabs
+    prefab: {fileID: 3517315428751493412, guid: bef75bf2dbc40ee43b6764044f825d6b, type: 3}
+    prefab_id: wall_corner_double
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_default 1
+    folder: Prefabs
+    prefab: {fileID: 2619997981936644809, guid: 433fae2ddfc2ea346af6d90fed6e7582, type: 3}
+    prefab_id: wall_default 1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_default_2 1
+    folder: Prefabs
+    prefab: {fileID: 1835115828256757967, guid: 0f5b48c86fc272847bdea206fff9f92f, type: 3}
+    prefab_id: wall_default_2 1
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_with_big_door
+    folder: Prefabs
+    prefab: {fileID: 3925076271668386098, guid: 7d6d145dad1e29a4ea7536611a7427b6, type: 3}
+    prefab_id: wall_with_big_door
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_with_one_window
+    folder: Prefabs
+    prefab: {fileID: 5652312786659756239, guid: ef3fbf82fd255794fa2bccef920325b2, type: 3}
+    prefab_id: wall_with_one_window
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_with_small_door
+    folder: Prefabs
+    prefab: {fileID: 3806619352732832944, guid: d385c519a2e71a74899ddf539825e79e, type: 3}
+    prefab_id: wall_with_small_door
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  - label: Wall_with_two_window
+    folder: Prefabs
+    prefab: {fileID: 567362939508772860, guid: 3b3574bbb2392ab49b0ba2d669475f72, type: 3}
+    prefab_id: wall_with_two_window
+    marker_type: 0
+    team: 0
+    treasure_type: 0
+    supply_type: WeaponRandom
+    radius: 1
+    refresh_interval: 20
+    has_collider: 0
+  activeBrushIndex: -1
   editMode: 0
   gridSize: 0.5
   rotateStepDegrees: 15
   scaleStep: 0.1
   repeatDelay: 0.18
+  menuLongPressSeconds: 0.75
   deleteKey: 127
   nextModeKey: 9
   clearBrushKey: 27
@@ -1323,6 +1961,22 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 615212549450824119, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_Text
+      value: None
+      objectReference: {fileID: 0}
+    - target: {fileID: 990990385054338351, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_Text
+      value: Normal
+      objectReference: {fileID: 0}
+    - target: {fileID: 2025041914075573466, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2025041914075573466, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -0.00038146973
+      objectReference: {fileID: 0}
     - target: {fileID: 2621488708109252972, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_Camera
       value: 
@@ -1334,6 +1988,10 @@ PrefabInstance:
     - target: {fileID: 3441456725055485508, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_ScrollSensitivity
       value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 4080962314616169136, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_Text
+      value: Normal
       objectReference: {fileID: 0}
     - target: {fileID: 5215592529479839784, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_Pivot.x
@@ -1425,7 +2083,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6034061374857885463, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_Text
-      value: Normal
+      value: None
       objectReference: {fileID: 0}
     - target: {fileID: 6289424820060056043, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_Material
@@ -1439,12 +2097,20 @@ PrefabInstance:
       propertyPath: m_Text
       value: None
       objectReference: {fileID: 0}
+    - target: {fileID: 7360791595905044168, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_Text
+      value: Normal
+      objectReference: {fileID: 0}
     - target: {fileID: 7525939968717786392, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: controller
       value: 
       objectReference: {fileID: 66942378}
     - target: {fileID: 8766107902525363549, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: m_PresetInfoIsWorld
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8766107902525363549, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: m_DynamicPixelsPerUnit
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
@@ -1458,7 +2124,27 @@ PrefabInstance:
     - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
       propertyPath: targetCamera
       value: 
-      objectReference: {fileID: 1887197755}
+      objectReference: {fileID: 0}
+    - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: workbenchDistance
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: workbenchTiltDegrees
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: workbenchDesignSize.x
+      value: 1500
+      objectReference: {fileID: 0}
+    - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: workbenchDesignSize.y
+      value: 840
+      objectReference: {fileID: 0}
+    - target: {fileID: 9008699519348840635, guid: b825b62871a29d6488d471c1f30ddef7, type: 3}
+      propertyPath: workbenchVerticalOffset
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1844,8 +2530,8 @@ Transform:
   m_GameObject: {fileID: 1453757492}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.01, z: 0}
-  m_LocalScale: {x: 10, y: 1, z: 10}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -2540,89 +3226,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1887197754
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1887197756}
-  - component: {fileID: 1887197755}
-  m_Layer: 0
-  m_Name: Main Camera
-  m_TagString: MainCamera
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!20 &1887197755
-Camera:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1887197754}
-  m_Enabled: 1
-  serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
-  m_projectionMatrixMode: 1
-  m_GateFitMode: 2
-  m_FOVAxisMode: 0
-  m_Iso: 200
-  m_ShutterSpeed: 0.005
-  m_Aperture: 16
-  m_FocusDistance: 10
-  m_FocalLength: 50
-  m_BladeCount: 5
-  m_Curvature: {x: 2, y: 11}
-  m_BarrelClipping: 0.25
-  m_Anamorphism: 0
-  m_SensorSize: {x: 36, y: 24}
-  m_LensShift: {x: 0, y: 0}
-  m_NormalizedViewPortRect:
-    serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
-  near clip plane: 0.3
-  far clip plane: 1000
-  field of view: 60
-  orthographic: 0
-  orthographic size: 5
-  m_Depth: 0
-  m_CullingMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
-  m_TargetDisplay: 0
-  m_TargetEye: 3
-  m_HDR: 1
-  m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
-  m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
-  m_StereoConvergence: 10
-  m_StereoSeparation: 0.022
---- !u!4 &1887197756
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1887197754}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.2669336, y: 0, z: 0, w: 0.96371496}
-  m_LocalPosition: {x: 0, y: 6, z: -10}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 45, y: -14.282, z: 0}
 --- !u!1 &1973181143
 GameObject:
   m_ObjectHideFlags: 0
@@ -2832,7 +3435,6 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1887197756}
   - {fileID: 498189409}
   - {fileID: 1453757496}
   - {fileID: 66942379}

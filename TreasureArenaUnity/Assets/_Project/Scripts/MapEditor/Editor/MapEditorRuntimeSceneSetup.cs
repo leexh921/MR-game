@@ -69,10 +69,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             serializedController.FindProperty("placedObjectsRoot").objectReferenceValue = placedRoot.transform;
             SerializedProperty brushes = serializedController.FindProperty("brushes");
             FillDefaultBrushes(brushes);
-            if (brushes.arraySize > 0)
-            {
-                serializedController.FindProperty("activeBrushIndex").intValue = 0;
-            }
+            serializedController.FindProperty("activeBrushIndex").intValue = -1;
             serializedController.ApplyModifiedProperties();
 
             CreateOrUpdateDockedCanvas(controller, exporter);
@@ -122,7 +119,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             PlacePanelNearCamera(canvasGo.transform);
-            canvasGo.transform.localScale = Vector3.one * 0.0024f;
+            canvasGo.transform.localScale = Vector3.one * 0.001f;
 
             Canvas canvas = canvasGo.GetComponent<Canvas>();
             if (canvas != null)
@@ -584,17 +581,24 @@ namespace TreasureArenaMR.MapEditor.Editor
             Camera camera = Camera.main;
             if (camera == null)
             {
-                panel.position = new Vector3(-1.8f, 1.6f, -2.2f);
-                panel.rotation = Quaternion.Euler(20f, 18f, 0f);
+                panel.position = new Vector3(0f, 0.95f, 0.9f);
+                panel.rotation = Quaternion.Euler(60f, 180f, 0f);
                 return;
             }
 
             Transform cameraTransform = camera.transform;
+            Vector3 flatForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up);
+            if (flatForward.sqrMagnitude < 0.001f)
+            {
+                flatForward = Vector3.ProjectOnPlane(cameraTransform.up, Vector3.up);
+            }
+
+            flatForward.Normalize();
             panel.position = cameraTransform.position
-                + cameraTransform.forward * 2.2f
-                - cameraTransform.right * 0.8f
-                + cameraTransform.up * 0.1f;
-            panel.rotation = Quaternion.LookRotation(panel.position - cameraTransform.position, Vector3.up);
+                + flatForward * 0.95f
+                - Vector3.up * 0.45f;
+            Quaternion faceUser = Quaternion.LookRotation(cameraTransform.position - panel.position, Vector3.up);
+            panel.rotation = faceUser * Quaternion.Euler(28f, 0f, 0f);
         }
     }
 }
