@@ -30,11 +30,7 @@ MonoBehaviour:
   m_AutomaticLoading: 0
   m_AutomaticRunning: 0
   m_Loaders:
-<<<<<<< .merge_file_N1Kmdt
   - {fileID: 11400000, guid: adaec0c218cdb634c82f6c9ef541f82a, type: 2}
-=======
-  - {fileID: 11400000, guid: 6effbe9dcef7b67489d1c41b2bf40f01, type: 2}
->>>>>>> .merge_file_JDbP8o
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
