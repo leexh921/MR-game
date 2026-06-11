@@ -15,6 +15,7 @@ namespace TreasureArenaMR.Server
         [Header("Core References")]
         [SerializeField] private NetworkManager _networkManager;
         [SerializeField] private RoomManager _roomManager;
+        [SerializeField] private bool _autoStart = true;
 
         public static ServerApp Instance { get; private set; }
         public bool IsRunning { get; private set; }
@@ -32,7 +33,8 @@ namespace TreasureArenaMR.Server
 
         private void Start()
         {
-            StartServer();
+            if (_autoStart)
+                StartServer();
         }
 
         public void StartServer()
