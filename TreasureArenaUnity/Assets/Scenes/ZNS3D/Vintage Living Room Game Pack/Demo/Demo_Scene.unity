@@ -327,8 +327,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 1825360555}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1001 &50842336
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -832,8 +832,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 11737651}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1001 &185929234
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2568,8 +2568,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 1349844710}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1001 &408935353
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3670,8 +3670,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 518311989}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1 &606030516
 GameObject:
   m_ObjectHideFlags: 0
@@ -4263,8 +4263,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 2109897047}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1001 &685582341
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11824,8 +11824,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 479390584}
   muzzlePoint: {fileID: 1485039934}
-  bulletHolePrefab: {fileID: 1936263819200882913, guid: fefdc0f0252e20346a7ee4cac77debd3, type: 3}
-  range: 50
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1 &1638318838
 GameObject:
   m_ObjectHideFlags: 0
@@ -17216,11 +17216,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.2563674
+      value: -1.433
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.161413
+      value: 0.113
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalPosition.z
@@ -17228,23 +17228,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 2427522895216373152, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y

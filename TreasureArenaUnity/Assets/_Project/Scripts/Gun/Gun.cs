@@ -3,10 +3,12 @@ using UnityEngine;
 public class Gun : MonoBehaviour
 {
     [Header("枪位置")]
-    public Transform holdPoint;       // 枪模型本身挂的点
+    public Transform holdPoint;       // 枪模型挂点
     public Transform muzzlePoint;     // 射击点
-    public GameObject bulletHolePrefab;
-    public float range = 50f;
+
+    [Header("子弹")]
+    public GameObject bulletPrefab;   // 子弹预制体
+    public float bulletSpeed = 50f;   // 子弹发射速度
 
     private bool isPickedUp = false;
 
@@ -16,7 +18,6 @@ public class Gun : MonoBehaviour
         if (isPickedUp) return;
         isPickedUp = true;
 
-        // 挂在玩家手上
         transform.SetParent(playerHoldPoint);
         if (holdPoint != null)
         {
@@ -29,9 +30,9 @@ public class Gun : MonoBehaviour
             transform.localRotation = Quaternion.identity;
         }
 
-        // 禁用物理
         Rigidbody rb = GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;
+
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
     }
@@ -39,40 +40,26 @@ public class Gun : MonoBehaviour
     // 射击
     public void HandleShooting()
     {
-        if (Input.GetButtonDown("Fire1") && muzzlePoint != null)
+        if (Input.GetButtonDown("Fire1") && muzzlePoint != null && bulletPrefab != null)
         {
             Shoot();
         }
     }
 
-    void Shoot()
+ void Shoot()
 {
-    Ray ray = new Ray(muzzlePoint.position, muzzlePoint.forward);
+    GameObject bullet = Instantiate(bulletPrefab, muzzlePoint.position, muzzlePoint.rotation);
 
-    if (Physics.Raycast(ray, out RaycastHit hit, range))
-    {
-        // 🔴 1. 强制检测 prefab
-        if (bulletHolePrefab == null)
-        {
-            Debug.LogError("BulletHolePrefab 没有绑定！");
-            return;
-        }
+    // 给子弹加一个空父物体，父物体朝向枪口
+    GameObject wrapper = new GameObject("BulletWrapper");
+    wrapper.transform.position = muzzlePoint.position;
+    wrapper.transform.rotation = muzzlePoint.rotation;
 
-        // 🔴 2. 生成弹孔（稍微往外推一点）
-       GameObject hole = Instantiate(
-    bulletHolePrefab,
-    hit.point + hit.normal * 0.01f,
-    Quaternion.LookRotation(hit.normal)
-);
+    bullet.transform.SetParent(wrapper.transform);
+    bullet.transform.localRotation = Quaternion.Euler(90, 0, 0); // 调整模型竖直->水平
 
-hole.transform.localScale = Vector3.one * 0.05f;
-hole.transform.SetParent(hit.collider.transform, true);
-
-        // 🔴 5. 物理反应
-        if (hit.rigidbody != null)
-        {
-            hit.rigidbody.AddForce(ray.direction * 10f, ForceMode.Impulse);
-        }
-    }
+    Rigidbody rb = bullet.GetComponent<Rigidbody>();
+    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    rb.velocity = wrapper.transform.forward * 80f; // 子弹速度
 }
 }
