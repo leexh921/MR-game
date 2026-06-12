@@ -103,11 +103,58 @@ namespace TreasureArenaMR.Network
 
             EnsureReferences();
             LocalPlayerId = playerId;
+
+            if (_transport == null)
+            {
+                Debug.LogError("[NetworkManager] _transport is null — need LiteNetLibTransport in Resources/ or Inspector reference");
+                return;
+            }
+            if (_sandboxPrefab == null)
+            {
+                Debug.LogError("[NetworkManager] _sandboxPrefab is null — need SandboxRoot in Resources/ or Inspector reference");
+                return;
+            }
+
             Debug.Log($"[NetworkManager] Starting Netick client, connecting to {_serverAddress}:{_serverPort}");
-            var sandbox = NetickNetwork.StartAsClient(_transport, _sandboxPrefab, _netickConfig);
-            sandbox.Connect(_serverPort, _serverAddress);
+
+            NetworkSandbox sandbox = null;
+            try
+            {
+                Debug.Log("[DEBUG] Step A — NetickNetwork.StartAsClient");
+                sandbox = NetickNetwork.StartAsClient(_transport, _sandboxPrefab, _netickConfig);
+                Debug.Log("[DEBUG] Step A OK — sandbox=" + (sandbox != null));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] Step A FAILED: " + ex.Message);
+                throw;
+            }
+
+            try
+            {
+                Debug.Log("[DEBUG] Step B — sandbox.Connect");
+                sandbox.Connect(_serverPort, _serverAddress);
+                Debug.Log("[DEBUG] Step B OK");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] Step B FAILED: " + ex.Message);
+                throw;
+            }
+
             _sandbox = sandbox;
-            OnClientConnected?.Invoke();
+
+            try
+            {
+                Debug.Log("[DEBUG] Step C — OnClientConnected event");
+                OnClientConnected?.Invoke();
+                Debug.Log("[DEBUG] Step C OK");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] Step C FAILED: " + ex.Message);
+                throw;
+            }
         }
 
         public void StartAsHost()
