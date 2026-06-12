@@ -15,9 +15,10 @@ GameObject:
   - component: {fileID: 7985565758796160986}
   - component: {fileID: 6944390043485360306}
   - component: {fileID: 6873432692941330102}
+  - component: {fileID: 5549407573248549477}
   m_Layer: 0
   m_Name: assault1
-  m_TagString: Pickable
+  m_TagString: Gun
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -309,6 +310,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.23086005, y: 0.6854266, z: 1.0170918}
   m_Center: {x: -0.005947292, y: -0.035655797, z: -0.74699974}
+--- !u!114 &5549407573248549477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 198885094219192184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f10644ecb5b54aa4ab3bc81da8a6bc73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  holdPoint: {fileID: 0}
+  shootDistance: 100
 --- !u!1 &6801192228442851097
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,7 +334,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1456085590572038243}
   m_Layer: 0
-  m_Name: MuzzlePoint
+  m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

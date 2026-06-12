@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - Pickable
+  - projectile
+  - FxTemporaire
+  - Gun
   layers:
   - Default
   - TransparentFX

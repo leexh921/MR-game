@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 8788672870963013758}
   m_Layer: 0
   m_Name: pistol3
-  m_TagString: Pickable
+  m_TagString: Gun
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -319,7 +319,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9117636079905373925}
   m_Layer: 0
-  m_Name: MuzzlePoint
+  m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
