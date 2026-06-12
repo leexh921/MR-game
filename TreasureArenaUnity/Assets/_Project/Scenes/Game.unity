@@ -470,6 +470,10 @@ PrefabInstance:
       propertyPath: _netickConfig
       value: 
       objectReference: {fileID: 11400000, guid: 1a16f967025f97247a26fc1530aa03c9, type: 2}
+    - target: {fileID: 1629647129450060957, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: _serverAddress
+      value: 192.168.156.195
+      objectReference: {fileID: 0}
     - target: {fileID: 2273921787505719569, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Name
       value: PicoClientNetworkBootstrap
@@ -525,6 +529,18 @@ PrefabInstance:
     - target: {fileID: 6233246348479631607, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 402.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: playerId
+      value: pico_client_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: serverAddress
+      value: 192.168.156.195
       objectReference: {fileID: 0}
     - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: connectOnStart
@@ -585,7 +601,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 411270887}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2fae402712d4d7fae406df424ed4731, type: 3}
   m_Name: 
@@ -980,14 +996,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.8627451, g: 0.7254902, b: 0.27450982, a: 0.9411765}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.9411765}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7228912e4e39720448948864da3f4d1e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: bd4be424aa200924988f1dc96eb4ca5b, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3710,11 +3726,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d16016d81d9c85640a87afdd192727c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultRole: 0
+  defaultRole: 2
   androidBuildRunsAsPicoClient: 1
-  serverAddress: 192.168.61.128
+  serverAddress: 192.168.156.195
   serverPort: 7777
-  playerId: pico_client_01
+  playerId: pico_client_02
   runtimeMapId: test_map_01
   runtimeMapParent: {fileID: 304480019}
   desktopCameraRoot: {fileID: 897305919}
