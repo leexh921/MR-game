@@ -48,6 +48,7 @@ namespace TreasureArenaMR.Server
         public event Action<PlayerInfo> OnPlayerJoined;
         public event Action<PlayerInfo> OnPlayerLeft;
         public event Action<PlayerInfo, TeamType> OnTeamChanged;
+        public event Action<string> OnMapChanged;
 
         private float _matchTimer;
         private bool _timerRunning;
@@ -193,6 +194,20 @@ namespace TreasureArenaMR.Server
             Debug.Log($"[RoomManager] MapData loaded");
         }
 
+        public void ChangeMap(string mapId, MapData mapData)
+        {
+            if (CurrentRoomConfig == null)
+            {
+                CreateRoom("room_default", "默认房间", mapId);
+            }
+
+            CurrentRoomConfig.map_id = mapId;
+            MapData = mapData;
+            ResetCurrentMatch();
+            OnMapChanged?.Invoke(mapId);
+            Debug.Log("[RoomManager] Map changed to " + mapId);
+        }
+
         public bool SwitchTeam(string playerId, TeamType targetTeam)
         {
             if (targetTeam == TeamType.None) return false;
@@ -273,6 +288,58 @@ namespace TreasureArenaMR.Server
         private void StopTimer()
         {
             _timerRunning = false;
+        }
+
+        private void ResetCurrentMatch()
+        {
+            StopTimer();
+            CurrentRoomState = RoomState.Waiting;
+            RedScore = 0;
+            BlueScore = 0;
+            RemainingTime = CurrentRoomConfig != null ? CurrentRoomConfig.match_time : 0f;
+            _matchTimer = RemainingTime;
+            _respawnTimers.Clear();
+
+            if (Players != null && CurrentRoomConfig != null)
+            {
+                for (int i = 0; i < Players.Count; i++)
+                {
+                    PlayerInfo player = Players[i];
+                    player.state = PlayerState.Alive;
+                    player.hp = CurrentRoomConfig.player_max_hp;
+                    player.max_hp = CurrentRoomConfig.player_max_hp;
+                    player.carried_treasure_id = "";
+
+                    var networkPlayer = GetNetworkPlayerComponent(player.player_id);
+                    if (networkPlayer != null)
+                    {
+                        MovePlayerToSpawn(player, networkPlayer.gameObject);
+                        networkPlayer.SetState(PlayerState.Alive);
+                        networkPlayer.SetHp(CurrentRoomConfig.player_max_hp);
+                        networkPlayer.SetRespawnRemaining(0f);
+                        networkPlayer.ClearCarriedTreasure();
+                    }
+                }
+            }
+
+            OnRoomStateChanged?.Invoke(CurrentRoomState);
+        }
+
+        private void MovePlayerToSpawn(PlayerInfo player, GameObject playerObject)
+        {
+            if (MapData == null || playerObject == null || player == null || player.team == TeamType.None)
+                return;
+
+            List<Vector3> spawnZones = MapData.GetSpawnZones(player.team);
+            if (spawnZones == null || spawnZones.Count == 0)
+                return;
+
+            Vector3 target = spawnZones[0];
+            Rigidbody body = playerObject.GetComponent<Rigidbody>();
+            if (body != null)
+                body.MovePosition(target);
+            else
+                playerObject.transform.position = target;
         }
 
         private void Update()

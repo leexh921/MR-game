@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 1939269850386961596}
   - component: {fileID: 2116874233942690510}
   - component: {fileID: 6209874504832809163}
+  - component: {fileID: 7017349431201590128}
+  - component: {fileID: 4063774224780891457}
   m_Layer: 0
   m_Name: light_tall
   m_TagString: Untagged
@@ -25,13 +27,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4770286674447967998}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2116874233942690510
 MeshFilter:
@@ -83,3 +85,45 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7017349431201590128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4770286674447967998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f798f1477692b54e887dc60607ffa24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  marker_type: 0
+  id: 
+  prefab_id: light_tall
+  team: 0
+  treasure_type: 0
+  supply_type: WeaponRandom
+  refresh_interval: 20
+  radius: 1
+  has_collider: 1
+--- !u!65 &4063774224780891457
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4770286674447967998}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.7154076, y: 2.1986585, z: 0.6838536}
+  m_Center: {x: -0.003891945, y: 1.0993292, z: 0.00000022351742}

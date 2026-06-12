@@ -35,6 +35,7 @@ namespace TreasureArenaMR.Network
         public bool IsClient => _sandbox != null && _sandbox.IsClient;
         public bool IsRunning => _sandbox != null && _sandbox.IsRunning;
         public bool IsConnected => _sandbox != null && _sandbox.IsConnected;
+        public bool IsSceneLoaded { get; private set; }
         public string ServerAddress => _serverAddress;
         public int ServerPort => _serverPort;
 
@@ -79,6 +80,12 @@ namespace TreasureArenaMR.Network
 
         public void StartAsServer()
         {
+            if (NetickNetwork.IsRunning)
+            {
+                Debug.LogWarning("[NetworkManager] Netick is already running; skipping server start.");
+                return;
+            }
+
             Debug.Log($"[NetworkManager] _transport={_transport}, _sandboxPrefab={_sandboxPrefab}");
             EnsureReferences();
             Debug.Log($"[NetworkManager] Starting Netick server on port {_serverPort}");
@@ -88,6 +95,12 @@ namespace TreasureArenaMR.Network
 
         public void StartAsClient(string playerId)
         {
+            if (NetickNetwork.IsRunning)
+            {
+                Debug.LogWarning("[NetworkManager] Netick is already running; skipping client start.");
+                return;
+            }
+
             EnsureReferences();
             LocalPlayerId = playerId;
             Debug.Log($"[NetworkManager] Starting Netick client, connecting to {_serverAddress}:{_serverPort}");
@@ -99,6 +112,12 @@ namespace TreasureArenaMR.Network
 
         public void StartAsHost()
         {
+            if (NetickNetwork.IsRunning)
+            {
+                Debug.LogWarning("[NetworkManager] Netick is already running; skipping host start.");
+                return;
+            }
+
             EnsureReferences();
             Debug.Log($"[NetworkManager] Starting Netick host on port {_serverPort}");
             NetickNetwork.StartAsHost(_transport, _serverPort, _sandboxPrefab, _netickConfig);
@@ -125,6 +144,9 @@ namespace TreasureArenaMR.Network
                     _sandbox.DisconnectFromServer();
                 _sandbox = null;
             }
+            IsSceneLoaded = false;
+            if (NetickNetwork.IsRunning)
+                NetickNetwork.Shutdown();
             _connectedPlayerIds.Clear();
         }
 
@@ -133,12 +155,14 @@ namespace TreasureArenaMR.Network
         public void OnSandboxStarted(NetworkSandbox sandbox)
         {
             _sandbox = sandbox;
+            IsSceneLoaded = false;
             Debug.Log($"[NetworkManager] Sandbox ready. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
         }
 
         public void OnSandboxShutdown()
         {
             _sandbox = null;
+            IsSceneLoaded = false;
             _connectedPlayerIds.Clear();
             Debug.Log("[NetworkManager] Sandbox shut down");
         }
@@ -156,6 +180,7 @@ namespace TreasureArenaMR.Network
 
         public void OnSceneLoaded()
         {
+            IsSceneLoaded = true;
             Debug.Log("[NetworkManager] Scene loaded callback received");
         }
 

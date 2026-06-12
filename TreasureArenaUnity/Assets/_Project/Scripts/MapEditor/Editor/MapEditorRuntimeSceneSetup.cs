@@ -19,12 +19,13 @@ namespace TreasureArenaMR.MapEditor.Editor
         private const string MapEditorPrefabRoot = "Assets/_Project/Prefabs/MapEditor";
         private const string PaletteDir = "Assets/_Project/Prefabs/MapEditor/Palette";
         private const string BasicShapesDir = "Assets/_Project/Prefabs/MapEditor/Palette/Basic Shapes";
+        private const string UserPrefabsDir = "Assets/_Project/Prefabs/MapEditor/Palette/Prefabs";
         private const string BrushThumbnailDir = "Assets/_Project/Textures/MapEditor/BrushThumbnails";
         private static readonly string[] BrushSearchFolders =
         {
-            "Assets/_Project/Prefabs/MapEditor/MapObjects",
+            UserPrefabsDir,
             "Assets/_Project/Prefabs/MapEditor/GameplayMarkers",
-            "Assets/_Project/Prefabs/MapEditor/Palette"
+            BasicShapesDir
         };
 
         [MenuItem("Tools/TreasureArena/地图编辑器/创建 MR 运行时输入控制器")]
@@ -81,6 +82,40 @@ namespace TreasureArenaMR.MapEditor.Editor
             EditorUtility.SetDirty(placedRoot);
             EditorUtility.SetDirty(rayOrigin);
             Debug.Log("MapEditor MR runtime input controller created. Save the scene to keep it.");
+        }
+
+        [MenuItem("Tools/TreasureArena/地图编辑器/重新生成 Brush 缩略图")]
+        public static void RegenerateBrushThumbnails()
+        {
+            EnsureDefaultPalettePrefabs();
+            EnsureThumbnailFolder();
+
+            int generated = 0;
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", BrushSearchFolders);
+            for (int i = 0; i < prefabGuids.Length; i++)
+            {
+                string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null)
+                {
+                    continue;
+                }
+
+                string prefabId = GetPrefabId(prefab);
+                string assetPath = GetThumbnailPath(prefabId);
+                if (AssetDatabase.LoadAssetAtPath<Sprite>(assetPath) != null)
+                {
+                    AssetDatabase.DeleteAsset(assetPath);
+                }
+
+                if (CreateThumbnailAsset(prefab, prefabId, true) != null)
+                {
+                    generated++;
+                }
+            }
+
+            AssetDatabase.Refresh();
+            Debug.Log("MapEditor brush thumbnails regenerated: " + generated);
         }
 
         private static void CreateOrUpdateDockedCanvas(MapEditorRuntimeController controller, MapEditorRuntimeExporter exporter)
@@ -528,7 +563,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             MapExportMarker marker = prefab.GetComponent<MapExportMarker>();
-            string prefabId = marker != null && !string.IsNullOrEmpty(marker.prefab_id) ? marker.prefab_id : prefab.name;
+            string prefabId = GetPrefabId(prefab);
             int index = brushes.arraySize;
             brushes.InsertArrayElementAtIndex(index);
             SerializedProperty brush = brushes.GetArrayElementAtIndex(index);
@@ -552,20 +587,20 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             EnsureThumbnailFolder();
-            string safeName = prefab.name.Replace(" ", "_");
-            string assetPath = BrushThumbnailDir + "/" + safeName + ".png";
+            string prefabId = GetPrefabId(prefab);
+            string assetPath = GetThumbnailPath(prefabId);
             Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
             if (existing != null)
             {
                 return existing;
             }
 
-            Texture2D source = AssetPreview.GetAssetPreview(prefab);
-            if (source == null)
-            {
-                source = AssetPreview.GetMiniThumbnail(prefab);
-            }
+            return CreateThumbnailAsset(prefab, prefabId, false);
+        }
 
+        private static Sprite CreateThumbnailAsset(GameObject prefab, string prefabId, bool waitForPreview)
+        {
+            Texture2D source = GetPreviewTexture(prefab, waitForPreview);
             if (source == null)
             {
                 return null;
@@ -574,6 +609,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             Texture2D readable = CopyReadableTexture(source, 128, 128);
             byte[] png = readable.EncodeToPNG();
             Object.DestroyImmediate(readable);
+            string assetPath = GetThumbnailPath(prefabId);
             File.WriteAllBytes(assetPath, png);
             AssetDatabase.ImportAsset(assetPath);
 
@@ -587,6 +623,59 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+        }
+
+        private static Texture2D GetPreviewTexture(GameObject prefab, bool waitForPreview)
+        {
+            if (prefab == null)
+            {
+                return null;
+            }
+
+            int attempts = waitForPreview ? 30 : 1;
+            for (int i = 0; i < attempts; i++)
+            {
+                Texture2D source = AssetPreview.GetAssetPreview(prefab);
+                if (source != null)
+                {
+                    return source;
+                }
+
+                if (waitForPreview)
+                {
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
+
+            return null;
+        }
+
+        private static string GetPrefabId(GameObject prefab)
+        {
+            MapExportMarker marker = prefab != null ? prefab.GetComponent<MapExportMarker>() : null;
+            return marker != null && !string.IsNullOrEmpty(marker.prefab_id) ? marker.prefab_id : prefab != null ? prefab.name : "missing_prefab";
+        }
+
+        private static string GetThumbnailPath(string prefabId)
+        {
+            return BrushThumbnailDir + "/" + MakeSafeAssetName(prefabId) + ".png";
+        }
+
+        private static string MakeSafeAssetName(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "missing_prefab";
+            }
+
+            char[] invalid = System.IO.Path.GetInvalidFileNameChars();
+            string safeName = value.Replace(' ', '_');
+            for (int i = 0; i < invalid.Length; i++)
+            {
+                safeName = safeName.Replace(invalid[i], '_');
+            }
+
+            return safeName;
         }
 
         private static Texture2D CopyReadableTexture(Texture2D source, int width, int height)
@@ -673,6 +762,7 @@ namespace TreasureArenaMR.MapEditor.Editor
         private static void EnsureDefaultPalettePrefabs()
         {
             EnsureFolder(MapEditorPrefabRoot, "Palette");
+            EnsureFolder(PaletteDir, "Prefabs");
             EnsureFolder(PaletteDir, "Basic Shapes");
             EnsurePrimitivePrefab("Basic_Cube", PrimitiveType.Cube, Vector3.one);
             EnsurePrimitivePrefab("Basic_Cylinder", PrimitiveType.Cylinder, Vector3.one);
