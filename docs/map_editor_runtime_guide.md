@@ -11,7 +11,8 @@
 - 四周 Docked UI 已接入 `MapEditor.unity`。
 - 左侧 Palette 已支持按 `Prefabs/MapEditor/Palette/<文件夹>/` 显示文件夹。
 - Editor 鼠标点击 UI 仍可能穿透到地面，这是当前实现使用 Physics collider 拦截 uGUI 的局限。
-- 当前 Pico 侧主要问题是：**Pico 手柄射线点不到 UI**。
+- Pico 端 UI 点击已打通：**XR UI Input Module 已经引入，Pico 手柄可以点击 UI**。
+- 当前 Pico 侧主要问题已转为：**地图对象拖动手感、UI 点击与地图放置之间的输入隔离、真实地面校准和边界绘制流程**。
 
 当前建议把问题拆成两条输入链路：
 
@@ -20,19 +21,19 @@
 UI 点击射线：uGUI / XR UI 射线，打 Canvas Graphic，用于 Button/InputField/Dropdown。
 ```
 
-不要继续依赖“给 UI 加 BoxCollider 再用 Physics.Raycast 点按钮”作为最终方案。它容易出现：
+不要把“给 UI 加 BoxCollider 再用 Physics.Raycast 点按钮”作为主要方案继续扩展。当前 Pico UI 主链路应以 XR UI Input Module / uGUI 为准，BoxCollider + `MapEditorRuntimeUiHitTarget` 只作为兼容或兜底。继续依赖物理 collider 容易出现：
 
 - 鼠标看起来点到 UI，但 Physics 射线没有命中 collider。
-- Pico 手柄射线能打到空间对象，但不能正确触发 uGUI Button。
+- Pico 手柄 UI 点击和地图放置射线混在一起，导致点 UI 时误放置或误选物体。
 - UI collider 和 World Space Canvas 缩放/位置不一致。
 - 点击 UI 后地图放置射线继续执行，导致误放置。
 
-推荐后续正式修法：
+当前后续重点：
 
 ```text
-PC Editor 鼠标：先用 EventSystem / GraphicRaycaster 判断是否点到 UI。
-Pico 手柄：接入 XR UI Input Module 或 Pico/XR Ray Interactor 触发 uGUI。
-地图放置：只有在“不指向 UI”时才运行 Physics.Raycast 放置逻辑。
+PC Editor 鼠标：继续用 EventSystem / GraphicRaycaster 判断是否点到 UI。
+Pico 手柄：保持 XR UI Input Module / Pico/XR Ray Interactor 触发 uGUI。
+地图放置：只有在“不指向 UI”时才运行 Physics.Raycast 放置/选择/拖动逻辑。
 ```
 
 当前要改这个问题，优先看：
@@ -647,25 +648,25 @@ Pico 端重点确认：
 - 如果 Pico 端也只靠 Physics collider 点击 World Space UI，可能出现 UI 穿透放置。
 - 推荐后续接入 XR UI Input Module，让 UI 点击走 GraphicRaycaster / EventSystem，而地图放置继续走物理射线。
 
-### Pico 射线点不到 UI 的专项排查
+### Pico UI 点击与地图放置误触专项排查
 
-先确认问题属于哪一种：
+Pico 端 UI 已可点击。后续如果出现问题，先确认属于哪一种：
 
 ```text
-A. Pico 射线能看到/打到 UI，但 Button 没有 onClick。
-B. Pico 射线完全没有和 UI 交互反馈。
-C. 点 UI 时没有触发 UI，但触发了地图放置。
-D. 点 UI 时既触发 UI，又触发地图放置。
+A. 点 UI 时触发了 UI，但同时也在地面放置了对象。
+B. 点 UI 时触发了 UI，但 selectedObject 被改变。
+C. 点 UI 时出现地图 Ghost 预览，干扰操作。
+D. UI 点击偶发失败，需要确认 XR UI Input Module / Ray Interactor 配置。
 ```
 
-当前最可能是 B 或 C，因为 MapEditor 现在的 UI 拦截主要靠 Physics collider，不是完整 XR uGUI 输入链路。
+当前最应优先排查 A / B / C，也就是 UI 与地图编辑输入是否彻底隔离。
 
 建议排查顺序：
 
 1. 场景里必须有 `EventSystem`。
 2. `MapEditorDockedCanvas` 必须是 World Space Canvas。
 3. `MapEditorDockedCanvas` 上必须有 `GraphicRaycaster`。
-4. Pico 项目如果使用 XR Interaction Toolkit，需要场景里有 XR UI 输入模块，例如 `XRUIInputModule`，而不是只用 `StandaloneInputModule`。
+4. 场景里应有 XR UI 输入模块，例如 `XRUIInputModule`，不能只依赖 `StandaloneInputModule`。
 5. 右手柄射线对象需要有能和 uGUI 交互的 Ray Interactor / UI Interactor。
 6. Button 的 onClick 是否正常绑定：先用鼠标或 Unity EventSystem 测。
 7. 地图放置逻辑必须在 UI 判断之后执行。
@@ -685,7 +686,7 @@ MapEditorRuntimeController.Update()
 4. 如果没有命中 UI，再执行地面/对象 Physics.Raycast。
 ```
 
-如果 Pico UI 改成 XR UI Input Module，建议新增一个明确的 UI blocking 判断，例如：
+Pico UI 已接入 XR UI Input Module，建议继续补一个明确的 UI blocking 判断，例如：
 
 ```text
 IsPointerOverRuntimeUi()
@@ -707,11 +708,11 @@ if (IsPointerOverRuntimeUi())
 }
 ```
 
-注意：`EventSystem.current.IsPointerOverGameObject()` 对 PC 鼠标常用，但 Pico 手柄通常需要传 pointer id 或通过 XR UI 模块/Interactor 判断，不能直接照搬鼠标逻辑。
+注意：`EventSystem.current.IsPointerOverGameObject()` 对 PC 鼠标常用；Pico 手柄通常需要传 pointer id，或通过 XR UI 模块/Interactor 判断当前射线是否指向 UI，不能只照搬鼠标逻辑。
 
-### 不建议继续扩展的临时方案
+### 不建议继续扩展的兼容方案
 
-当前 `MapEditorRuntimeUiHitTarget` 是临时桥接方案：
+当前 `MapEditorRuntimeUiHitTarget` 是兼容/兜底桥接方案：
 
 ```text
 UI GameObject + BoxCollider + MapEditorRuntimeUiHitTarget
@@ -724,10 +725,10 @@ UI GameObject + BoxCollider + MapEditorRuntimeUiHitTarget
 - Pico 手柄 UI hover、press、drag、scroll 都应该走 XR UI 输入系统。
 - 地图物理射线和 UI 物理射线混用，容易互相误触。
 
-所以 Pico 同学优先做的是：
+所以后续优先做的是：
 
 ```text
-让 Pico 手柄射线真正驱动 uGUI Button/InputField/Dropdown。
+确认 Pico 手柄 UI 点击只走 XR UI/uGUI 主链路，并且地图放置射线在指向 UI 时完全停用。
 ```
 
 而不是继续调 BoxCollider 大小。

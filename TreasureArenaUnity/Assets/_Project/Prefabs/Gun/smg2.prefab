@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3226854076008536980}
   m_Layer: 0
-  m_Name: MuzzlePoint
+  m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: 4329334617864413193}
   m_Layer: 0
   m_Name: smg2
-  m_TagString: Pickable
+  m_TagString: Gun
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

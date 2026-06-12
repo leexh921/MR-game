@@ -513,7 +513,7 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: 1a16f967025f97247a26fc1530aa03c9, type: 2}
     - target: {fileID: 1629647129450060957, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: _serverAddress
-      value: 192.168.156.195
+      value: 172.18.145.225
       objectReference: {fileID: 0}
     - target: {fileID: 2273921787505719569, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Name
@@ -577,7 +577,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: serverAddress
-      value: 192.168.156.195
+      value: 172.18.145.225
       objectReference: {fileID: 0}
     - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: connectOnStart

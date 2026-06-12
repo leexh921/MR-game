@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 43e08262bc1a13c46842e42f6556f3a9
+=======
+guid: ab4a59b94d13c314198eb5ecdc57245d
+>>>>>>> origin/feature/sprite-tower
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000

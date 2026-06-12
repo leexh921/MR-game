@@ -171,7 +171,7 @@ MonoBehaviour:
   _sandboxPrefab: {fileID: 8665608302707014316, guid: ec196cb105baaa8439de4c90ce317205, type: 3}
   _netickConfig: {fileID: 0}
   _serverPort: 7777
-  _serverAddress: 192.168.61.128
+  _serverAddress: 192.168.61.195
   _maxPlayers: 4
 --- !u!114 &6279448158870362979
 MonoBehaviour:
@@ -186,7 +186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   networkManager: {fileID: 1629647129450060957}
-  serverAddress: 192.168.61.128
+  serverAddress: 192.168.61.195
   serverPort: 7777
   playerId: pico_client_01
   connectOnStart: 1

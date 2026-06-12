@@ -1,9 +1,13 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 <<<<<<< .merge_file_HAWSB1
 guid: c38cd08d643acd24dbbf1079dc73458e
 =======
 guid: 1ef92a30e9e6dee4baacefa8c6951030
 >>>>>>> .merge_file_UtK3lX
+=======
+guid: 39cba33f77b8cd74c84c8e15b380d082
+>>>>>>> origin/feature/sprite-tower
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
