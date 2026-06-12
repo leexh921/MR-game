@@ -1,27 +1,25 @@
 using Netick;
 using Netick.Unity;
-/* using TreasureArenaMR.Server; */
-/* using TreasureArenaMR.Shared; */
+using TreasureArenaMR.Network;
+using TreasureArenaMR.Server;
+using TreasureArenaMR.Shared;
 using UnityEngine;
-/* using UnityEngine.XR; */
+using UnityEngine.XR;
+using GameNetworkPlayer = TreasureArenaMR.Network.NetworkPlayer;
 using NetickPlayer = Netick.NetworkPlayer;
 
 namespace TreasureArenaMR.Client
 {
-    /* ---- DEBUG: commented out to isolate connection issue ----
-    [Networked]
     public struct PlayerBattleInput : INetworkInput
     {
         public NetworkBool AttackPressed;
         public NetworkBool PickupPressed;
         public NetworkBool SubmitPressed;
     }
-    */
 
     /// <summary>
-    /// Drives the locally-owned network player from the Pico/XR tracking pose.
-    /// Handles position sync (Pico headset), yaw, and combat input.
-    /// Server-authoritative gameplay state via [Networked] properties.
+    /// Drives the locally-owned player from Pico/XR tracking pose and forwards gameplay input.
+    /// Server-owned systems consume the input and write replicated state.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(Rigidbody))]
@@ -34,27 +32,28 @@ namespace TreasureArenaMR.Client
         [SerializeField] private bool preserveSpawnHeight = true;
         [SerializeField] private bool syncYaw = true;
 
+        [Header("Editor Input")]
+        [SerializeField] private KeyCode editorAttackKey = KeyCode.F;
+        [SerializeField] private KeyCode editorPickupKey = KeyCode.E;
+        [SerializeField] private KeyCode editorSubmitKey = KeyCode.Q;
+
         private Rigidbody cachedRigidbody;
         private Transform resolvedTrackingTarget;
+        private GameNetworkPlayer networkPlayer;
+
         private bool hasCalibration;
         private Vector3 calibrationTrackingPosition;
         private Vector3 calibrationPlayerPosition;
         private float calibrationPlayerY;
 
-        /* ---- DEBUG: commented out to isolate connection issue ----
-        [Networked] public int Hp { get; set; } = 100;
-        [Networked] public PlayerState State { get; set; } = PlayerState.Alive;
-        [Networked] public TeamType Team { get; set; } = TeamType.None;
-        [Networked] public string CarriedTreasureId { get; set; } = "";
+        private bool previousTrigger;
+        private bool previousGrip;
+        private bool previousPrimary;
+        private float lastAttackProcessedTime;
 
-        [Header("Combat")]
-        [SerializeField] private float _attackCooldown = 0.5f;
-
-        private ServerCombatAuthority _combatAuth;
-        private ServerTreasureAuthority _treasureAuth;
-        private RoomManager _roomManager;
-        private PlayerBattleInput _lastInput;
-        */
+        private ServerCombatAuthority combatAuthority;
+        private ServerTreasureAuthority treasureAuthority;
+        private RoomManager roomManager;
 
         private void Awake()
         {
@@ -73,53 +72,119 @@ namespace TreasureArenaMR.Client
             hasCalibration = false;
         }
 
-        /* ---- DEBUG: commented out to isolate connection issue ----
-
         public override void NetworkUpdate()
         {
-            if (!IsInputSource || !Sandbox.InputEnabled)
+            if (!IsInputSource || Sandbox == null || !Sandbox.InputEnabled)
                 return;
 
-            var input = Sandbox.GetInput<PlayerBattleInput>();
-
-            var rightHand = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
-            if (rightHand != null)
-            {
-                if (rightHand.TryGetFeatureValue(CommonUsages.triggerButton, out bool trigger) && trigger)
-                    input.AttackPressed = true;
-
-                if (rightHand.TryGetFeatureValue(CommonUsages.gripButton, out bool grip) && grip)
-                    input.PickupPressed = true;
-
-                if (rightHand.TryGetFeatureValue(CommonUsages.primaryButton, out bool primary) && primary)
-                    input.SubmitPressed = true;
-            }
-
+            PlayerBattleInput input = default;
+            FillPicoInput(ref input);
+            FillEditorInput(ref input);
             Sandbox.SetInput(input);
         }
 
-        */
-
-        // ---- Tracking processing (debug: combat stripped) ----
-
         public override void NetworkFixedUpdate()
         {
-            /* FetchInput(out _lastInput); */
-
             if (IsInputSource)
-            {
                 ApplyTracking();
-            }
 
-            /*
-            if (IsServer)
-            {
-                ProcessServerInput();
-            }
-            */
+            if (!IsServer)
+                return;
+
+            PlayerBattleInput input = default;
+            FetchInput(out input);
+            ProcessServerInput(input);
         }
 
-        // ---- Tracking (李潇涵 code, slightly adapted to avoid duplicate set) ----
+        public void SetTrackingTarget(Transform target)
+        {
+            trackingTarget = target;
+            resolvedTrackingTarget = target;
+            hasCalibration = false;
+        }
+
+        public void Recalibrate()
+        {
+            hasCalibration = false;
+        }
+
+        private void ProcessServerInput(PlayerBattleInput input)
+        {
+            CacheServerRefs();
+            if (roomManager == null || networkPlayer == null)
+                return;
+            if (networkPlayer.State != PlayerState.Alive)
+                return;
+
+            string playerId = networkPlayer.PlayerId;
+            if (string.IsNullOrEmpty(playerId))
+                return;
+
+            if (input.AttackPressed && combatAuthority != null)
+            {
+                float cooldown = roomManager.CurrentRoomConfig?.weapon_config?.cooldown ?? 0.5f;
+                if (Time.time - lastAttackProcessedTime >= cooldown)
+                {
+                    lastAttackProcessedTime = Time.time;
+                    var weapon = roomManager.CurrentRoomConfig?.weapon_config;
+                    int damage = weapon != null ? weapon.damage : 25;
+                    float range = weapon != null ? weapon.range : 15f;
+
+                    Vector3 origin = transform.position + Vector3.up * 1.2f + transform.forward * 0.25f;
+                    combatAuthority.ProcessAttack(
+                        playerId,
+                        origin,
+                        transform.forward,
+                        damage,
+                        range,
+                        roomManager,
+                        treasureAuthority);
+                }
+            }
+
+            if (input.PickupPressed && treasureAuthority != null)
+                treasureAuthority.TryPickupNearest(playerId, roomManager);
+
+            if (input.SubmitPressed && treasureAuthority != null)
+                treasureAuthority.TrySubmit(playerId, roomManager);
+        }
+
+        private void FillPicoInput(ref PlayerBattleInput input)
+        {
+            InputDevice rightHand = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            if (!rightHand.isValid)
+                return;
+
+            bool trigger = false;
+            bool grip = false;
+            bool primary = false;
+            rightHand.TryGetFeatureValue(CommonUsages.triggerButton, out trigger);
+            rightHand.TryGetFeatureValue(CommonUsages.gripButton, out grip);
+            rightHand.TryGetFeatureValue(CommonUsages.primaryButton, out primary);
+
+            if (trigger && !previousTrigger)
+                input.AttackPressed = true;
+            if (grip && !previousGrip)
+                input.PickupPressed = true;
+            if (primary && !previousPrimary)
+                input.SubmitPressed = true;
+
+            previousTrigger = trigger;
+            previousGrip = grip;
+            previousPrimary = primary;
+        }
+
+        private void FillEditorInput(ref PlayerBattleInput input)
+        {
+#if UNITY_EDITOR
+            if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(editorAttackKey))
+                input.AttackPressed = true;
+            if (Input.GetKeyDown(editorPickupKey))
+                input.PickupPressed = true;
+            if (Input.GetKeyDown(editorSubmitKey))
+                input.SubmitPressed = true;
+#endif
+        }
 
         private void ApplyTracking()
         {
@@ -132,10 +197,7 @@ namespace TreasureArenaMR.Client
 
             Vector3 trackingDelta = target.position - calibrationTrackingPosition;
             Vector3 desiredPosition = calibrationPlayerPosition + new Vector3(trackingDelta.x, 0f, trackingDelta.z);
-            if (preserveSpawnHeight)
-                desiredPosition.y = calibrationPlayerY;
-            else
-                desiredPosition.y = target.position.y;
+            desiredPosition.y = preserveSpawnHeight ? calibrationPlayerY : target.position.y;
 
             Quaternion desiredRotation = transform.rotation;
             if (syncYaw)
@@ -152,119 +214,22 @@ namespace TreasureArenaMR.Client
             }
         }
 
-        /* ---- DEBUG: commented out to isolate connection issue ----
-
-        private float _lastAttackProcessedTime;
-
-        private void ProcessServerInput()
-        {
-            if (State != PlayerState.Alive)
-                return;
-
-            if (_lastInput.AttackPressed)
-            {
-                if (Time.time - _lastAttackProcessedTime >= _attackCooldown)
-                {
-                    _lastAttackProcessedTime = Time.time;
-                    HandleAttack();
-                }
-            }
-
-            if (_lastInput.PickupPressed)
-            {
-                HandlePickup();
-            }
-
-            if (_lastInput.SubmitPressed)
-            {
-                HandleSubmit();
-            }
-        }
-
-        private void HandleAttack()
-        {
-            CacheServerRefs();
-            if (_roomManager == null || _combatAuth == null) return;
-
-            var cfg = _roomManager.CurrentRoomConfig;
-            if (cfg == null) return;
-
-            var weaponCfg = cfg.weapon_config;
-            string attackerId = Object.InputSourcePlayerId.ToString();
-
-            var result = _combatAuth.ProcessAttack(
-                attackerId,
-                weaponCfg.weapon_id,
-                transform.position + transform.forward * 0.5f,
-                transform.forward,
-                weaponCfg.damage,
-                weaponCfg.range
-            );
-
-            if (result.hit)
-            {
-                int newHp = _combatAuth.ApplyDamage(result.target_player_id, result.damage, _roomManager);
-                var allPlayers = FindObjectsOfType<PlayerNetInput>();
-                foreach (var p in allPlayers)
-                {
-                    if (p.Object.InputSourcePlayerId.ToString() == result.target_player_id)
-                        p.Hp = newHp;
-                }
-            }
-        }
-
-        private void HandlePickup()
-        {
-            CacheServerRefs();
-            if (_treasureAuth == null || _roomManager == null) return;
-        }
-
-        private void HandleSubmit()
-        {
-            CacheServerRefs();
-            if (_treasureAuth == null || _roomManager == null) return;
-            string playerId = Object.InputSourcePlayerId.ToString();
-            _treasureAuth.TrySubmit(playerId, _roomManager);
-        }
-
-        private void CacheServerRefs()
-        {
-            if (_roomManager == null)
-                _roomManager = FindObjectOfType<RoomManager>();
-            if (_combatAuth == null)
-                _combatAuth = FindObjectOfType<ServerCombatAuthority>();
-            if (_treasureAuth == null)
-                _treasureAuth = FindObjectOfType<ServerTreasureAuthority>();
-        }
-
-        [OnChanged(nameof(Hp), invokeDuringResimulation: true)]
-        private void OnHpChanged(OnChangedData data)
-        {
-            if (IsServer && Hp <= 0 && State == PlayerState.Alive)
-            {
-                State = PlayerState.GhostRetreat;
-                Debug.Log($"[PlayerNetInput] Player HP 0, entering GhostRetreat");
-            }
-        }
-
-        */
-
-        public void SetTrackingTarget(Transform target)
-        {
-            trackingTarget = target;
-            resolvedTrackingTarget = target;
-            hasCalibration = false;
-        }
-
-        public void Recalibrate()
-        {
-            hasCalibration = false;
-        }
-
         private void CacheReferences()
         {
             if (cachedRigidbody == null)
                 cachedRigidbody = GetComponent<Rigidbody>();
+            if (networkPlayer == null)
+                networkPlayer = GetComponent<GameNetworkPlayer>();
+        }
+
+        private void CacheServerRefs()
+        {
+            if (roomManager == null)
+                roomManager = FindObjectOfType<RoomManager>();
+            if (combatAuthority == null)
+                combatAuthority = FindObjectOfType<ServerCombatAuthority>();
+            if (treasureAuthority == null)
+                treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
         }
 
         private void ConfigureRigidbody()

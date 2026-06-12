@@ -1,55 +1,100 @@
 using Netick;
+using Netick.Unity;
 using TreasureArenaMR.Shared;
 using UnityEngine;
 
 namespace TreasureArenaMR.Network
 {
     /// <summary>
-    /// Networked representation of a player, attached to the player prefab.
-    /// Server-authoritative state is replicated to clients.
-    /// 
-    /// TODO Phase 5: Convert to Netick.NetworkBehaviour with [Networked] properties
-    /// for automatic state replication instead of manual sync.
+    /// Server-authoritative network state attached to PlayerPrefab.
+    /// Identity strings stay server-local for room bookkeeping; gameplay state is replicated.
     /// </summary>
-    public sealed class NetworkPlayer : MonoBehaviour
+    public sealed class NetworkPlayer : NetworkBehaviour
     {
-        [Header("Player Identity")]
+        [Header("Server Identity")]
         [SerializeField] private string _playerId = "";
         [SerializeField] private string _nickname = "";
-        [SerializeField] private TeamType _team = TeamType.None;
 
-        [Header("Runtime State")]
-        [SerializeField] private PlayerState _state = PlayerState.Alive;
-        [SerializeField] private int _hp = 100;
-        [SerializeField] private string _carriedTreasureId = "";
-
-        /// <summary>
-        /// Netick's player ID assigned to this player object.
-        /// Used by the server to target RPCs and manage ownership.
-        /// </summary>
         public Netick.NetworkPlayerId NetickPlayerId { get; set; }
+
+        [Networked] public int TeamValue { get; set; }
+        [Networked] public int StateValue { get; set; }
+        [Networked] public int HpValue { get; set; }
+        [Networked] public int MaxHpValue { get; set; }
+        [Networked] public NetworkBool HasTreasureValue { get; set; }
+        [Networked] public int CarriedTreasureTypeValue { get; set; }
+        [Networked] public int CarriedTreasureIndex { get; set; }
+        [Networked] public float RespawnRemaining { get; set; }
 
         public string PlayerId => _playerId;
         public string Nickname => _nickname;
-        public TeamType Team => _team;
-        public PlayerState State => _state;
-        public int Hp => _hp;
-        public string CarriedTreasureId => _carriedTreasureId;
+        public TeamType Team => (TeamType)TeamValue;
+        public PlayerState State => (PlayerState)StateValue;
+        public int Hp => HpValue;
+        public int MaxHp => MaxHpValue;
+        public bool HasTreasure => HasTreasureValue;
+        public TreasureType CarriedTreasureType => (TreasureType)CarriedTreasureTypeValue;
 
-        public void Initialize(string playerId, string nickname, TeamType team)
+        public void Initialize(string playerId, string nickname, TeamType team, int maxHp)
         {
             _playerId = playerId;
             _nickname = nickname;
-            _team = team;
-            _state = PlayerState.Alive;
+            TeamValue = (int)team;
+            StateValue = (int)PlayerState.Alive;
+            MaxHpValue = maxHp;
+            HpValue = maxHp;
+            HasTreasureValue = false;
+            CarriedTreasureTypeValue = (int)TreasureType.Normal;
+            CarriedTreasureIndex = -1;
+            RespawnRemaining = 0f;
+        }
+
+        public void SetTeam(TeamType team)
+        {
+            TeamValue = (int)team;
+        }
+
+        public void SetHp(int hp)
+        {
+            HpValue = Mathf.Clamp(hp, 0, Mathf.Max(1, MaxHpValue));
+        }
+
+        public void SetState(PlayerState state)
+        {
+            StateValue = (int)state;
+        }
+
+        public void SetRespawnRemaining(float seconds)
+        {
+            RespawnRemaining = Mathf.Max(0f, seconds);
+        }
+
+        public void SetCarriedTreasure(NetworkTreasure treasure)
+        {
+            if (treasure == null)
+            {
+                ClearCarriedTreasure();
+                return;
+            }
+
+            HasTreasureValue = true;
+            CarriedTreasureTypeValue = (int)treasure.TreasureType;
+            CarriedTreasureIndex = treasure.TreasureIndex;
+        }
+
+        public void ClearCarriedTreasure()
+        {
+            HasTreasureValue = false;
+            CarriedTreasureTypeValue = (int)TreasureType.Normal;
+            CarriedTreasureIndex = -1;
         }
 
         public void ApplyServerState(PlayerRuntimeState state)
         {
-            _state = state.state;
-            _hp = state.hp;
-            _carriedTreasureId = state.carried_treasure_id;
-
+            TeamValue = (int)state.team;
+            StateValue = (int)state.state;
+            HpValue = state.hp;
+            HasTreasureValue = !string.IsNullOrEmpty(state.carried_treasure_id);
             transform.position = state.position;
             transform.rotation = Quaternion.Euler(0f, state.rotation_y, 0f);
         }
@@ -59,12 +104,12 @@ namespace TreasureArenaMR.Network
             return new PlayerRuntimeState
             {
                 player_id = _playerId,
-                team = _team,
-                state = _state,
-                hp = _hp,
+                team = Team,
+                state = State,
+                hp = HpValue,
                 position = transform.position,
                 rotation_y = transform.rotation.eulerAngles.y,
-                carried_treasure_id = _carriedTreasureId
+                carried_treasure_id = HasTreasure ? "treasure_" + CarriedTreasureIndex : ""
             };
         }
     }

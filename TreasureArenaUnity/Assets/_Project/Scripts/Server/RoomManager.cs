@@ -93,8 +93,10 @@ namespace TreasureArenaMR.Server
                 player_id = playerId,
                 nickname = nickname,
                 team = TeamType.None,
+                state = PlayerState.Alive,
                 hp = CurrentRoomConfig.player_max_hp,
                 max_hp = CurrentRoomConfig.player_max_hp,
+                is_connected = true,
                 carried_treasure_id = ""
             };
 
@@ -130,6 +132,18 @@ namespace TreasureArenaMR.Server
         {
             _netickPlayers.TryGetValue(playerId, out var netPlayer);
             return netPlayer;
+        }
+
+        public GameObject GetPlayerObject(string playerId)
+        {
+            var netPlayer = GetNetickPlayer(playerId);
+            return netPlayer?.PlayerObject as GameObject;
+        }
+
+        public TreasureArenaMR.Network.NetworkPlayer GetNetworkPlayerComponent(string playerId)
+        {
+            GameObject playerObj = GetPlayerObject(playerId);
+            return playerObj != null ? playerObj.GetComponent<TreasureArenaMR.Network.NetworkPlayer>() : null;
         }
 
         // ---- Room management ----
@@ -187,6 +201,10 @@ namespace TreasureArenaMR.Server
             if (player == null) return false;
 
             player.team = targetTeam;
+            var networkPlayer = GetNetworkPlayerComponent(playerId);
+            if (networkPlayer != null)
+                networkPlayer.SetTeam(targetTeam);
+
             OnTeamChanged?.Invoke(player, targetTeam);
             Debug.Log($"[RoomManager] Player {playerId} switched to {targetTeam}");
             return true;
@@ -279,6 +297,7 @@ namespace TreasureArenaMR.Server
 
                 var playerObj = netPlayer.PlayerObject as GameObject;
                 if (playerObj == null) continue;
+                var networkPlayer = playerObj.GetComponent<TreasureArenaMR.Network.NetworkPlayer>();
 
                 var respawnZone = MapData.GetRespawnZone(player.team);
                 if (respawnZone == null) continue;
@@ -292,15 +311,29 @@ namespace TreasureArenaMR.Server
                         // Entered respawn zone: start countdown
                         _respawnTimers[player.player_id] = CurrentRoomConfig.respawn_countdown;
                         player.state = PlayerState.Respawning;
+                        if (networkPlayer != null)
+                        {
+                            networkPlayer.SetState(PlayerState.Respawning);
+                            networkPlayer.SetRespawnRemaining(CurrentRoomConfig.respawn_countdown);
+                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} entered respawn zone, countdown {CurrentRoomConfig.respawn_countdown}s");
                     }
 
                     _respawnTimers[player.player_id] -= Time.deltaTime;
+                    if (networkPlayer != null)
+                        networkPlayer.SetRespawnRemaining(_respawnTimers[player.player_id]);
+
                     if (_respawnTimers[player.player_id] <= 0f)
                     {
                         player.hp = CurrentRoomConfig.player_max_hp;
                         player.state = PlayerState.Alive;
                         _respawnTimers.Remove(player.player_id);
+                        if (networkPlayer != null)
+                        {
+                            networkPlayer.SetHp(CurrentRoomConfig.player_max_hp);
+                            networkPlayer.SetState(PlayerState.Alive);
+                            networkPlayer.SetRespawnRemaining(0f);
+                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} respawned");
                     }
                 }
@@ -310,6 +343,11 @@ namespace TreasureArenaMR.Server
                     {
                         _respawnTimers.Remove(player.player_id);
                         player.state = PlayerState.GhostRetreat;
+                        if (networkPlayer != null)
+                        {
+                            networkPlayer.SetState(PlayerState.GhostRetreat);
+                            networkPlayer.SetRespawnRemaining(0f);
+                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} left respawn zone, countdown reset");
                     }
                 }

@@ -2,6 +2,7 @@ using System.Collections;
 using TreasureArenaMR.Core;
 using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
+using TreasureArenaMR.Shared;
 using UnityEngine;
 
 namespace TreasureArenaMR.Server
@@ -18,8 +19,13 @@ namespace TreasureArenaMR.Server
         [SerializeField] private RoomManager _roomManager;
         [SerializeField] private bool _autoStart = true;
 
+        [Header("Network Prefabs")]
+        [SerializeField] private GameObject _matchStatePrefab;
+
         public static ServerApp Instance { get; private set; }
         public bool IsRunning { get; private set; }
+
+        private bool _networkRuntimeInitialized;
 
         private void Awake()
         {
@@ -97,6 +103,26 @@ namespace TreasureArenaMR.Server
             }
         }
 
+        public void OnNetworkReady()
+        {
+            if (_networkRuntimeInitialized)
+                return;
+            if (_networkManager == null || !_networkManager.IsServer || _networkManager.Sandbox == null)
+                return;
+            if (_roomManager == null || _roomManager.CurrentRoomConfig == null)
+                return;
+
+            SpawnMatchState();
+
+            var treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
+            if (treasureAuthority != null)
+                treasureAuthority.SpawnTreasures(_networkManager, _roomManager);
+            else
+                Debug.LogWarning("[ServerApp] ServerTreasureAuthority not found; treasures were not spawned.");
+
+            _networkRuntimeInitialized = true;
+        }
+
         public void ShutdownServer()
         {
             if (!IsRunning) return;
@@ -109,7 +135,40 @@ namespace TreasureArenaMR.Server
                 _networkManager.Shutdown();
 
             IsRunning = false;
+            _networkRuntimeInitialized = false;
             Debug.Log("[ServerApp] Server shut down");
+        }
+
+        private void SpawnMatchState()
+        {
+            if (FindObjectOfType<NetworkMatchState>() != null)
+                return;
+
+            if (_matchStatePrefab == null)
+                _matchStatePrefab = Resources.Load<GameObject>("NetworkMatchState");
+
+            if (_matchStatePrefab == null)
+            {
+                Debug.LogError("[ServerApp] NetworkMatchState prefab missing in Resources.");
+                return;
+            }
+
+            var stateObj = _networkManager.Sandbox.NetworkInstantiate(
+                _matchStatePrefab,
+                Vector3.zero,
+                Quaternion.identity);
+
+            var matchState = stateObj.GetComponent<NetworkMatchState>();
+            if (matchState != null)
+            {
+                matchState.Initialize(
+                    _roomManager.CurrentRoomState,
+                    _roomManager.RedScore,
+                    _roomManager.BlueScore,
+                    _roomManager.CurrentRoomConfig.match_time);
+            }
+
+            Debug.Log("[ServerApp] NetworkMatchState spawned.");
         }
 
         private void OnDestroy()

@@ -79,10 +79,9 @@ namespace TreasureArenaMR.MapEditor.Editor
             Button rotateButton = CreateButton(mainExpanded, "RotateButton", "Rotate", new Vector2(0f, -156f), new Vector2(92f, 38f), ButtonColor);
             Button scaleButton = CreateButton(mainExpanded, "ScaleButton", "Scale", new Vector2(102f, -156f), new Vector2(92f, 38f), ButtonColor);
             Button deleteButton = CreateButton(mainExpanded, "DeleteButton", "Delete", new Vector2(204f, -156f), new Vector2(92f, 38f), DangerColor);
-            Button clearBrushButton = CreateButton(mainExpanded, "ClearBrushButton", "Clear Brush", new Vector2(-156f, -204f), new Vector2(132f, 38f), ButtonColor);
-            Text gridStepText = CreateText(mainExpanded, "GridStepText", "Grid 0.5m", 12, new Vector2(-12f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
-            Text rotateStepText = CreateText(mainExpanded, "RotateStepText", "Rotate 15 deg", 12, new Vector2(116f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
-            Text scaleStepText = CreateText(mainExpanded, "ScaleStepText", "Scale 0.1", 12, new Vector2(224f, -204f), new Vector2(96f, 22f), TextAnchor.MiddleLeft);
+            Text gridStepText = CreateText(mainExpanded, "GridStepText", "Grid 0.5m", 12, new Vector2(-120f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
+            Text rotateStepText = CreateText(mainExpanded, "RotateStepText", "Rotate 15 deg", 12, new Vector2(12f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
+            Text scaleStepText = CreateText(mainExpanded, "ScaleStepText", "Scale 0.1", 12, new Vector2(140f, -204f), new Vector2(96f, 22f), TextAnchor.MiddleLeft);
 
             MapEditorObjectInspector inspector = rightPanel.gameObject.AddComponent<MapEditorObjectInspector>();
             Text selectedNameText = CreateText(rightExpanded, "SelectedNameText", "Selected: none", 14, new Vector2(0f, 200f), new Vector2(280f, 24f), TextAnchor.MiddleLeft);
@@ -110,7 +109,7 @@ namespace TreasureArenaMR.MapEditor.Editor
 
             BindPresenter(presenter, recentLogText, errorListText);
             BindInspector(inspector, selectedNameText, selectedTypeText, idField, prefabField, posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, scaleZ, colliderToggle, teamDropdown, treasureDropdown, radiusField, supplyField, refreshField, duplicateButton, inspectorDeleteButton, resetTransformButton);
-            BindController(root.GetComponent<MapEditorDockedUiController>(), leftPanel, mainPanel, rightPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, saveButton, loadButton, previewButton, clearMapButton, mapSettingsButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, leftHandBrushText, rightHandBrushText, activeHandText, hintText, placeButton, moveButton, rotateButton, scaleButton, deleteButton, clearBrushButton, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
+            BindController(root.GetComponent<MapEditorDockedUiController>(), leftPanel, mainPanel, rightPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, saveButton, loadButton, previewButton, clearMapButton, mapSettingsButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, leftHandBrushText, rightHandBrushText, activeHandText, hintText, placeButton, moveButton, rotateButton, scaleButton, deleteButton, null, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -138,14 +137,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             collapsed.SetActive(false);
 
             Text expandedTitle = CreateText(expanded.transform, "Title", title, 16, new Vector2(-size.x * 0.5f + 58f, size.y * 0.5f - 24f), new Vector2(120f, 28f), TextAnchor.MiddleLeft);
-            Button collapseButton = CreateButton(expanded.transform, "CollapseButton", "-", new Vector2(size.x * 0.5f - 68f, size.y * 0.5f - 24f), new Vector2(40f, 32f), ButtonColor);
-            Button pinButton = CreateButton(expanded.transform, "PinButton", "Pin", new Vector2(size.x * 0.5f - 22f, size.y * 0.5f - 24f), new Vector2(44f, 32f), ButtonColor);
-            Text pinText = pinButton.GetComponentInChildren<Text>();
             Image expandedErrorDot = CreateDot(expanded.transform, "ExpandedErrorDot", new Vector2(size.x * 0.5f - 108f, size.y * 0.5f - 24f));
-
-            Text collapsedTitle = CreateText(collapsed.transform, "CollapsedTitle", title, 14, new Vector2(12f, 0f), new Vector2(150f, 32f), TextAnchor.MiddleLeft);
-            Button expandButton = CreateButton(collapsed.transform, "ExpandButton", "+", new Vector2(96f, 0f), new Vector2(40f, 32f), ButtonColor);
-            Image collapsedErrorDot = CreateDot(collapsed.transform, "CollapsedErrorDot", new Vector2(128f, 0f));
 
             SerializedObject panel = new SerializedObject(panelGo.GetComponent<MapEditorDockedPanel>());
             panel.FindProperty("panelTitle").stringValue = title;
@@ -153,13 +145,13 @@ namespace TreasureArenaMR.MapEditor.Editor
             panel.FindProperty("expandedRoot").objectReferenceValue = expanded;
             panel.FindProperty("collapsedRoot").objectReferenceValue = collapsed;
             panel.FindProperty("titleText").objectReferenceValue = expandedTitle;
-            panel.FindProperty("collapsedTitleText").objectReferenceValue = collapsedTitle;
+            panel.FindProperty("collapsedTitleText").objectReferenceValue = null;
             panel.FindProperty("errorDot").objectReferenceValue = expandedErrorDot;
-            panel.FindProperty("collapsedErrorDot").objectReferenceValue = collapsedErrorDot;
-            panel.FindProperty("collapseButton").objectReferenceValue = collapseButton;
-            panel.FindProperty("expandButton").objectReferenceValue = expandButton;
-            panel.FindProperty("pinButton").objectReferenceValue = pinButton;
-            panel.FindProperty("pinText").objectReferenceValue = pinText;
+            panel.FindProperty("collapsedErrorDot").objectReferenceValue = null;
+            panel.FindProperty("collapseButton").objectReferenceValue = null;
+            panel.FindProperty("expandButton").objectReferenceValue = null;
+            panel.FindProperty("pinButton").objectReferenceValue = null;
+            panel.FindProperty("pinText").objectReferenceValue = null;
             panel.ApplyModifiedPropertiesWithoutUndo();
             return panelGo.GetComponent<MapEditorDockedPanel>();
         }

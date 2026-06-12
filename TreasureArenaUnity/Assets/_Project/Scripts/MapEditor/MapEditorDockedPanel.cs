@@ -18,14 +18,11 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private Button expandButton;
         [SerializeField] private Button pinButton;
         [SerializeField] private Text pinText;
-        [SerializeField] private bool expanded = true;
-        [SerializeField] private bool pinned;
         [SerializeField] private float expandedAlpha = 0.75f;
-        [SerializeField] private float collapsedAlpha = 0.45f;
         [SerializeField] private float dimmedAlpha = 0.35f;
 
-        public bool IsExpanded => expanded;
-        public bool IsPinned => pinned;
+        public bool IsExpanded => true;
+        public bool IsPinned => false;
 
         private void Awake()
         {
@@ -39,62 +36,31 @@ namespace TreasureArenaMR.MapEditor
                 hitCollider = GetComponentInChildren<BoxCollider>(true);
             }
 
-            if (collapseButton != null)
-            {
-                collapseButton.onClick.AddListener(ToggleExpanded);
-            }
-
-            if (expandButton != null)
-            {
-                expandButton.onClick.AddListener(ToggleExpanded);
-            }
-
-            if (pinButton != null)
-            {
-                pinButton.onClick.AddListener(TogglePinned);
-            }
-
             Refresh();
         }
 
         private void OnDestroy()
         {
-            if (collapseButton != null)
-            {
-                collapseButton.onClick.RemoveListener(ToggleExpanded);
-            }
-
-            if (expandButton != null)
-            {
-                expandButton.onClick.RemoveListener(ToggleExpanded);
-            }
-
-            if (pinButton != null)
-            {
-                pinButton.onClick.RemoveListener(TogglePinned);
-            }
         }
 
         public void SetExpanded(bool value)
         {
-            expanded = value;
             Refresh();
         }
 
         public void SetPinned(bool value)
         {
-            pinned = value;
             Refresh();
         }
 
         public void ToggleExpanded()
         {
-            SetExpanded(!expanded);
+            Refresh();
         }
 
         public void TogglePinned()
         {
-            SetPinned(!pinned);
+            Refresh();
         }
 
         public void SetErrorState(bool hasError)
@@ -112,12 +78,12 @@ namespace TreasureArenaMR.MapEditor
 
         public void SetDimmed(bool dimmed)
         {
-            if (canvasGroup == null || pinned)
+            if (canvasGroup == null)
             {
                 return;
             }
 
-            canvasGroup.alpha = dimmed ? dimmedAlpha : (expanded ? expandedAlpha : collapsedAlpha);
+            canvasGroup.alpha = dimmed ? dimmedAlpha : expandedAlpha;
         }
 
         public void RefreshHitArea()
@@ -139,22 +105,25 @@ namespace TreasureArenaMR.MapEditor
 
             if (expandedRoot != null)
             {
-                expandedRoot.SetActive(expanded);
+                expandedRoot.SetActive(true);
             }
 
             if (collapsedRoot != null)
             {
-                collapsedRoot.SetActive(!expanded);
+                collapsedRoot.SetActive(false);
             }
 
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = expanded ? expandedAlpha : collapsedAlpha;
+                canvasGroup.alpha = expandedAlpha;
             }
 
+            if (collapseButton != null) collapseButton.gameObject.SetActive(false);
+            if (expandButton != null) expandButton.gameObject.SetActive(false);
+            if (pinButton != null) pinButton.gameObject.SetActive(false);
             if (pinText != null)
             {
-                pinText.text = pinned ? "Pinned" : "Pin";
+                pinText.text = "";
             }
 
             RefreshHitCollider();
@@ -168,13 +137,9 @@ namespace TreasureArenaMR.MapEditor
             }
 
             RectTransform activeRect = null;
-            if (expanded && expandedRoot != null)
+            if (expandedRoot != null)
             {
                 activeRect = expandedRoot.GetComponent<RectTransform>();
-            }
-            else if (!expanded && collapsedRoot != null)
-            {
-                activeRect = collapsedRoot.GetComponent<RectTransform>();
             }
 
             if (activeRect == null)

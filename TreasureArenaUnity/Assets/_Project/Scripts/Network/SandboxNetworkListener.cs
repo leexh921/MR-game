@@ -1,4 +1,3 @@
-using System;
 using Netick;
 using Netick.Unity;
 using TreasureArenaMR.Server;
@@ -30,24 +29,17 @@ namespace TreasureArenaMR.Network
 
         public override void OnStartup(NetworkSandbox sandbox)
         {
-            try
-            {
-                Debug.Log("[DEBUG] OnStartup — 1 sandbox");
-                Debug.Log($"[SandboxNetworkListener] Netick sandbox started. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
-                Debug.Log("[DEBUG] OnStartup — 2 CacheReferences");
-                CacheReferences();
-                Debug.Log("[DEBUG] OnStartup — 3 networkManager=" + (_networkManager != null));
+            Debug.Log($"[SandboxNetworkListener] Netick sandbox started. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
+            CacheReferences();
 
-                if (_networkManager != null)
-                {
-                    Debug.Log("[DEBUG] OnStartup — 4 OnSandboxStarted");
-                    _networkManager.OnSandboxStarted(sandbox);
-                    Debug.Log("[DEBUG] OnStartup — 5 done");
-                }
-            }
-            catch (Exception ex)
+            if (_networkManager != null)
+                _networkManager.OnSandboxStarted(sandbox);
+
+            if (sandbox.IsServer)
             {
-                Debug.LogError("[DEBUG] OnStartup FAILED at step: " + ex.Message + "\n" + ex.StackTrace);
+                var serverApp = FindObjectOfType<ServerApp>();
+                if (serverApp != null)
+                    serverApp.OnNetworkReady();
             }
         }
 
@@ -107,7 +99,10 @@ namespace TreasureArenaMR.Network
                 var netComp = playerObj.GetComponent<NetworkPlayer>();
                 if (netComp != null)
                 {
-                    netComp.Initialize(playerId, $"Player_{playerId}", teamType);
+                    int maxHp = _roomManager.CurrentRoomConfig != null
+                        ? _roomManager.CurrentRoomConfig.player_max_hp
+                        : 100;
+                    netComp.Initialize(playerId, $"Player_{playerId}", teamType, maxHp);
                     netComp.NetickPlayerId = netPlayer.PlayerId;
                 }
             }
@@ -149,60 +144,27 @@ namespace TreasureArenaMR.Network
 
         public override void OnConnectedToServer(NetworkSandbox sandbox, NetworkConnection connection)
         {
-            try
-            {
-                Debug.Log("[SandboxNetworkListener] Connected to server");
+            Debug.Log("[SandboxNetworkListener] Connected to server");
 
-                if (_networkManager != null)
-                    _networkManager.OnConnectedToServer();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[DEBUG] OnConnectedToServer FAILED: " + ex.Message + "\n" + ex.StackTrace);
-            }
+            if (_networkManager != null)
+                _networkManager.OnConnectedToServer();
         }
 
         public override void OnDisconnectedFromServer(
             NetworkSandbox sandbox, NetworkConnection connection, TransportDisconnectReason reason)
         {
-            try
-            {
-                Debug.Log($"[SandboxNetworkListener] Disconnected from server: {reason}");
+            Debug.Log($"[SandboxNetworkListener] Disconnected from server: {reason}");
 
-                if (_networkManager != null)
-                    _networkManager.OnDisconnectedFromServer(reason);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[DEBUG] OnDisconnectedFromServer FAILED: " + ex.Message + "\n" + ex.StackTrace);
-            }
-        }
-
-        public override void OnConnectFailed(NetworkSandbox sandbox, ConnectionFailedReason reason)
-        {
-            try
-            {
-                Debug.Log($"[SandboxNetworkListener] Connect failed: {reason}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[DEBUG] OnConnectFailed FAILED: " + ex.Message);
-            }
+            if (_networkManager != null)
+                _networkManager.OnDisconnectedFromServer(reason);
         }
 
         public override void OnSceneLoaded(NetworkSandbox sandbox)
         {
-            try
-            {
-                Debug.Log($"[SandboxNetworkListener] Scene loaded: {sandbox.Scene}");
+            Debug.Log($"[SandboxNetworkListener] Scene loaded: {sandbox.Scene}");
 
-                if (_networkManager != null)
-                    _networkManager.OnSceneLoaded();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[DEBUG] OnSceneLoaded FAILED: " + ex.Message + "\n" + ex.StackTrace);
-            }
+            if (_networkManager != null)
+                _networkManager.OnSceneLoaded();
         }
     }
 }
