@@ -1,3 +1,4 @@
+using System;
 using Netick;
 using Netick.Unity;
 using TreasureArenaMR.Server;
@@ -29,11 +30,25 @@ namespace TreasureArenaMR.Network
 
         public override void OnStartup(NetworkSandbox sandbox)
         {
-            Debug.Log($"[SandboxNetworkListener] Netick sandbox started. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
-            CacheReferences();
+            try
+            {
+                Debug.Log("[DEBUG] OnStartup — 1 sandbox");
+                Debug.Log($"[SandboxNetworkListener] Netick sandbox started. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
+                Debug.Log("[DEBUG] OnStartup — 2 CacheReferences");
+                CacheReferences();
+                Debug.Log("[DEBUG] OnStartup — 3 networkManager=" + (_networkManager != null));
 
-            if (_networkManager != null)
-                _networkManager.OnSandboxStarted(sandbox);
+                if (_networkManager != null)
+                {
+                    Debug.Log("[DEBUG] OnStartup — 4 OnSandboxStarted");
+                    _networkManager.OnSandboxStarted(sandbox);
+                    Debug.Log("[DEBUG] OnStartup — 5 done");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] OnStartup FAILED at step: " + ex.Message + "\n" + ex.StackTrace);
+            }
         }
 
         public override void OnShutdown(NetworkSandbox sandbox)
@@ -134,27 +149,60 @@ namespace TreasureArenaMR.Network
 
         public override void OnConnectedToServer(NetworkSandbox sandbox, NetworkConnection connection)
         {
-            Debug.Log("[SandboxNetworkListener] Connected to server");
+            try
+            {
+                Debug.Log("[SandboxNetworkListener] Connected to server");
 
-            if (_networkManager != null)
-                _networkManager.OnConnectedToServer();
+                if (_networkManager != null)
+                    _networkManager.OnConnectedToServer();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] OnConnectedToServer FAILED: " + ex.Message + "\n" + ex.StackTrace);
+            }
         }
 
         public override void OnDisconnectedFromServer(
             NetworkSandbox sandbox, NetworkConnection connection, TransportDisconnectReason reason)
         {
-            Debug.Log($"[SandboxNetworkListener] Disconnected from server: {reason}");
+            try
+            {
+                Debug.Log($"[SandboxNetworkListener] Disconnected from server: {reason}");
 
-            if (_networkManager != null)
-                _networkManager.OnDisconnectedFromServer(reason);
+                if (_networkManager != null)
+                    _networkManager.OnDisconnectedFromServer(reason);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] OnDisconnectedFromServer FAILED: " + ex.Message + "\n" + ex.StackTrace);
+            }
+        }
+
+        public override void OnConnectFailed(NetworkSandbox sandbox, ConnectionFailedReason reason)
+        {
+            try
+            {
+                Debug.Log($"[SandboxNetworkListener] Connect failed: {reason}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] OnConnectFailed FAILED: " + ex.Message);
+            }
         }
 
         public override void OnSceneLoaded(NetworkSandbox sandbox)
         {
-            Debug.Log($"[SandboxNetworkListener] Scene loaded: {sandbox.Scene}");
+            try
+            {
+                Debug.Log($"[SandboxNetworkListener] Scene loaded: {sandbox.Scene}");
 
-            if (_networkManager != null)
-                _networkManager.OnSceneLoaded();
+                if (_networkManager != null)
+                    _networkManager.OnSceneLoaded();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[DEBUG] OnSceneLoaded FAILED: " + ex.Message + "\n" + ex.StackTrace);
+            }
         }
     }
 }

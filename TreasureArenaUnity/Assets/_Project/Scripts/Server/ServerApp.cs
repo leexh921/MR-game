@@ -1,3 +1,4 @@
+using System.Collections;
 using TreasureArenaMR.Core;
 using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
@@ -81,6 +82,19 @@ namespace TreasureArenaMR.Server
 
             IsRunning = true;
             Debug.Log("[ServerApp] Server booted successfully");
+
+            // DEBUG: simple update tick test
+            _nextTick = Time.time + 1f;
+        }
+
+        private float _nextTick;
+        private void Update()
+        {
+            if (Time.time > _nextTick)
+            {
+                _nextTick = Time.time + 1f;
+                Debug.Log($"[ServerApp] TICK — t={Time.time:F0}, enabled={enabled}, active={gameObject.activeSelf}");
+            }
         }
 
         public void ShutdownServer()
