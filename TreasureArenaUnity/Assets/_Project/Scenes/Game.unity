@@ -401,6 +401,7 @@ GameObject:
   - component: {fileID: 403433381}
   - component: {fileID: 403433380}
   - component: {fileID: 403433379}
+  - component: {fileID: 403433382}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -415,7 +416,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 403433378}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4f231c4fb786f3946a6b90b886c48677, type: 3}
   m_Name: 
@@ -458,6 +459,46 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &403433382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403433378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab68ce6587aab0146b8dabefbd806791, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SendPointerHoverToParent: 1
+  m_ClickSpeed: 0.3
+  m_MoveDeadzone: 0.6
+  m_RepeatDelay: 0.5
+  m_RepeatRate: 0.1
+  m_TrackedDeviceDragThresholdMultiplier: 1.4
+  m_TrackedScrollDeltaMultiplier: 5
+  m_BypassUIToolkitEvents: 0
+  m_ActiveInputMode: 0
+  m_MaxTrackedDeviceRaycastDistance: 1000
+  m_EnableXRInput: 1
+  m_EnableMouseInput: 0
+  m_EnableTouchInput: 1
+  m_PointAction: {fileID: 2869410428622933342, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_LeftClickAction: {fileID: 1855836014308820768, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_MiddleClickAction: {fileID: -6289560987278519447, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_RightClickAction: {fileID: -2562941478296515153, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_ScrollWheelAction: {fileID: 5825226938762934180, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_NavigateAction: {fileID: -7967456002180160679, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_SubmitAction: {fileID: 3994978066732806534, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_CancelAction: {fileID: 2387711382375263438, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  m_EnableBuiltinActionsAsFallback: 1
+  m_EnableGamepadInput: 1
+  m_EnableJoystickInput: 1
+  m_HorizontalAxis: Horizontal
+  m_VerticalAxis: Vertical
+  m_SubmitButton: Submit
+  m_CancelButton: Cancel
 --- !u!1001 &411270887
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -467,9 +508,17 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1629647129450060957, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: _serverPort
+      value: 7777
+      objectReference: {fileID: 0}
+    - target: {fileID: 1629647129450060957, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: _netickConfig
       value: 
       objectReference: {fileID: 11400000, guid: 1a16f967025f97247a26fc1530aa03c9, type: 2}
+    - target: {fileID: 1629647129450060957, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: _serverAddress
+      value: 192.168.156.81
+      objectReference: {fileID: 0}
     - target: {fileID: 2273921787505719569, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Name
       value: PicoClientNetworkBootstrap
@@ -525,6 +574,22 @@ PrefabInstance:
     - target: {fileID: 6233246348479631607, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 402.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: playerId
+      value: pico_client_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: serverPort
+      value: 7777
+      objectReference: {fileID: 0}
+    - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: serverAddress
+      value: 192.168.156.81
       objectReference: {fileID: 0}
     - target: {fileID: 6279448158870362979, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: connectOnStart
@@ -1651,98 +1716,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1813696046}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &897305919
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 897305922}
-  - component: {fileID: 897305921}
-  - component: {fileID: 897305920}
-  m_Layer: 0
-  m_Name: Main Camera
-  m_TagString: MainCamera
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!81 &897305920
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897305919}
-  m_Enabled: 1
---- !u!20 &897305921
-Camera:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897305919}
-  m_Enabled: 1
-  serializedVersion: 2
-  m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.09411765, g: 0.101960786, b: 0.11764706, a: 1}
-  m_projectionMatrixMode: 1
-  m_GateFitMode: 2
-  m_FOVAxisMode: 0
-  m_Iso: 200
-  m_ShutterSpeed: 0.005
-  m_Aperture: 16
-  m_FocusDistance: 10
-  m_FocalLength: 50
-  m_BladeCount: 5
-  m_Curvature: {x: 2, y: 11}
-  m_BarrelClipping: 0.25
-  m_Anamorphism: 0
-  m_SensorSize: {x: 36, y: 24}
-  m_LensShift: {x: 0, y: 0}
-  m_NormalizedViewPortRect:
-    serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
-  near clip plane: 0.3
-  far clip plane: 1000
-  field of view: 60
-  orthographic: 0
-  orthographic size: 5
-  m_Depth: 0
-  m_CullingMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_RenderingPath: -1
-  m_TargetTexture: {fileID: 0}
-  m_TargetDisplay: 0
-  m_TargetEye: 3
-  m_HDR: 1
-  m_AllowMSAA: 1
-  m_AllowDynamicResolution: 0
-  m_ForceIntoRT: 0
-  m_OcclusionCulling: 1
-  m_StereoConvergence: 10
-  m_StereoSeparation: 0.022
---- !u!4 &897305922
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897305919}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.08715574, y: 0, z: 0, w: 0.9961947}
-  m_LocalPosition: {x: 0, y: 1.6, z: -8}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &904241582
@@ -3690,7 +3663,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1610801097}
-  - component: {fileID: 1610801096}
+  - component: {fileID: 1610801098}
+  - component: {fileID: 1610801099}
   m_Layer: 0
   m_Name: GameRuntimeBootstrap
   m_TagString: Untagged
@@ -3698,34 +3672,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1610801096
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1610801095}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d16016d81d9c85640a87afdd192727c9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  defaultRole: 0
-  androidBuildRunsAsPicoClient: 1
-  serverAddress: 192.168.61.128
-  serverPort: 7777
-  playerId: pico_client_01
-  runtimeMapId: test_map_01
-  runtimeMapParent: {fileID: 304480019}
-  desktopCameraRoot: {fileID: 897305919}
-  picoXrRoot: {fileID: 837974521}
-  networkRuntimeRoot: {fileID: 1927502105}
-  localTestRoot: {fileID: 1838742946}
-  networkManager: {fileID: 411270889}
-  serverApp: {fileID: 1927502106}
-  picoClientBootstrap: {fileID: 411270888}
-  localTestDriver: {fileID: 1838742947}
-  statusText: {fileID: 0}
 --- !u!4 &1610801097
 Transform:
   m_ObjectHideFlags: 0
@@ -3741,6 +3687,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1610801098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1610801095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d16016d81d9c85640a87afdd192727c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  defaultRole: 2
+  androidBuildRunsAsPicoClient: 1
+  serverAddress: 192.168.156.81
+  serverPort: 7777
+  playerId: pico_client_01
+  runtimeMapId: test_map_01
+  runtimeMapParent: {fileID: 304480019}
+  desktopCameraRoot: {fileID: 0}
+  picoXrRoot: {fileID: 837974521}
+  networkRuntimeRoot: {fileID: 1927502105}
+  localTestRoot: {fileID: 1838742946}
+  networkManager: {fileID: 411270889}
+  serverApp: {fileID: 1927502106}
+  picoClientBootstrap: {fileID: 411270888}
+  localTestDriver: {fileID: 1838742947}
+  statusText: {fileID: 0}
+--- !u!114 &1610801099
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1610801095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73c9d6e54c1f1d1458534ec1b286a7b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _transport: {fileID: 0}
+  _sandboxPrefab: {fileID: 0}
+  _netickConfig: {fileID: 0}
+  _serverPort: 7777
+  _serverAddress: 127.0.0.1
+  _maxPlayers: 4
 --- !u!1 &1694592608
 GameObject:
   m_ObjectHideFlags: 0
@@ -5066,7 +5058,6 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 897305922}
   - {fileID: 485809965}
   - {fileID: 403433381}
   - {fileID: 904241586}
