@@ -11,23 +11,21 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private MapEditorRuntimeController controller;
         [SerializeField] private MapEditorRuntimeExporter exporter;
         [SerializeField] private Camera targetCamera;
-        [SerializeField] private bool followCamera = true;
-        [SerializeField] private float distanceFromCamera = 2.2f;
-        [SerializeField] private bool fitToCameraView = true;
-        [SerializeField] private float viewportCoverage = 0.88f;
-        [SerializeField] private float designHeight = 720f;
-        [SerializeField] private float minimumDesignWidth = 1200f;
-        [SerializeField] private float panelMargin = 20f;
+        [SerializeField] private float workbenchDistance = 0.95f;
+        [SerializeField] private float workbenchVerticalOffset = 0.45f;
+        [SerializeField] private float workbenchTiltDegrees = 28f;
+        [SerializeField] private float workbenchYawOffset = 180f;
+        [SerializeField] private Vector2 workbenchDesignSize = new Vector2(1200f, 560f);
+        [SerializeField] private float workbenchWorldScale = 0.001f;
 
         [Header("Panels")]
-        [SerializeField] private MapEditorDockedPanel topPanel;
-        [SerializeField] private MapEditorDockedPanel leftPanel;
-        [SerializeField] private MapEditorDockedPanel rightPanel;
-        [SerializeField] private MapEditorDockedPanel bottomPanel;
+        [SerializeField] private MapEditorDockedPanel leftInfoPanel;
+        [SerializeField] private MapEditorDockedPanel mainBrushPanel;
+        [SerializeField] private MapEditorDockedPanel rightInspectorPanel;
         [SerializeField] private MapEditorValidationPresenter validationPresenter;
         [SerializeField] private MapEditorObjectInspector objectInspector;
 
-        [Header("Top Bar")]
+        [Header("Info Area")]
         [SerializeField] private Text mapNameText;
         [SerializeField] private Text mapIdText;
         [SerializeField] private Text versionText;
@@ -36,13 +34,22 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private Text validationStatusText;
         [SerializeField] private Button validateButton;
         [SerializeField] private Button exportButton;
+        [SerializeField] private Button saveButton;
+        [SerializeField] private Button loadButton;
+        [SerializeField] private Button previewButton;
+        [SerializeField] private Button clearMapButton;
+        [SerializeField] private Button mapSettingsButton;
 
-        [Header("Left Panel")]
+        [Header("Brush Area")]
         [SerializeField] private Transform mapObjectsListRoot;
         [SerializeField] private Transform gameplayMarkersListRoot;
         [SerializeField] private Button brushButtonTemplate;
+        [SerializeField] private Text leftHandBrushText;
+        [SerializeField] private Text rightHandBrushText;
+        [SerializeField] private Text activeHandText;
+        [SerializeField] private Text hintText;
 
-        [Header("Bottom Bar")]
+        [Header("Edit Mode Area")]
         [SerializeField] private Button placeButton;
         [SerializeField] private Button moveButton;
         [SerializeField] private Button rotateButton;
@@ -53,8 +60,7 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private Text rotateStepText;
         [SerializeField] private Text scaleStepText;
 
-        private bool hasValidationErrors;
-        private readonly Dictionary<string, bool> folderExpanded = new Dictionary<string, bool>();
+        private readonly List<BrushButtonBinding> brushButtons = new List<BrushButtonBinding>();
 
         private void Awake()
         {
@@ -77,20 +83,6 @@ namespace TreasureArenaMR.MapEditor
             BindButtons();
             BuildBrushButtons();
             RefreshAll();
-            RefreshCameraLayout();
-        }
-
-        private void LateUpdate()
-        {
-            if (!followCamera || targetCamera == null)
-            {
-                return;
-            }
-
-            Transform cameraTransform = targetCamera.transform;
-            transform.position = cameraTransform.position + cameraTransform.forward * distanceFromCamera;
-            transform.rotation = Quaternion.LookRotation(transform.position - cameraTransform.position, Vector3.up);
-            RefreshCameraLayout();
         }
 
         private void OnDestroy()
@@ -99,10 +91,78 @@ namespace TreasureArenaMR.MapEditor
             {
                 controller.StatusChanged -= OnStatusChanged;
                 controller.BrushChanged -= OnBrushChanged;
+                controller.HandBrushChanged -= OnHandBrushChanged;
                 controller.SelectionChanged -= OnSelectionChanged;
                 controller.EditModeChanged -= OnEditModeChanged;
+                controller.HandEditModeChanged -= OnHandEditModeChanged;
+                controller.ActiveHandChanged -= OnActiveHandChanged;
                 controller.DraggingChanged -= OnDraggingChanged;
+                controller.WorkbenchToggleRequested -= ToggleWorkbench;
+                controller.WorkbenchRecenterRequested -= OnWorkbenchRecenterRequested;
             }
+        }
+
+        public void ShowWorkbench()
+        {
+            gameObject.SetActive(true);
+        }
+
+        public void HideWorkbench()
+        {
+            gameObject.SetActive(false);
+        }
+
+        public void ToggleWorkbench()
+        {
+            if (gameObject.activeSelf)
+            {
+                gameObject.SetActive(false);
+            }
+            else
+            {
+                RecenterWorkbench();
+            }
+        }
+
+        public void RecenterWorkbench(Camera cameraOverride = null)
+        {
+            Camera camera = cameraOverride != null ? cameraOverride : targetCamera;
+            if (camera == null)
+            {
+                camera = Camera.main;
+            }
+
+            gameObject.SetActive(true);
+
+            RectTransform rect = transform as RectTransform;
+            if (rect != null)
+            {
+                rect.sizeDelta = workbenchDesignSize;
+            }
+
+            transform.localScale = Vector3.one * workbenchWorldScale;
+
+            if (camera == null)
+            {
+                transform.position = new Vector3(0f, 0.95f, 0.9f);
+                transform.rotation = Quaternion.Euler(60f, 180f, 0f);
+                return;
+            }
+
+            Transform cameraTransform = camera.transform;
+            Vector3 flatForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up);
+            if (flatForward.sqrMagnitude < 0.001f)
+            {
+                flatForward = Vector3.ProjectOnPlane(cameraTransform.up, Vector3.up);
+            }
+
+            flatForward.Normalize();
+            transform.position = cameraTransform.position
+                + flatForward * workbenchDistance
+                - Vector3.up * workbenchVerticalOffset;
+
+            Quaternion faceUser = Quaternion.LookRotation(cameraTransform.position - transform.position, Vector3.up);
+            transform.rotation = faceUser * Quaternion.Euler(workbenchTiltDegrees, workbenchYawOffset, 0f);
         }
 
         public void ValidateMap()
@@ -114,15 +174,10 @@ namespace TreasureArenaMR.MapEditor
             }
 
             MapValidationResult result = exporter.ValidateCurrentMap();
-            hasValidationErrors = result == null || !result.ok;
+            bool hasValidationErrors = result == null || !result.ok;
             validationPresenter?.ShowValidation(result);
             SetPanelErrors(hasValidationErrors);
             SetValidationStatus(hasValidationErrors ? "Fix required" : "Valid map", hasValidationErrors);
-            if (hasValidationErrors && bottomPanel != null)
-            {
-                bottomPanel.SetExpanded(true);
-            }
-
             RefreshCounts();
         }
 
@@ -137,14 +192,9 @@ namespace TreasureArenaMR.MapEditor
             MapValidationResult validation = exporter.ValidateCurrentMap();
             if (!validation.ok)
             {
-                hasValidationErrors = true;
                 validationPresenter?.ShowValidation(validation);
                 SetPanelErrors(true);
                 SetValidationStatus("Export blocked", true);
-                if (bottomPanel != null)
-                {
-                    bottomPanel.SetExpanded(true);
-                }
                 return;
             }
 
@@ -163,25 +213,40 @@ namespace TreasureArenaMR.MapEditor
 
             controller.StatusChanged += OnStatusChanged;
             controller.BrushChanged += OnBrushChanged;
+            controller.HandBrushChanged += OnHandBrushChanged;
             controller.SelectionChanged += OnSelectionChanged;
             controller.EditModeChanged += OnEditModeChanged;
+            controller.HandEditModeChanged += OnHandEditModeChanged;
+            controller.ActiveHandChanged += OnActiveHandChanged;
             controller.DraggingChanged += OnDraggingChanged;
+            controller.WorkbenchToggleRequested += ToggleWorkbench;
+            controller.WorkbenchRecenterRequested += OnWorkbenchRecenterRequested;
         }
 
         private void BindButtons()
         {
-            if (validateButton != null) validateButton.onClick.AddListener(ValidateMap);
-            if (exportButton != null) exportButton.onClick.AddListener(ExportMap);
-            if (placeButton != null) placeButton.onClick.AddListener(() => controller?.SetEditMode(MapEditorRuntimeEditMode.Place));
-            if (moveButton != null) moveButton.onClick.AddListener(() => controller?.SetEditMode(MapEditorRuntimeEditMode.Move));
-            if (rotateButton != null) rotateButton.onClick.AddListener(() => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate));
-            if (scaleButton != null) scaleButton.onClick.AddListener(() => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale));
-            if (deleteButton != null) deleteButton.onClick.AddListener(() => controller?.DeleteSelected());
-            if (clearBrushButton != null) clearBrushButton.onClick.AddListener(() => controller?.ClearBrush());
+            BindPlainButton(validateButton, ValidateMap);
+            BindPlainButton(exportButton, ExportMap);
+            BindPlainButton(saveButton, () => AddUiLog("Save is TODO for MapEditor MVP."));
+            BindPlainButton(loadButton, () => AddUiLog("Load is TODO for MapEditor MVP."));
+            BindPlainButton(previewButton, () => AddUiLog("Preview Load is TODO until ME-4."));
+            BindPlainButton(clearMapButton, () => AddUiLog("Clear Map requires confirmation; TODO."));
+            BindPlainButton(mapSettingsButton, () => AddUiLog("Map Settings panel is TODO."));
+
+            BindHandButton(placeButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Place, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Place));
+            BindHandButton(moveButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Move, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Move));
+            BindHandButton(rotateButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate));
+            BindHandButton(scaleButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale));
+            if (clearBrushButton != null)
+            {
+                clearBrushButton.gameObject.SetActive(false);
+            }
+            BindPlainButton(deleteButton, () => controller?.DeleteSelected());
         }
 
         private void BuildBrushButtons()
         {
+            brushButtons.Clear();
             if (controller == null || brushButtonTemplate == null)
             {
                 return;
@@ -189,10 +254,6 @@ namespace TreasureArenaMR.MapEditor
 
             ClearList(mapObjectsListRoot);
             ClearList(gameplayMarkersListRoot);
-            if (gameplayMarkersListRoot != null)
-            {
-                gameplayMarkersListRoot.gameObject.SetActive(false);
-            }
 
             IReadOnlyList<MapEditorRuntimeBrush> brushes = controller.Brushes;
             SortedDictionary<string, List<int>> folders = new SortedDictionary<string, List<int>>(System.StringComparer.Ordinal);
@@ -211,18 +272,11 @@ namespace TreasureArenaMR.MapEditor
 
             foreach (KeyValuePair<string, List<int>> folder in folders)
             {
-                bool expanded = !folderExpanded.TryGetValue(folder.Key, out bool value) || value;
-                Button folderButton = Instantiate(brushButtonTemplate, mapObjectsListRoot);
-                folderButton.gameObject.SetActive(true);
-                SetButtonLabel(folderButton, (expanded ? "v " : "> ") + folder.Key + " (" + folder.Value.Count + ")");
-                string folderName = folder.Key;
-                folderButton.onClick.AddListener(() =>
-                {
-                    folderExpanded[folderName] = !expanded;
-                    BuildBrushButtons();
-                });
+                Transform root = IsGameplayFolder(folder.Key) && gameplayMarkersListRoot != null
+                    ? gameplayMarkersListRoot
+                    : mapObjectsListRoot;
 
-                if (!expanded)
+                if (root == null)
                 {
                     continue;
                 }
@@ -231,47 +285,66 @@ namespace TreasureArenaMR.MapEditor
                 {
                     int index = folder.Value[i];
                     MapEditorRuntimeBrush brush = brushes[index];
-                    Button button = Instantiate(brushButtonTemplate, mapObjectsListRoot);
+                    Button button = Instantiate(brushButtonTemplate, root);
                     button.gameObject.SetActive(true);
-                    SetButtonLabel(button, "  " + brush.DisplayName);
-                    button.onClick.AddListener(() => controller.SelectBrush(index));
+                    ConfigureBrushButton(button, index, brush);
                 }
             }
 
             brushButtonTemplate.gameObject.SetActive(false);
+            RefreshBrushHandMarkers();
         }
 
-        private static void SetButtonLabel(Button button, string label)
+        private void ConfigureBrushButton(Button button, int index, MapEditorRuntimeBrush brush)
         {
-            Text text = button != null ? button.GetComponentInChildren<Text>() : null;
-            if (text != null)
+            Text nameText = FindChildText(button.transform, "NameText");
+            Text typeText = FindChildText(button.transform, "TypeText");
+            Text handText = FindChildText(button.transform, "HandMarkerText");
+            Image thumbnailImage = FindChildImage(button.transform, "Thumbnail");
+            if (nameText != null)
             {
-                text.text = label;
-                text.alignment = TextAnchor.MiddleLeft;
-            }
-        }
-
-        private static string DefaultFolderName(MapEditorRuntimeBrush brush)
-        {
-            if (brush == null)
-            {
-                return "Imported";
+                nameText.text = brush.DisplayName;
             }
 
-            return brush.marker_type == MapExportMarkerType.MapObject ? "MapObjects" : "GameplayMarkers";
+            if (typeText != null)
+            {
+                typeText.text = BrushKindLabel(brush);
+            }
+
+            if (handText != null)
+            {
+                handText.text = "";
+            }
+
+            if (thumbnailImage != null)
+            {
+                thumbnailImage.sprite = brush.thumbnail;
+                thumbnailImage.preserveAspect = brush.thumbnail != null;
+                thumbnailImage.color = brush.thumbnail != null ? Color.white : BrushFallbackColor(brush);
+            }
+
+            button.onClick.AddListener(() => controller?.SelectBrush(index));
+            MapEditorRuntimeUiHitTarget hitTarget = button.GetComponent<MapEditorRuntimeUiHitTarget>();
+            if (hitTarget == null)
+            {
+                hitTarget = button.gameObject.AddComponent<MapEditorRuntimeUiHitTarget>();
+            }
+
+            hitTarget.HandActivated += hand => controller?.SelectBrush(index, hand);
+            brushButtons.Add(new BrushButtonBinding(index, handText));
         }
 
         private void RefreshAll()
         {
             if (exporter != null)
             {
-                if (mapNameText != null) mapNameText.text = exporter.MapName;
+                if (mapNameText != null) mapNameText.text = "Map: " + exporter.MapName;
                 if (mapIdText != null) mapIdText.text = "map_id: " + MapSceneJsonBuilder.ToMapId(exporter.MapName);
             }
 
             if (versionText != null)
             {
-                versionText.text = "v1.0.0";
+                versionText.text = "version: 1.0.0";
             }
 
             if (controller != null)
@@ -282,6 +355,8 @@ namespace TreasureArenaMR.MapEditor
 
             RefreshCounts();
             RefreshStepTexts();
+            RefreshHandStatus();
+            RefreshBrushHandMarkers();
             SetValidationStatus("Not validated", false);
         }
 
@@ -291,17 +366,70 @@ namespace TreasureArenaMR.MapEditor
             int redBases = 0;
             int blueBases = 0;
             int treasures = 0;
+            int supplyBoxes = 0;
+            int bounds = 0;
             for (int i = 0; i < markers.Length; i++)
             {
                 MapExportMarker marker = markers[i];
                 if (marker.marker_type == MapExportMarkerType.TeamBase && marker.team == TreasureArenaMR.Shared.TeamType.Red) redBases++;
                 if (marker.marker_type == MapExportMarkerType.TeamBase && marker.team == TreasureArenaMR.Shared.TeamType.Blue) blueBases++;
                 if (marker.marker_type == MapExportMarkerType.TreasureSpawnPoint) treasures++;
+                if (marker.marker_type == MapExportMarkerType.SupplyBox) supplyBoxes++;
+                if (marker.marker_type == MapExportMarkerType.Bounds) bounds++;
             }
 
             if (countText != null)
             {
-                countText.text = $"Objects: {markers.Length}  Red: {redBases}  Blue: {blueBases}  Treasure: {treasures}";
+                countText.text = $"Objects: {markers.Length}\nRed Base: {redBases}\nBlue Base: {blueBases}\nTreasure: {treasures}\nSupply: {supplyBoxes}\nBounds: {bounds}";
+            }
+        }
+
+        private void RefreshHandStatus()
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            if (leftHandBrushText != null)
+            {
+                leftHandBrushText.text = "Left Hand: " + controller.GetBrushDisplayName(MapEditorHand.Left);
+            }
+
+            if (rightHandBrushText != null)
+            {
+                rightHandBrushText.text = "Right Hand: " + controller.GetBrushDisplayName(MapEditorHand.Right);
+            }
+
+            if (activeHandText != null)
+            {
+                activeHandText.text = "Active: " + controller.ActiveHand;
+            }
+
+            if (hintText != null)
+            {
+                hintText.text = "Hint: Aim at a surface and press Trigger.";
+            }
+        }
+
+        private void RefreshBrushHandMarkers()
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < brushButtons.Count; i++)
+            {
+                BrushButtonBinding binding = brushButtons[i];
+                if (binding.handText == null)
+                {
+                    continue;
+                }
+
+                bool left = controller.LeftBrushIndex == binding.index;
+                bool right = controller.RightBrushIndex == binding.index;
+                binding.handText.text = left && right ? "L/R" : left ? "L" : right ? "R" : "";
             }
         }
 
@@ -313,51 +441,71 @@ namespace TreasureArenaMR.MapEditor
 
         private void OnBrushChanged(int _)
         {
-            RefreshCounts();
+            RefreshHandStatus();
+            RefreshBrushHandMarkers();
+        }
+
+        private void OnHandBrushChanged(MapEditorHand hand, int index)
+        {
+            RefreshHandStatus();
+            RefreshBrushHandMarkers();
         }
 
         private void OnSelectionChanged(GameObject selected)
         {
             objectInspector?.Refresh(selected);
-            if (selected != null && rightPanel != null)
-            {
-                rightPanel.SetExpanded(true);
-            }
         }
 
         private void OnEditModeChanged(MapEditorRuntimeEditMode mode)
         {
-            if (modeText != null)
+            if (modeText != null && controller != null)
             {
-                modeText.text = "Mode: " + mode;
+                modeText.text = "Mode: " + mode + " (" + controller.ActiveHand + ")";
             }
 
             RefreshStepTexts();
         }
 
+        private void OnHandEditModeChanged(MapEditorHand hand, MapEditorRuntimeEditMode mode)
+        {
+            OnEditModeChanged(controller != null ? controller.EditMode : mode);
+        }
+
+        private void OnActiveHandChanged(MapEditorHand hand)
+        {
+            RefreshHandStatus();
+            if (controller != null)
+            {
+                OnEditModeChanged(controller.EditMode);
+            }
+        }
+
         private void OnDraggingChanged(bool dragging)
         {
-            topPanel?.SetDimmed(dragging);
-            leftPanel?.SetDimmed(dragging);
-            rightPanel?.SetDimmed(dragging);
-            bottomPanel?.SetDimmed(dragging);
+            leftInfoPanel?.SetDimmed(dragging);
+            mainBrushPanel?.SetDimmed(dragging);
+            rightInspectorPanel?.SetDimmed(dragging);
+        }
+
+        private void OnWorkbenchRecenterRequested()
+        {
+            RecenterWorkbench(targetCamera);
         }
 
         private void SetValidationStatus(string text, bool isError)
         {
             if (validationStatusText != null)
             {
-                validationStatusText.text = text;
+                validationStatusText.text = "Validation: " + text;
                 validationStatusText.color = isError ? new Color(1f, 0.35f, 0.35f) : Color.white;
             }
         }
 
         private void SetPanelErrors(bool hasErrors)
         {
-            topPanel?.SetErrorState(hasErrors);
-            leftPanel?.SetErrorState(hasErrors);
-            rightPanel?.SetErrorState(hasErrors);
-            bottomPanel?.SetErrorState(hasErrors);
+            leftInfoPanel?.SetErrorState(hasErrors);
+            mainBrushPanel?.SetErrorState(hasErrors);
+            rightInspectorPanel?.SetErrorState(hasErrors);
         }
 
         private void ClearList(Transform root)
@@ -402,69 +550,109 @@ namespace TreasureArenaMR.MapEditor
             }
         }
 
-        private void RefreshCameraLayout()
+        private void AddUiLog(string value)
         {
-            if (!fitToCameraView || targetCamera == null)
-            {
-                return;
-            }
-
-            RectTransform rootRect = transform as RectTransform;
-            if (rootRect == null)
-            {
-                return;
-            }
-
-            float aspect = Mathf.Max(0.1f, targetCamera.aspect);
-            float designWidth = Mathf.Max(minimumDesignWidth, designHeight * aspect);
-            rootRect.sizeDelta = new Vector2(designWidth, designHeight);
-
-            float viewHeight = targetCamera.orthographic
-                ? targetCamera.orthographicSize * 2f
-                : 2f * distanceFromCamera * Mathf.Tan(targetCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-            float viewWidth = viewHeight * aspect;
-            Vector2 size = rootRect.sizeDelta;
-            float scale = Mathf.Min(viewWidth * viewportCoverage / size.x, viewHeight * viewportCoverage / size.y);
-            transform.localScale = Vector3.one * scale;
-
-            LayoutPanel(topPanel, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(designWidth - panelMargin * 2f, 82f), new Vector2(0f, -panelMargin));
-            LayoutPanel(bottomPanel, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(designWidth - panelMargin * 2f, 132f), new Vector2(0f, panelMargin));
-            LayoutPanel(leftPanel, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(260f, 520f), new Vector2(panelMargin, 0f));
-            LayoutPanel(rightPanel, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(300f, 520f), new Vector2(-panelMargin, 0f));
+            validationPresenter?.AddLog(value);
         }
 
-        private static void LayoutPanel(MapEditorDockedPanel panel, Vector2 anchor, Vector2 pivot, Vector2 size, Vector2 position)
+        private static void BindPlainButton(Button button, UnityEngine.Events.UnityAction action)
         {
-            if (panel == null)
+            if (button != null)
+            {
+                button.onClick.AddListener(action);
+            }
+        }
+
+        private static void BindHandButton(Button button, System.Action<MapEditorHand> handAction, UnityEngine.Events.UnityAction mouseAction)
+        {
+            if (button == null)
             {
                 return;
             }
 
-            RectTransform rect = panel.GetComponent<RectTransform>();
-            if (rect == null)
+            button.onClick.AddListener(mouseAction);
+            MapEditorRuntimeUiHitTarget hitTarget = button.GetComponent<MapEditorRuntimeUiHitTarget>();
+            if (hitTarget == null)
             {
-                return;
+                hitTarget = button.gameObject.AddComponent<MapEditorRuntimeUiHitTarget>();
             }
 
-            rect.anchorMin = anchor;
-            rect.anchorMax = anchor;
-            rect.pivot = pivot;
-            rect.sizeDelta = size;
-            rect.anchoredPosition = position;
+            hitTarget.HandActivated += handAction;
+        }
 
-            RectTransform expanded = rect.Find("Expanded") as RectTransform;
-            if (expanded != null)
+        private static bool IsGameplayFolder(string folder)
+        {
+            return folder.IndexOf("Gameplay", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || folder.IndexOf("Marker", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string DefaultFolderName(MapEditorRuntimeBrush brush)
+        {
+            if (brush == null)
             {
-                expanded.sizeDelta = size;
+                return "Imported";
             }
 
-            RectTransform collapsed = rect.Find("Collapsed") as RectTransform;
-            if (collapsed != null)
+            return brush.marker_type == MapExportMarkerType.MapObject ? "MapObjects" : "GameplayMarkers";
+        }
+
+        private static string BrushKindLabel(MapEditorRuntimeBrush brush)
+        {
+            if (brush == null)
             {
-                collapsed.sizeDelta = new Vector2(Mathf.Min(260f, size.x), 42f);
+                return "";
             }
 
-            panel.RefreshHitArea();
+            if (brush.marker_type == MapExportMarkerType.TeamBase)
+            {
+                return brush.team + " Base (Spawn/Respawn/Submit)";
+            }
+
+            if (brush.marker_type == MapExportMarkerType.TreasureSpawnPoint)
+            {
+                return brush.treasure_type + " Treasure";
+            }
+
+            return brush.marker_type.ToString();
+        }
+
+        private static Text FindChildText(Transform root, string name)
+        {
+            Transform child = root.Find(name);
+            return child != null ? child.GetComponent<Text>() : null;
+        }
+
+        private static Image FindChildImage(Transform root, string name)
+        {
+            Transform child = root.Find(name);
+            return child != null ? child.GetComponent<Image>() : null;
+        }
+
+        private static Color BrushFallbackColor(MapEditorRuntimeBrush brush)
+        {
+            if (brush == null)
+            {
+                return new Color(0.25f, 0.37f, 0.45f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.TeamBase)
+            {
+                return brush.team == TreasureArenaMR.Shared.TeamType.Red
+                    ? new Color(0.75f, 0.12f, 0.1f, 1f)
+                    : new Color(0.1f, 0.28f, 0.75f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.TreasureSpawnPoint)
+            {
+                return new Color(0.95f, 0.68f, 0.1f, 1f);
+            }
+
+            if (brush.marker_type == MapExportMarkerType.SupplyBox)
+            {
+                return new Color(0.15f, 0.65f, 0.28f, 1f);
+            }
+
+            return new Color(0.25f, 0.37f, 0.45f, 1f);
         }
 
         private static string ShortPath(string path)
@@ -475,6 +663,18 @@ namespace TreasureArenaMR.MapEditor
             }
 
             return "..." + path.Substring(path.Length - 45);
+        }
+
+        private readonly struct BrushButtonBinding
+        {
+            public readonly int index;
+            public readonly Text handText;
+
+            public BrushButtonBinding(int index, Text handText)
+            {
+                this.index = index;
+                this.handText = handText;
+            }
         }
     }
 }

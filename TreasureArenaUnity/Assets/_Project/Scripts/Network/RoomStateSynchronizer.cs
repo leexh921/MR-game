@@ -16,6 +16,7 @@ namespace TreasureArenaMR.Network
         [SerializeField] private NetworkManager _networkManager;
 
         private float _syncTimer;
+        private NetworkMatchState _matchState;
 
         private void Start()
         {
@@ -29,6 +30,7 @@ namespace TreasureArenaMR.Network
         {
             if (_roomManager == null || _networkManager == null) return;
             if (!_networkManager.IsServer) return;
+            if (_matchState == null) _matchState = FindObjectOfType<NetworkMatchState>();
 
             _syncTimer += Time.deltaTime;
             if (_syncTimer >= _syncInterval)
@@ -42,6 +44,15 @@ namespace TreasureArenaMR.Network
         {
             var config = _roomManager.CurrentRoomConfig;
             if (config == null) return;
+
+            if (_matchState != null)
+            {
+                _matchState.Sync(
+                    _roomManager.CurrentRoomState,
+                    _roomManager.RedScore,
+                    _roomManager.BlueScore,
+                    _roomManager.RemainingTime);
+            }
 
             Debug.Log($"[RoomStateSynchronizer] State={_roomManager.CurrentRoomState}, " +
                 $"Red={_roomManager.RedScore}, Blue={_roomManager.BlueScore}, " +

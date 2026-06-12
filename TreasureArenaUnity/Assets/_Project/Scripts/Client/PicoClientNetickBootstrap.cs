@@ -88,6 +88,23 @@ namespace TreasureArenaMR.Client
             }
         }
 
+        public void Configure(string address, int port, string id, bool autoConnect)
+        {
+            if (!string.IsNullOrEmpty(address))
+                serverAddress = address;
+            if (port > 0)
+                serverPort = port;
+            if (!string.IsNullOrEmpty(id))
+                playerId = id;
+
+            connectOnStart = autoConnect;
+
+            if (networkManager != null)
+                networkManager.ConfigureEndpoint(serverAddress, serverPort);
+
+            RefreshStatus("Configured");
+        }
+
         public void Disconnect()
         {
             if (networkManager == null)

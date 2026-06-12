@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6204667256923929318
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1355708818015510389}
+  - component: {fileID: 4108534657272928972}
+  - component: {fileID: 3129020862596953994}
+  m_Layer: 0
+  m_Name: NetworkMatchState
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1355708818015510389
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204667256923929318}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4108534657272928972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204667256923929318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1923973434, guid: da78c2c9df60edc4fb5f65b59fa57c41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _AoILayer: 0
+  _BroadPhaseFilter: 0
+  _NarrowPhaseFilter: 0
+  _PredictionMode: 0
+  _AddToNetworkLoop: 1
+  _IsPersistent: 0
+  _ResetInterpOnInterest: 0
+  PrefabRoot: {fileID: 0}
+  Children: []
+  PrefabIndex: -1
+  _PrefabId: -1
+  _SceneId: -1292119943
+  _RuntimeSceneId: -1
+--- !u!114 &3129020862596953994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6204667256923929318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e064dd50ff8c5d14c94a2a4d6a1248de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  <RoomStateValue>k__BackingField: 0
+  <RedScore>k__BackingField: 0
+  <BlueScore>k__BackingField: 0
+  <RemainingTime>k__BackingField: 0

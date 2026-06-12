@@ -11,6 +11,7 @@ namespace TreasureArenaMR.MapEditor
         public string label;
         public string folder = "MapObjects";
         public GameObject prefab;
+        public Sprite thumbnail;
         public string prefab_id;
         public MapExportMarkerType marker_type = MapExportMarkerType.MapObject;
         public TeamType team = TeamType.None;
