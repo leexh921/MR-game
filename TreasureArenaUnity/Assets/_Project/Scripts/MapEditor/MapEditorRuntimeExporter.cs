@@ -8,7 +8,8 @@ namespace TreasureArenaMR.MapEditor
     {
         [SerializeField] private string mapName = "PicoMap";
         [SerializeField] private string mapDescription = "Exported from Pico MR map editor.";
-        [SerializeField] private string outputFolderName = "MapExports";
+        [SerializeField] private string outputFolderName = "TreasureArenaMR/MapExports";
+        private const string PublicAndroidExportFolder = "/storage/emulated/0/Download/TreasureArenaMR/MapExports";
 
         public string MapName
         {
@@ -46,10 +47,17 @@ namespace TreasureArenaMR.MapEditor
 #else
             string directory = Path.Combine(Application.persistentDataPath, outputFolderName);
             Directory.CreateDirectory(directory);
-            string path = Path.Combine(directory, map.map_id + ".json");
-            File.WriteAllText(path, JsonUtility.ToJson(map, true));
-            Debug.Log("Runtime map JSON exported: " + path);
-            return MapEditorRuntimeExportResult.Success(path, map);
+            string fileName = map.map_id + ".json";
+            string path = Path.Combine(directory, fileName);
+            string json = JsonUtility.ToJson(map, true);
+            File.WriteAllText(path, json);
+
+            string publicPath = TryWritePublicAndroidCopy(fileName, json);
+            string message = string.IsNullOrEmpty(publicPath)
+                ? "Runtime map JSON exported: " + path
+                : "Runtime map JSON exported: " + path + "\nPublic copy: " + publicPath;
+            Debug.Log(message);
+            return MapEditorRuntimeExportResult.Success(path, publicPath, map);
 #endif
         }
 
@@ -63,12 +71,32 @@ namespace TreasureArenaMR.MapEditor
             MapExportMarker[] markers = FindObjectsOfType<MapExportMarker>(true);
             return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, markers);
         }
+
+        private static string TryWritePublicAndroidCopy(string fileName, string json)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                Directory.CreateDirectory(PublicAndroidExportFolder);
+                string publicPath = Path.Combine(PublicAndroidExportFolder, fileName);
+                File.WriteAllText(publicPath, json);
+                return publicPath;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning("Runtime map public export skipped: " + ex.Message);
+            }
+#endif
+
+            return null;
+        }
     }
 
     public sealed class MapEditorRuntimeExportResult
     {
         public bool ok;
         public string path;
+        public string publicPath;
         public string error;
         public MapJsonModels.MapJson map;
 
@@ -78,6 +106,17 @@ namespace TreasureArenaMR.MapEditor
             {
                 ok = true,
                 path = path,
+                map = map
+            };
+        }
+
+        public static MapEditorRuntimeExportResult Success(string path, string publicPath, MapJsonModels.MapJson map)
+        {
+            return new MapEditorRuntimeExportResult
+            {
+                ok = true,
+                path = path,
+                publicPath = publicPath,
                 map = map
             };
         }

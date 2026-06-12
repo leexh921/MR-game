@@ -23,6 +23,24 @@ namespace TreasureArenaMR.Server
 
         public IReadOnlyList<NetworkTreasure> Treasures => _treasures;
 
+        public void ClearTreasures()
+        {
+            for (int i = _treasures.Count - 1; i >= 0; i--)
+            {
+                NetworkTreasure treasure = _treasures[i];
+                if (treasure == null)
+                    continue;
+
+                if (treasure.Sandbox != null && treasure.Object != null)
+                    treasure.Sandbox.Destroy(treasure.Object);
+                else
+                    Destroy(treasure.gameObject);
+            }
+
+            _treasures.Clear();
+            Debug.Log("[ServerTreasureAuthority] Cleared treasures.");
+        }
+
         public void SpawnTreasures(NetworkManager networkManager, RoomManager roomManager)
         {
             if (_treasures.Count > 0)

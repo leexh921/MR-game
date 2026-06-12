@@ -20,14 +20,23 @@ namespace TreasureArenaMR.Network
 
         private void Start()
         {
+            CacheReferences();
+        }
+
+        private void CacheReferences()
+        {
             if (_roomManager == null)
                 _roomManager = FindObjectOfType<RoomManager>();
             if (_networkManager == null)
-                _networkManager = FindObjectOfType<NetworkManager>();
+                _networkManager = NetworkManager.Instance != null
+                    ? NetworkManager.Instance
+                    : FindObjectOfType<NetworkManager>();
         }
 
         private void Update()
         {
+            CacheReferences();
+
             if (_roomManager == null || _networkManager == null) return;
             if (!_networkManager.IsServer) return;
             if (_matchState == null) _matchState = FindObjectOfType<NetworkMatchState>();
@@ -54,9 +63,12 @@ namespace TreasureArenaMR.Network
                     _roomManager.RemainingTime);
             }
 
+            string matchStateStatus = _matchState != null ? "MatchState=Ready" : "MatchState=Missing";
+            int playerCount = _roomManager.Players != null ? _roomManager.Players.Count : 0;
+
             Debug.Log($"[RoomStateSynchronizer] State={_roomManager.CurrentRoomState}, " +
                 $"Red={_roomManager.RedScore}, Blue={_roomManager.BlueScore}, " +
-                $"Time={_roomManager.RemainingTime:F1}, Players={_roomManager.Players.Count}");
+                $"Time={_roomManager.RemainingTime:F1}, Players={playerCount}, {matchStateStatus}");
         }
     }
 }

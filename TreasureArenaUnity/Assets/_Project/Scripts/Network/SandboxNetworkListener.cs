@@ -24,7 +24,9 @@ namespace TreasureArenaMR.Network
             if (_roomManager == null)
                 _roomManager = FindObjectOfType<RoomManager>();
             if (_networkManager == null)
-                _networkManager = FindObjectOfType<NetworkManager>();
+                _networkManager = NetworkManager.Instance != null
+                    ? NetworkManager.Instance
+                    : FindObjectOfType<NetworkManager>();
         }
 
         public override void OnStartup(NetworkSandbox sandbox)
@@ -37,7 +39,9 @@ namespace TreasureArenaMR.Network
 
             if (sandbox.IsServer)
             {
-                var serverApp = FindObjectOfType<ServerApp>();
+                var serverApp = ServerApp.Instance != null
+                    ? ServerApp.Instance
+                    : FindObjectOfType<ServerApp>();
                 if (serverApp != null)
                     serverApp.OnNetworkReady();
             }
@@ -165,6 +169,15 @@ namespace TreasureArenaMR.Network
 
             if (_networkManager != null)
                 _networkManager.OnSceneLoaded();
+
+            if (sandbox.IsServer)
+            {
+                var serverApp = ServerApp.Instance != null
+                    ? ServerApp.Instance
+                    : FindObjectOfType<ServerApp>();
+                if (serverApp != null)
+                    serverApp.OnNetworkReady();
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-using TreasureArenaMR.Core;
+using System.Collections;
+using Netick.Unity;
 using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
@@ -16,7 +17,7 @@ namespace TreasureArenaMR.Server
         [Header("Core References")]
         [SerializeField] private NetworkManager _networkManager;
         [SerializeField] private RoomManager _roomManager;
-        [SerializeField] private bool _autoStart = true;
+        [SerializeField] private bool _autoStart;
 
         [Header("Network Prefabs")]
         [SerializeField] private GameObject _matchStatePrefab;
@@ -25,6 +26,8 @@ namespace TreasureArenaMR.Server
         public bool IsRunning { get; private set; }
 
         private bool _networkRuntimeInitialized;
+        private string _runtimeMapIdOverride;
+        private int _mapRevision;
 
         private void Awake()
         {
@@ -73,7 +76,7 @@ namespace TreasureArenaMR.Server
             _roomManager.Initialize(_networkManager);
 
             // 4. Create default room for MVP
-            _roomManager.CreateRoom("room_default", "默认房间");
+            _roomManager.CreateRoom("room_default", "默认房间", _runtimeMapIdOverride);
 
             // 4b. Load map data
             var loadResult = new MapLoader().LoadFromMapId(_roomManager.CurrentRoomConfig.map_id);
@@ -87,16 +90,128 @@ namespace TreasureArenaMR.Server
 
             IsRunning = true;
             Debug.Log("[ServerApp] Server booted successfully");
+            StartCoroutine(InitializeNetworkRuntimeWhenReady());
+        }
+
+        public bool ChangeMap(string mapId)
+        {
+            if (string.IsNullOrEmpty(mapId))
+            {
+                Debug.LogError("[ServerApp] Cannot change map: missing map id.");
+                return false;
+            }
+
+            if (_roomManager == null)
+                _roomManager = FindObjectOfType<RoomManager>();
+            if (_roomManager == null)
+            {
+                Debug.LogError("[ServerApp] Cannot change map: missing RoomManager.");
+                return false;
+            }
+
+            var loadResult = new MapLoader().LoadFromMapId(mapId);
+            if (!loadResult.ok)
+            {
+                Debug.LogError("[ServerApp] Map change failed: " + loadResult.error);
+                return false;
+            }
+
+            _runtimeMapIdOverride = mapId;
+            _roomManager.ChangeMap(mapId, loadResult.mapData);
+            _mapRevision++;
+
+            var treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
+            if (treasureAuthority != null)
+            {
+                treasureAuthority.ClearTreasures();
+                if (_networkManager != null && _networkManager.Sandbox != null && _networkManager.IsServer)
+                    treasureAuthority.SpawnTreasures(_networkManager, _roomManager);
+            }
+
+            var matchState = FindObjectOfType<NetworkMatchState>();
+            if (matchState != null)
+            {
+                matchState.SetMap(RuntimeMapCatalog.GetIndex(mapId), _mapRevision);
+                matchState.Sync(
+                    _roomManager.CurrentRoomState,
+                    _roomManager.RedScore,
+                    _roomManager.BlueScore,
+                    _roomManager.RemainingTime);
+            }
+
+            Debug.Log("[ServerApp] Map changed to " + mapId + ", revision=" + _mapRevision);
+            return true;
         }
 
         public void OnNetworkReady()
         {
+            TryInitializeNetworkRuntime(false);
+        }
+
+        private IEnumerator InitializeNetworkRuntimeWhenReady()
+        {
+            const int maxAttempts = 120;
+            for (int i = 0; i < maxAttempts; i++)
+            {
+                if (_networkRuntimeInitialized)
+                    yield break;
+
+                if (TryInitializeNetworkRuntime(i == 0 || i == maxAttempts - 1))
+                    yield break;
+
+                yield return null;
+            }
+        }
+
+        private bool TryInitializeNetworkRuntime(bool logIfBlocked)
+        {
             if (_networkRuntimeInitialized)
-                return;
-            if (_networkManager == null || !_networkManager.IsServer || _networkManager.Sandbox == null)
-                return;
+                return true;
+
+            if (_networkManager == null)
+            {
+                _networkManager = NetworkManager.Instance != null
+                    ? NetworkManager.Instance
+                    : FindObjectOfType<NetworkManager>();
+            }
+
+            if (_roomManager == null)
+                _roomManager = FindObjectOfType<RoomManager>();
+
+            if (_networkManager == null)
+            {
+                if (logIfBlocked)
+                    Debug.LogWarning("[ServerApp] Network runtime not ready: missing NetworkManager.");
+                return false;
+            }
+
+            if (_networkManager.Sandbox == null)
+            {
+                var sandbox = FindObjectOfType<NetworkSandbox>();
+                if (sandbox != null)
+                    _networkManager.OnSandboxStarted(sandbox);
+            }
+
+            if (!_networkManager.IsServer || _networkManager.Sandbox == null)
+            {
+                if (logIfBlocked)
+                    Debug.LogWarning("[ServerApp] Network runtime not ready: sandbox not ready.");
+                return false;
+            }
+
+            if (!_networkManager.IsSceneLoaded)
+            {
+                if (logIfBlocked)
+                    Debug.LogWarning("[ServerApp] Network runtime not ready: network scene not loaded.");
+                return false;
+            }
+
             if (_roomManager == null || _roomManager.CurrentRoomConfig == null)
-                return;
+            {
+                if (logIfBlocked)
+                    Debug.LogWarning("[ServerApp] Network runtime not ready: room config not ready.");
+                return false;
+            }
 
             SpawnMatchState();
 
@@ -107,6 +222,7 @@ namespace TreasureArenaMR.Server
                 Debug.LogWarning("[ServerApp] ServerTreasureAuthority not found; treasures were not spawned.");
 
             _networkRuntimeInitialized = true;
+            return true;
         }
 
         public void ShutdownServer()
@@ -123,6 +239,16 @@ namespace TreasureArenaMR.Server
             IsRunning = false;
             _networkRuntimeInitialized = false;
             Debug.Log("[ServerApp] Server shut down");
+        }
+
+        public void ConfigureRuntimeMap(string mapId)
+        {
+            _runtimeMapIdOverride = mapId;
+        }
+
+        public void SetAutoStart(bool autoStart)
+        {
+            _autoStart = autoStart;
         }
 
         private void SpawnMatchState()
@@ -147,11 +273,17 @@ namespace TreasureArenaMR.Server
             var matchState = stateObj.GetComponent<NetworkMatchState>();
             if (matchState != null)
             {
+                if (_mapRevision <= 0)
+                    _mapRevision = 1;
+
+                int mapIndex = RuntimeMapCatalog.GetIndex(_roomManager.CurrentRoomConfig.map_id);
                 matchState.Initialize(
                     _roomManager.CurrentRoomState,
                     _roomManager.RedScore,
                     _roomManager.BlueScore,
-                    _roomManager.CurrentRoomConfig.match_time);
+                    _roomManager.CurrentRoomConfig.match_time,
+                    mapIndex,
+                    _mapRevision);
             }
 
             Debug.Log("[ServerApp] NetworkMatchState spawned.");
