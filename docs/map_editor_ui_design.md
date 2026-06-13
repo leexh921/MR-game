@@ -324,9 +324,11 @@ Supply Box：
   refresh_interval
   position
 
-Bounds：
-  bounds center
-  bounds size
+Map Boundary：
+  boundary_type = Polygon
+  height
+  point count
+  Draw Bounds / Draw Area 状态
 ```
 
 MR 参数调整方式：

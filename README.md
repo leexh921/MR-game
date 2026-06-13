@@ -143,7 +143,7 @@ MapPreview.unity
 地图预览场景。用于测试地图编辑器导出的 JSON 是否能正确生成场景。
 
 MapEditor.unity
-地图编辑器场景。用于在 Unity Editor 或 Pico MR 环境中摆放 prefab、玩法标记和 bounds，并导出地图 JSON。
+地图编辑器场景。用于在 Unity Editor 或 Pico MR 环境中摆放 prefab、玩法标记，使用 Draw Bounds / Draw Area 绘制 map_boundary，并导出地图 JSON。
 
 PicoClient_Netick.unity
 Pico 真机 Netick Client 最小接入测试场景。用于配置 PC Server 局域网 IP 和端口，验证 Pico 真机可连接到 PC 端 Netick Server。

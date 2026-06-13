@@ -124,7 +124,6 @@ namespace TreasureArenaMR.MapEditor
             prefabEntries.Add(new MapEditorPrefabEntry { label = "稀有宝物点",    prefabName = "Treasure_Rare",   category = MapEditorCategory.TreasureSpawn,  markerType = MapExportMarkerType.TreasureSpawnPoint,  treasureType = TreasureType.Rare });
             prefabEntries.Add(new MapEditorPrefabEntry { label = "最终宝物点",   prefabName = "Treasure_Final",  category = MapEditorCategory.TreasureSpawn,  markerType = MapExportMarkerType.TreasureSpawnPoint,  treasureType = TreasureType.Final });
             prefabEntries.Add(new MapEditorPrefabEntry { label = "物资箱",         prefabName = "SupplyBox",       category = MapEditorCategory.SupplyBox,      markerType = MapExportMarkerType.SupplyBox,           supplyType = "WeaponRandom" });
-            prefabEntries.Add(new MapEditorPrefabEntry { label = "地图边界",             prefabName = "Bounds",          category = MapEditorCategory.Bounds,         markerType = MapExportMarkerType.Bounds });
         }
 
         private void OnGUI()
@@ -477,7 +476,17 @@ namespace TreasureArenaMR.MapEditor
 
         private MapJsonModels.MapJson BuildMapFromScene()
         {
-            return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
+            MapJsonModels.MapJson map = MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
+            MapEditorBoundaryData[] boundaries = FindObjectsOfType<MapEditorBoundaryData>(true);
+            if (boundaries != null && boundaries.Length > 0)
+            {
+                map.map_boundary = MapSceneJsonBuilder.ToMapBoundaryJson(
+                    boundaries[0].Points,
+                    boundaries[0].Height,
+                    boundaries[0].BoundaryType);
+            }
+
+            return map;
         }
 
         private void RefreshMapList()
@@ -553,8 +562,26 @@ namespace TreasureArenaMR.MapEditor
                     var m = t.GetChild(i).gameObject.AddComponent<MapExportMarker>();
                     m.marker_type = MapExportMarkerType.SupplyBox; m.id = d.box_id; m.supply_type = d.supply_type; m.refresh_interval = d.refresh_interval;
                 }
-            t = root.transform.Find("Bounds");
-            if (t != null && map.bounds != null) { var m = t.gameObject.AddComponent<MapExportMarker>(); m.marker_type = MapExportMarkerType.Bounds; m.id = "bounds"; }
+            t = root.transform.Find("map_boundary");
+            if (t != null && map.map_boundary != null)
+            {
+                MapEditorBoundaryData boundary = t.gameObject.AddComponent<MapEditorBoundaryData>();
+                boundary.Height = map.map_boundary.height;
+                List<Vector3> points = new List<Vector3>();
+                if (map.map_boundary.points != null)
+                {
+                    for (int i = 0; i < map.map_boundary.points.Count; i++)
+                    {
+                        MapJsonModels.Vector3Json point = map.map_boundary.points[i];
+                        if (point != null)
+                        {
+                            points.Add(new Vector3(point.x, point.y, point.z));
+                        }
+                    }
+                }
+
+                boundary.SetPoints(points);
+            }
         }
 
         private void ClearAllMarkersSilent()

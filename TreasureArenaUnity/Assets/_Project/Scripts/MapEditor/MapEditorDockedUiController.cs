@@ -54,8 +54,27 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private Button moveButton;
         [SerializeField] private Button rotateButton;
         [SerializeField] private Button scaleButton;
+        [SerializeField] private Button calibrateFloorButton;
+        [SerializeField] private Button drawBoundsButton;
         [SerializeField] private Button deleteButton;
         [SerializeField] private Button clearBrushButton;
+        [SerializeField] private Toggle gridSnapToggle;
+        [SerializeField] private Button gridStep01Button;
+        [SerializeField] private Button gridStep025Button;
+        [SerializeField] private Button gridStep05Button;
+        [SerializeField] private Button gridStep1Button;
+        [SerializeField] private Button nudgeXPlusButton;
+        [SerializeField] private Button nudgeXMinusButton;
+        [SerializeField] private Button nudgeYPlusButton;
+        [SerializeField] private Button nudgeYMinusButton;
+        [SerializeField] private Button nudgeZPlusButton;
+        [SerializeField] private Button nudgeZMinusButton;
+        [SerializeField] private Button rotatePlusButton;
+        [SerializeField] private Button rotateMinusButton;
+        [SerializeField] private Button scalePlusButton;
+        [SerializeField] private Button scaleMinusButton;
+        [SerializeField] private Button snapToFloorButton;
+        [SerializeField] private Button resetRotationButton;
         [SerializeField] private Text gridStepText;
         [SerializeField] private Text rotateStepText;
         [SerializeField] private Text scaleStepText;
@@ -237,11 +256,51 @@ namespace TreasureArenaMR.MapEditor
             BindHandButton(moveButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Move, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Move));
             BindHandButton(rotateButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate));
             BindHandButton(scaleButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale));
+            BindHandButton(calibrateFloorButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.CalibrateFloor, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.CalibrateFloor));
+            BindHandButton(drawBoundsButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.DrawBounds, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.DrawBounds));
             if (clearBrushButton != null)
             {
                 clearBrushButton.gameObject.SetActive(false);
             }
             BindPlainButton(deleteButton, () => controller?.DeleteSelected());
+
+            if (gridSnapToggle != null)
+            {
+                gridSnapToggle.onValueChanged.AddListener(value => controller?.SetGridSnapEnabled(value));
+            }
+
+            BindPlainButton(gridStep01Button, () => SetGridStep(0.1f));
+            BindPlainButton(gridStep025Button, () => SetGridStep(0.25f));
+            BindPlainButton(gridStep05Button, () => SetGridStep(0.5f));
+            BindPlainButton(gridStep1Button, () => SetGridStep(1f));
+            BindPlainButton(nudgeXPlusButton, () => Nudge(Vector3.right));
+            BindPlainButton(nudgeXMinusButton, () => Nudge(Vector3.left));
+            BindPlainButton(nudgeYPlusButton, () => Nudge(Vector3.up));
+            BindPlainButton(nudgeYMinusButton, () => Nudge(Vector3.down));
+            BindPlainButton(nudgeZPlusButton, () => Nudge(Vector3.forward));
+            BindPlainButton(nudgeZMinusButton, () => Nudge(Vector3.back));
+            BindPlainButton(rotatePlusButton, () => controller?.RotateSelected(controller.RotateStepDegrees));
+            BindPlainButton(rotateMinusButton, () => controller?.RotateSelected(-controller.RotateStepDegrees));
+            BindPlainButton(scalePlusButton, () => controller?.ScaleSelected(controller.ScaleStep));
+            BindPlainButton(scaleMinusButton, () => controller?.ScaleSelected(-controller.ScaleStep));
+            BindPlainButton(snapToFloorButton, () => controller?.SnapSelectedToFloor());
+            BindPlainButton(resetRotationButton, () => controller?.ResetSelectedRotation());
+        }
+
+        private void SetGridStep(float value)
+        {
+            controller?.SetGridSize(value);
+            RefreshStepTexts();
+        }
+
+        private void Nudge(Vector3 direction)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            controller.MoveSelected(direction * controller.GridSize);
         }
 
         private void BuildBrushButtons()
@@ -260,6 +319,11 @@ namespace TreasureArenaMR.MapEditor
             for (int i = 0; i < brushes.Count; i++)
             {
                 MapEditorRuntimeBrush brush = brushes[i];
+                if (brush.marker_type == MapExportMarkerType.Bounds)
+                {
+                    continue;
+                }
+
                 string folder = string.IsNullOrEmpty(brush.folder) ? DefaultFolderName(brush) : brush.folder;
                 if (!folders.TryGetValue(folder, out List<int> indices))
                 {
@@ -344,7 +408,7 @@ namespace TreasureArenaMR.MapEditor
 
             if (versionText != null)
             {
-                versionText.text = "version: 1.0.0";
+                versionText.text = "map_version: 1.0.0";
             }
 
             if (controller != null)
@@ -367,7 +431,6 @@ namespace TreasureArenaMR.MapEditor
             int blueBases = 0;
             int treasures = 0;
             int supplyBoxes = 0;
-            int bounds = 0;
             for (int i = 0; i < markers.Length; i++)
             {
                 MapExportMarker marker = markers[i];
@@ -375,12 +438,13 @@ namespace TreasureArenaMR.MapEditor
                 if (marker.marker_type == MapExportMarkerType.TeamBase && marker.team == TreasureArenaMR.Shared.TeamType.Blue) blueBases++;
                 if (marker.marker_type == MapExportMarkerType.TreasureSpawnPoint) treasures++;
                 if (marker.marker_type == MapExportMarkerType.SupplyBox) supplyBoxes++;
-                if (marker.marker_type == MapExportMarkerType.Bounds) bounds++;
             }
 
             if (countText != null)
             {
-                countText.text = $"Objects: {markers.Length}\nRed Base: {redBases}\nBlue Base: {blueBases}\nTreasure: {treasures}\nSupply: {supplyBoxes}\nBounds: {bounds}";
+                MapEditorBoundaryData boundary = FindObjectOfType<MapEditorBoundaryData>();
+                int boundaryPoints = boundary != null ? boundary.Points.Count : 0;
+                countText.text = $"Objects: {markers.Length}\nRed Base: {redBases}\nBlue Base: {blueBases}\nTreasure: {treasures}\nSupply: {supplyBoxes}\nBoundary Points: {boundaryPoints}";
             }
         }
 
@@ -536,7 +600,7 @@ namespace TreasureArenaMR.MapEditor
 
             if (gridStepText != null)
             {
-                gridStepText.text = "Grid " + controller.GridSize.ToString("0.##") + "m";
+                gridStepText.text = "Grid " + controller.GridSize.ToString("0.##") + "m " + (controller.UseGridSnap ? "On" : "Off");
             }
 
             if (rotateStepText != null)

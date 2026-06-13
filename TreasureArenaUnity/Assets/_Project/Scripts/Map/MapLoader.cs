@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using TreasureArenaMR.Gameplay;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -96,10 +97,110 @@ namespace TreasureArenaMR.Map
                 instance.name = string.IsNullOrEmpty(mapObject.object_id) ? mapObject.prefab_id : mapObject.object_id;
                 instance.transform.SetPositionAndRotation(ToVector3(mapObject.position), Quaternion.Euler(ToVector3(mapObject.rotation)));
                 instance.transform.localScale = ToVector3(mapObject.scale, Vector3.one);
+                ConfigureRuntimeObject(instance, mapObject);
                 created++;
             }
 
             return MapInstantiationResult.Success(root, created);
+        }
+
+        private static void ConfigureRuntimeObject(GameObject instance, MapJsonModels.MapObjectJson mapObject)
+        {
+            MapRuntimeObject runtimeObject = instance.GetComponent<MapRuntimeObject>();
+            if (runtimeObject == null)
+            {
+                runtimeObject = instance.AddComponent<MapRuntimeObject>();
+            }
+
+            runtimeObject.object_id = mapObject.object_id;
+            runtimeObject.prefab_id = mapObject.prefab_id;
+            runtimeObject.object_type = ParseObjectType(mapObject.object_type);
+            runtimeObject.interaction_type = ParseInteractionType(mapObject.interaction_type);
+            runtimeObject.is_movable = mapObject.is_movable;
+            runtimeObject.is_grabbable = mapObject.is_grabbable;
+            runtimeObject.is_openable = mapObject.is_openable;
+            runtimeObject.is_shootable = mapObject.is_shootable;
+            runtimeObject.blocks_bullet = mapObject.blocks_bullet;
+            runtimeObject.decal_enabled = mapObject.decal_enabled;
+            runtimeObject.mass = mapObject.mass;
+
+            Collider[] colliders = instance.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                colliders[i].enabled = mapObject.has_collider;
+            }
+
+            if (mapObject.is_shootable)
+            {
+                BulletSurface surface = instance.GetComponent<BulletSurface>();
+                if (surface == null)
+                {
+                    surface = instance.AddComponent<BulletSurface>();
+                }
+
+                surface.blocks_bullet = mapObject.blocks_bullet;
+                surface.decal_enabled = mapObject.decal_enabled;
+            }
+
+            if (mapObject.is_movable || mapObject.is_grabbable)
+            {
+                Rigidbody body = instance.GetComponent<Rigidbody>();
+                if (body == null)
+                {
+                    body = instance.AddComponent<Rigidbody>();
+                }
+
+                body.mass = Mathf.Max(0.01f, mapObject.mass);
+                body.isKinematic = false;
+            }
+
+            if (mapObject.is_grabbable)
+            {
+                AddComponentIfTypeExists(instance, "UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable, Unity.XR.Interaction.Toolkit");
+                AddComponentIfTypeExists(instance, "UnityEngine.XR.Interaction.Toolkit.XRGrabInteractable, Unity.XR.Interaction.Toolkit");
+            }
+
+            if (mapObject.is_openable || ParseObjectType(mapObject.object_type) == MapObjectType.OpenableObject)
+            {
+                OpenableBox openable = instance.GetComponent<OpenableBox>();
+                if (openable == null)
+                {
+                    openable = instance.AddComponent<OpenableBox>();
+                }
+
+                openable.object_id = mapObject.object_id;
+            }
+        }
+
+        private static void AddComponentIfTypeExists(GameObject instance, string typeName)
+        {
+            Type type = Type.GetType(typeName);
+            if (type == null || instance.GetComponent(type) != null)
+            {
+                return;
+            }
+
+            instance.AddComponent(type);
+        }
+
+        private static MapObjectType ParseObjectType(string value)
+        {
+            if (Enum.TryParse(value, true, out MapObjectType parsed))
+            {
+                return parsed;
+            }
+
+            return MapObjectType.StaticObstacle;
+        }
+
+        private static MapInteractionType ParseInteractionType(string value)
+        {
+            if (Enum.TryParse(value, true, out MapInteractionType parsed))
+            {
+                return parsed;
+            }
+
+            return MapInteractionType.None;
         }
 
         public MapLoadResult LoadAndInstantiateFromMapId(string mapId, PrefabRegistry registry, Transform parent, out MapInstantiationResult instantiation)

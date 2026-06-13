@@ -232,7 +232,7 @@ has_collider
 它负责：
 
 - 绑定 controller / exporter。
-- 刷新 Top Bar 的地图名、map_id、version、模式、对象数量、红蓝基地数量、宝物点数量、状态。
+- 刷新 Top Bar 的地图名、map_id、map_version、模式、对象数量、红蓝基地数量、宝物点数量、状态。
 - 构建左侧文件夹式 Palette。
 - 绑定 Bottom Bar 的 Place / Move / Rotate / Scale / Delete / Clear Brush。
 - 触发 Validate / Export。
@@ -391,7 +391,7 @@ Bounds
 
 当前会检查：
 
-- map_id / map_name / version。
+- map_id / map_name / map_version。
 - 红蓝基地是否存在。
 - 宝物刷新点是否存在。
 - base radius 是否有效。

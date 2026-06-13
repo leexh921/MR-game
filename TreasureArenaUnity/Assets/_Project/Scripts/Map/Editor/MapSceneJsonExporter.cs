@@ -2,6 +2,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TreasureArenaMR.MapEditor;
 
 namespace TreasureArenaMR.Map.Editor
 {
@@ -18,8 +19,8 @@ namespace TreasureArenaMR.Map.Editor
     /// <b>Fine-grained (Pico editor):</b> Each placed prefab carries its own
     /// MapExportMarker(MapObject), producing one objects entry per prefab.
     ///
-    /// Gameplay markers (TeamBase, TreasureSpawnPoint, SupplyBox, Bounds) are exported into
-    /// their respective arrays regardless of parent-child relationships.
+    /// Gameplay markers (TeamBase, TreasureSpawnPoint, SupplyBox) are exported into
+    /// their respective arrays. Map boundary is exported from MapEditorBoundaryData.
     /// </summary>
     public static class MapSceneJsonExporter
     {
@@ -40,6 +41,15 @@ namespace TreasureArenaMR.Map.Editor
                 scene.name,
                 "Exported from Unity scene: " + scene.name,
                 markers);
+            MapEditorBoundaryData[] boundaries = Object.FindObjectsOfType<MapEditorBoundaryData>(true);
+            if (boundaries != null && boundaries.Length > 0)
+            {
+                map.map_boundary = MapSceneJsonBuilder.ToMapBoundaryJson(
+                    boundaries[0].Points,
+                    boundaries[0].Height,
+                    boundaries[0].BoundaryType);
+            }
+
             string mapId = map.map_id;
 
             MapValidationResult validation = new MapValidator().Validate(map);

@@ -69,7 +69,25 @@ namespace TreasureArenaMR.MapEditor
         public MapJsonModels.MapJson BuildMapFromScene()
         {
             MapExportMarker[] markers = FindObjectsOfType<MapExportMarker>(true);
-            return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, markers);
+            MapJsonModels.MapJson map = MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, markers);
+            MapEditorRuntimeController controller = FindObjectOfType<MapEditorRuntimeController>();
+            if (controller != null)
+            {
+                map.floor_calibration.is_calibrated = controller.IsFloorCalibrated;
+                map.floor_calibration.floor_y = controller.EditorFloorY;
+                map.floor_calibration.source = "Manual";
+            }
+
+            MapEditorBoundaryData[] boundaries = FindObjectsOfType<MapEditorBoundaryData>(true);
+            if (boundaries != null && boundaries.Length > 0)
+            {
+                map.map_boundary = MapSceneJsonBuilder.ToMapBoundaryJson(
+                    boundaries[0].Points,
+                    boundaries[0].Height,
+                    boundaries[0].BoundaryType);
+            }
+
+            return map;
         }
 
         private static string TryWritePublicAndroidCopy(string fileName, string json)

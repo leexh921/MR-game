@@ -298,7 +298,7 @@ objects
 | TeamBase | red_base / blue_base → team_bases |
 | TreasureSpawnPoint | treasure_point_* → treasure_spawn_points |
 | SupplyBox | supply_* → supply_boxes |
-| Bounds | 地图边界 → bounds |
+| Map Boundary | 地图边界 → map_boundary |
 
 > 不改变 JSON 协议，不改变数据库字段。
 

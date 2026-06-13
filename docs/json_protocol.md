@@ -115,7 +115,7 @@ LocalTest 只作为开发调试角色，不作为正式玩法模式。
 3. 红蓝基地区（team_bases：合并出生区、复活区和提交区语义）
 4. 宝物刷新点（treasure_spawn_points）
 5. 物资箱点（supply_boxes），可选
-6. 地图边界（bounds），可选
+6. 地图边界（map_boundary）：由 Draw Bounds / Draw Area 绘制出的地图级多边形边界
 ```
 
 > 动画物体只保存 `prefab_id` 和 transform，动画状态、交互状态不写入地图 JSON。
@@ -126,16 +126,34 @@ LocalTest 只作为开发调试角色，不作为正式玩法模式。
 {
   "map_id": "test_map_01",
   "map_name": "测试地图 01",
-  "version": "1.0.0",
+  "map_version": "1.0.0",
   "description": "MVP 测试用小型对称地图",
+  "editor_origin": {
+    "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "rotation": { "x": 0.0, "y": 0.0, "z": 0.0 }
+  },
+  "floor_calibration": {
+    "is_calibrated": true,
+    "floor_y": 0.0,
+    "source": "Manual"
+  },
   "objects": [
     {
       "object_id": "obj_wall_001",
       "prefab_id": "wall_01",
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
       "position": { "x": 0.0, "y": 0.0, "z": 2.0 },
       "rotation": { "x": 0.0, "y": 90.0, "z": 0.0 },
       "scale": { "x": 1.0, "y": 1.0, "z": 1.0 },
-      "has_collider": true
+      "has_collider": true,
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     }
   ],
   "team_bases": [
@@ -174,9 +192,15 @@ LocalTest 只作为开发调试角色，不作为正式玩法模式。
       "refresh_interval": 20.0
     }
   ],
-  "bounds": {
-    "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
-    "size": { "x": 12.0, "y": 3.0, "z": 8.0 }
+  "map_boundary": {
+    "boundary_type": "Polygon",
+    "height": 2.5,
+    "points": [
+      { "x": -6.0, "y": 0.0, "z": -4.0 },
+      { "x": 6.0, "y": 0.0, "z": -4.0 },
+      { "x": 6.0, "y": 0.0, "z": 4.0 },
+      { "x": -6.0, "y": 0.0, "z": 4.0 }
+    ]
   }
 }
 ```
@@ -187,12 +211,70 @@ LocalTest 只作为开发调试角色，不作为正式玩法模式。
 |---|---|---|---|
 | map_id | string | 是 | 地图唯一 ID |
 | map_name | string | 是 | 地图显示名称 |
-| version | string | 是 | 地图协议版本 |
+| map_version | string | 是 | 地图协议版本 |
+| editor_origin | object | 是 | 编辑器坐标原点，供 MapRoot 对齐 |
+| floor_calibration | object | 是 | 真实地面对齐信息 |
 | objects | array | 否 | 普通地图物体 |
-| team_bases | array | 是 | 基地区（同时作为出生区和复活区），至少红蓝各一个 |
+| team_bases | array | 是 | 基地区（同时作为出生区、复活区和提交区），至少红蓝各一个 |
 | treasure_spawn_points | array | 是 | 宝物刷新点 |
 | supply_boxes | array | 否 | 物资箱点 |
-| bounds | object | 否 | 地图边界 |
+| map_boundary | object | 是 | 地图级边界数据，MVP 固定为 Polygon 多边形 |
+
+### 3.4 map_boundary 字段说明
+
+`map_boundary` 不再表示一个盒状 prefab，而是每张地图自己绘制出的边界数据。
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| boundary_type | string | 是 | MVP 固定为 `"Polygon"` |
+| height | float | 是 | 边界垂直高度，默认 2.5m，必须 > 0 |
+| points | array | 是 | 多边形顶点，至少 3 个，按绘制顺序排列，最后一点不重复首点 |
+
+注意：
+
+```text
+1. 旧 bounds.center / bounds.size 字段已废弃，不再兼容。
+2. MapEditor 的 Draw Bounds / Draw Area 模式负责生成 map_boundary。
+3. map_boundary 是地图级数据，不作为 objects 或玩法标记导出。
+```
+
+### 3.5 objects 字段说明
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| object_id | string | 是 | 地图内对象唯一 ID |
+| prefab_id | string | 是 | PrefabRegistry 中注册的 prefab ID |
+| object_type | string | 是 | StaticFloor / StaticObstacle / PhysicsProp / OpenableObject |
+| interaction_type | string | 是 | None / Grab / Openable |
+| position | object | 是 | MapRoot 局部坐标 |
+| rotation | object | 是 | Euler rotation |
+| scale | object | 是 | localScale |
+| has_collider | bool | 是 | 是否有 Collider |
+| is_movable | bool | 是 | 是否可移动 |
+| is_grabbable | bool | 是 | 是否可抓取 |
+| is_openable | bool | 是 | 是否可打开 |
+| is_shootable | bool | 是 | 是否可被子弹命中 |
+| blocks_bullet | bool | 是 | 是否阻挡子弹 |
+| decal_enabled | bool | 是 | 是否生成统一弹孔 |
+| mass | float | 是 | 可移动物体质量，非移动物体可为 0 |
+
+MVP 对象类型：
+
+```text
+StaticFloor：地面 / 放置表面 / 真实地面对齐参考。
+StaticObstacle：固定障碍物，包括墙、柱、掩体、固定装饰。
+PhysicsProp：可移动 / 可抓取物体。
+OpenableObject：可打开物体。
+```
+
+弹孔规则：
+
+```text
+1. 不做材质分类。
+2. 不区分 Concrete / Metal / Wood / Glass。
+3. 统一使用 bullet_hole_default。
+4. 对象只通过 is_shootable / blocks_bullet / decal_enabled 控制射击表现。
+```
 
 ---
 

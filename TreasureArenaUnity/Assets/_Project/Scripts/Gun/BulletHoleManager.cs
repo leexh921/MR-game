@@ -21,6 +21,11 @@ public class BulletHoleManager : MonoBehaviour
     // 从射线生成弹孔
     public void SpawnBulletHole(RaycastHit hit)
     {
+        if (bulletHolePrefab == null)
+        {
+            return;
+        }
+
         GameObject hole = Instantiate(bulletHolePrefab);
         hole.transform.position = hit.point;
         hole.transform.rotation = Quaternion.LookRotation(hit.normal);
@@ -31,6 +36,11 @@ public class BulletHoleManager : MonoBehaviour
     // 从碰撞生成弹孔（子弹用）
     public void SpawnBulletHoleFromCollision(ContactPoint hit)
     {
+        if (bulletHolePrefab == null)
+        {
+            return;
+        }
+
         GameObject hole = Instantiate(bulletHolePrefab);
         hole.transform.position = hit.point;
         hole.transform.rotation = Quaternion.LookRotation(hit.normal);

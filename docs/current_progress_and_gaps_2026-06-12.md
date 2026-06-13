@@ -25,7 +25,7 @@
 已实现或已建立：
 
 - Unity 单工程、多运行角色方向已确定：`Server / Manager / PicoClient / LocalTest`。
-- 地图 JSON 协议已冻结，字段包括 `objects / team_bases / treasure_spawn_points / supply_boxes / bounds`。
+- 地图 JSON 字段已迁移为 `objects / team_bases / treasure_spawn_points / supply_boxes / map_boundary`，其中 `team_bases` 合并出生、复活和提交语义，`map_boundary` 使用 Polygon。
 - 房间配置、玩家状态、宝物状态、队伍、对局结果等 Shared 数据结构已存在。
 - 数据库设计文档和 SQL schema 已有，但数据库运行时写入尚未接入完整游戏流程。
 
@@ -42,7 +42,7 @@ TreasureArenaUnity/Assets/_Project/Scripts/Shared/
 已实现：
 
 - `MapLoader` 可以从 `StreamingAssets/Maps/<map_id>.json` 读取地图 JSON。
-- `MapValidator` 会校验 map_id、map_name、version、红蓝基地、宝物点、物资箱参数、object_id/prefab_id。
+- `MapValidator` 会校验 map_id、map_name、map_version、map_boundary、红蓝基地、宝物点、物资箱参数、object_id/prefab_id 和对象能力字段。
 - `MapRuntimeBuilder` 可以用基础 Primitive 把地图 JSON 生成可视占位物。
 - `MapRuntimeLoader` 可以在场景中加载指定 mapId。
 - `RuntimeMapCatalog` 可以列出运行时地图 ID，并把 mapId 转成网络同步用的 index。
@@ -70,7 +70,7 @@ map_samples/normalized/test_map_01.json 仍在样例目录，不在 Unity 运行
 - 运行时编辑器核心脚本已存在：`MapEditorRuntimeController`。
 - 支持 brush/prefab 放置、选择、移动、旋转、缩放、删除、复制、重置 Transform。
 - 支持左右手独立 brush 状态、Active Hand、Ghost 预览、0.5m 网格吸附。
-- 支持玩法标记：`MapObject / TeamBase / TreasureSpawnPoint / SupplyBox / Bounds`。
+- 支持玩法标记：`MapObject / TeamBase / TreasureSpawnPoint / SupplyBox`；地图边界通过 Draw Bounds / Draw Area 生成 `map_boundary`，不再作为 Bounds prefab 导出。
 - 支持右侧 Inspector 修改 Transform、team、treasure_type、radius、supply_type、refresh_interval 等。
 - 支持 Validate 和 Export，导出前会调用 `MapValidator`。
 - Editor 下导出到 `Assets/_Project/StreamingAssets/Maps/<map_id>.json`。
@@ -82,8 +82,8 @@ map_samples/normalized/test_map_01.json 仍在样例目录，不在 Unity 运行
 - Pico 端 UI 点击链路已接入 XR UI Input Module，当前不再把“手柄点不到 UI”作为主要阻塞。
 - `MapEditorRuntimeUiHitTarget + BoxCollider + Physics.Raycast` 仍可视为兼容/兜底桥接；后续优化重点应放在“点击 UI 时不触发放置”的边界验证，而不是继续把 UI 点击当作未接通问题。
 - 拖动物体目前主要是射线平面/表面拖动，缺少成品级手感设计，例如抓取偏移、深度锁定、平滑、阻尼、吸附提示、误触保护。
-- 地面 fallback 是 Unity 世界坐标 `y=0` 平面，不等于 Pico MR 真实地面自动校准。
-- 当前 `bounds` 协议是一个 `center + size` 的盒状边界，不支持“手绘多边形/房间轮廓”边界。
+- 地面 fallback 已改为可由 Calibrate Floor 记录的 `editorFloorY/floorPlane`，后续仍需 Pico 真机体验验收。
+- 边界协议已迁移为 `map_boundary` Polygon；后续重点是 Draw Bounds / Draw Area 的真机手感与闭合交互验收。
 
 ### 2.4 Pico / Netick 连接
 
@@ -212,10 +212,10 @@ Pico 客户端显示地图、自己、敌人、宝物、HUD
    - 或使用 XR Origin 校准，把 Unity y=0 对齐真实地面。
 
 3. 空间范围绘制流程  
-   你希望“先画一个空间，在空间范围内画边界，然后开始摆放”。当前协议只支持盒状 `bounds.center + bounds.size`。需要 PM 决定：
-   - MVP 仍用矩形/盒状 bounds：用户用两点或拖拽框出矩形空间。
-   - 需要手绘多边形边界：这会触及 JSON 协议变更，当前协议不支持。
-   - 只做编辑器内部手绘边界，但导出时近似成现有 bounds：不改协议，但边界精度有限。
+   你希望“先画一个空间，在空间范围内画边界，然后开始摆放”。当前协议已改为 `map_boundary` Polygon：
+   - MVP 通过 Draw Bounds / Draw Area 逐点绘制边界。
+   - 边界点贴 `editorFloorY/floorPlane`。
+   - Server/Client 后续按 XZ 多边形 + height 判断越界。
 
 4. 编辑顺序产品化  
    建议地图编辑器成品流程改成：
@@ -235,7 +235,7 @@ Pico 客户端显示地图、自己、敌人、宝物、HUD
 ### 4.2 当前可以保留的基础
 
 - `MapExportMarker`、`MapSceneJsonBuilder`、`MapValidator`、`MapEditorRuntimeExporter` 可以保留。
-- 现有 `objects / team_bases / treasure_spawn_points / supply_boxes / bounds` 协议可以支撑矩形空间版本。
+- 现有 `objects / team_bases / treasure_spawn_points / supply_boxes / map_boundary` 协议可以支撑手绘 Polygon 边界版本。
 - 右侧 Inspector、Validate、Export、Prefab palette 可以继续迭代，不必推倒重做。
 
 ## 5. 距离游戏成品还差什么
