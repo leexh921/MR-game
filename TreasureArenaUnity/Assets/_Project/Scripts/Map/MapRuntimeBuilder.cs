@@ -20,7 +20,22 @@ namespace TreasureArenaMR.Map
             BuildTeamBases(root.transform, map);
             BuildTreasurePoints(root.transform, map);
             BuildSupplyBoxes(root.transform, map);
-            BuildMapBoundary(root.transform, map);
+            BuildBoundary(root.transform, map);
+            return root;
+        }
+
+        public GameObject BuildGameplayOverlay(MapJsonModels.MapJson map)
+        {
+            GameObject root = new GameObject("MapGameplayOverlay");
+            if (map == null)
+            {
+                return root;
+            }
+
+            BuildTeamBases(root.transform, map);
+            BuildTreasurePoints(root.transform, map);
+            BuildSupplyBoxes(root.transform, map);
+            BuildBoundary(root.transform, map);
             return root;
         }
 
@@ -132,27 +147,37 @@ namespace TreasureArenaMR.Map
             }
         }
 
-        private static void BuildMapBoundary(Transform root, MapJsonModels.MapJson map)
+        private static void BuildBoundary(Transform root, MapJsonModels.MapJson map)
         {
             if (map.map_boundary == null || map.map_boundary.points == null || map.map_boundary.points.Count < 3)
-            {
                 return;
-            }
 
-            GameObject go = new GameObject("map_boundary");
-            go.transform.SetParent(root, false);
-            LineRenderer line = go.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.loop = true;
-            line.widthMultiplier = 0.04f;
-            line.positionCount = map.map_boundary.points.Count;
-            line.material = new Material(Shader.Find("Sprites/Default"));
-            line.material.color = new Color(0.1f, 0.8f, 1f, 0.85f);
-
-            for (int i = 0; i < map.map_boundary.points.Count; i++)
+            Transform parent = CreateGroup(root, "MapBoundary");
+            int pointCount = map.map_boundary.points.Count;
+            for (int i = 0; i < pointCount; i++)
             {
-                line.SetPosition(i, ToVector3(map.map_boundary.points[i]) + Vector3.up * 0.02f);
+                Vector3 start = ToVector3(map.map_boundary.points[i]);
+                Vector3 end = ToVector3(map.map_boundary.points[(i + 1) % pointCount]);
+                CreateBoundarySegment("Boundary_" + i, start, end, parent);
             }
+        }
+
+        private static void CreateBoundarySegment(string name, Vector3 start, Vector3 end, Transform parent)
+        {
+            Vector3 delta = end - start;
+            float length = delta.magnitude;
+            if (length <= 0.001f)
+                return;
+
+            GameObject go = CreatePrimitive(name, PrimitiveType.Cube, parent);
+            go.transform.position = (start + end) * 0.5f + Vector3.up * 0.05f;
+            go.transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
+            go.transform.localScale = new Vector3(0.04f, 0.1f, length);
+            SetColor(go, new Color(0.9f, 0.9f, 0.15f, 0.9f));
+
+            Collider collider = go.GetComponent<Collider>();
+            if (collider != null)
+                collider.isTrigger = true;
         }
 
         private static Transform CreateGroup(Transform root, string name)

@@ -98,8 +98,6 @@ namespace TreasureArenaMR.Map
                     });
                     break;
 
-                case MapExportMarkerType.Bounds:
-                    break;
 
                 default:
                     map.objects.Add(new MapJsonModels.MapObjectJson

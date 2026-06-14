@@ -14,8 +14,7 @@ namespace TreasureArenaMR.MapEditor
         Geometry,
         TeamBase,
         TreasureSpawn,
-        SupplyBox,
-        Bounds
+        SupplyBox
     }
 
     [Serializable]
@@ -43,7 +42,6 @@ namespace TreasureArenaMR.MapEditor
         private bool showTeamBases = true;
         private bool showTreasure = true;
         private bool showSupply = true;
-        private bool showBounds = true;
         private Vector2 paletteScroll;
         private Vector2 objectListScroll;
 
@@ -245,7 +243,6 @@ namespace TreasureArenaMR.MapEditor
             showTeamBases  = DrawCategory("玩法点 - 红蓝基地",         showTeamBases,  MapEditorCategory.TeamBase);
             showTreasure   = DrawCategory("玩法点 - 宝物刷新点",    showTreasure,   MapEditorCategory.TreasureSpawn);
             showSupply     = DrawCategory("玩法点 - 物资箱",       showSupply,     MapEditorCategory.SupplyBox);
-            showBounds     = DrawCategory("玩法点 - 地图边界",             showBounds,     MapEditorCategory.Bounds);
 
             EditorGUILayout.EndScrollView();
         }
@@ -477,15 +474,6 @@ namespace TreasureArenaMR.MapEditor
         private MapJsonModels.MapJson BuildMapFromScene()
         {
             MapJsonModels.MapJson map = MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
-            MapEditorBoundaryData[] boundaries = FindObjectsOfType<MapEditorBoundaryData>(true);
-            if (boundaries != null && boundaries.Length > 0)
-            {
-                map.map_boundary = MapSceneJsonBuilder.ToMapBoundaryJson(
-                    boundaries[0].Points,
-                    boundaries[0].Height,
-                    boundaries[0].BoundaryType);
-            }
-
             return map;
         }
 
@@ -562,26 +550,6 @@ namespace TreasureArenaMR.MapEditor
                     var m = t.GetChild(i).gameObject.AddComponent<MapExportMarker>();
                     m.marker_type = MapExportMarkerType.SupplyBox; m.id = d.box_id; m.supply_type = d.supply_type; m.refresh_interval = d.refresh_interval;
                 }
-            t = root.transform.Find("map_boundary");
-            if (t != null && map.map_boundary != null)
-            {
-                MapEditorBoundaryData boundary = t.gameObject.AddComponent<MapEditorBoundaryData>();
-                boundary.Height = map.map_boundary.height;
-                List<Vector3> points = new List<Vector3>();
-                if (map.map_boundary.points != null)
-                {
-                    for (int i = 0; i < map.map_boundary.points.Count; i++)
-                    {
-                        MapJsonModels.Vector3Json point = map.map_boundary.points[i];
-                        if (point != null)
-                        {
-                            points.Add(new Vector3(point.x, point.y, point.z));
-                        }
-                    }
-                }
-
-                boundary.SetPoints(points);
-            }
         }
 
         private void ClearAllMarkersSilent()
@@ -634,7 +602,6 @@ namespace TreasureArenaMR.MapEditor
                 case MapExportMarkerType.TeamBase:           return new Color(0.9f, 0.3f, 0.3f);
                 case MapExportMarkerType.TreasureSpawnPoint: return new Color(1f, 0.75f, 0.1f);
                 case MapExportMarkerType.SupplyBox:          return new Color(0.2f, 0.8f, 0.3f);
-                case MapExportMarkerType.Bounds:             return new Color(0.3f, 0.5f, 0.9f);
                 default: return Color.white;
             }
         }

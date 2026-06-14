@@ -129,6 +129,12 @@ namespace TreasureArenaMR.Server
             }
 
             var matchState = FindObjectOfType<NetworkMatchState>();
+            if (matchState == null && _networkManager != null && _networkManager.Sandbox != null && _networkManager.IsServer)
+            {
+                SpawnMatchState();
+                matchState = FindObjectOfType<NetworkMatchState>();
+            }
+
             if (matchState != null)
             {
                 matchState.SetMap(RuntimeMapCatalog.GetIndex(mapId), _mapRevision);
@@ -137,6 +143,10 @@ namespace TreasureArenaMR.Server
                     _roomManager.RedScore,
                     _roomManager.BlueScore,
                     _roomManager.RemainingTime);
+            }
+            else
+            {
+                Debug.LogWarning("[ServerApp] Map changed but NetworkMatchState is still missing; clients will wait for map sync.");
             }
 
             Debug.Log("[ServerApp] Map changed to " + mapId + ", revision=" + _mapRevision);
@@ -199,11 +209,10 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            if (!_networkManager.IsSceneLoaded)
+            if (!_networkManager.IsSceneLoaded && logIfBlocked)
             {
-                if (logIfBlocked)
-                    Debug.LogWarning("[ServerApp] Network runtime not ready: network scene not loaded.");
-                return false;
+                Debug.LogWarning("[ServerApp] Network scene load callback not received yet; "
+                    + "continuing with runtime state initialization for single-scene MVP.");
             }
 
             if (_roomManager == null || _roomManager.CurrentRoomConfig == null)
@@ -222,6 +231,9 @@ namespace TreasureArenaMR.Server
                 Debug.LogWarning("[ServerApp] ServerTreasureAuthority not found; treasures were not spawned.");
 
             _networkRuntimeInitialized = true;
+            Debug.Log("[ServerApp] Network runtime initialized. Map="
+                + _roomManager.CurrentRoomConfig.map_id
+                + ", revision=" + Mathf.Max(1, _mapRevision));
             return true;
         }
 
@@ -284,6 +296,10 @@ namespace TreasureArenaMR.Server
                     _roomManager.CurrentRoomConfig.match_time,
                     mapIndex,
                     _mapRevision);
+                Debug.Log("[ServerApp] NetworkMatchState ready. Map="
+                    + _roomManager.CurrentRoomConfig.map_id
+                    + ", index=" + mapIndex
+                    + ", revision=" + _mapRevision);
             }
 
             Debug.Log("[ServerApp] NetworkMatchState spawned.");

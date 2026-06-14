@@ -55,7 +55,6 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private Button rotateButton;
         [SerializeField] private Button scaleButton;
         [SerializeField] private Button calibrateFloorButton;
-        [SerializeField] private Button drawBoundsButton;
         [SerializeField] private Button deleteButton;
         [SerializeField] private Button clearBrushButton;
         [SerializeField] private Toggle gridSnapToggle;
@@ -257,7 +256,6 @@ namespace TreasureArenaMR.MapEditor
             BindHandButton(rotateButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Rotate));
             BindHandButton(scaleButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.Scale));
             BindHandButton(calibrateFloorButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.CalibrateFloor, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.CalibrateFloor));
-            BindHandButton(drawBoundsButton, hand => controller?.SetEditMode(MapEditorRuntimeEditMode.DrawBounds, hand), () => controller?.SetEditMode(MapEditorRuntimeEditMode.DrawBounds));
             if (clearBrushButton != null)
             {
                 clearBrushButton.gameObject.SetActive(false);
@@ -319,10 +317,12 @@ namespace TreasureArenaMR.MapEditor
             for (int i = 0; i < brushes.Count; i++)
             {
                 MapEditorRuntimeBrush brush = brushes[i];
+#pragma warning disable 0612
                 if (brush.marker_type == MapExportMarkerType.Bounds)
                 {
                     continue;
                 }
+#pragma warning restore 0612
 
                 string folder = string.IsNullOrEmpty(brush.folder) ? DefaultFolderName(brush) : brush.folder;
                 if (!folders.TryGetValue(folder, out List<int> indices))
@@ -442,9 +442,7 @@ namespace TreasureArenaMR.MapEditor
 
             if (countText != null)
             {
-                MapEditorBoundaryData boundary = FindObjectOfType<MapEditorBoundaryData>();
-                int boundaryPoints = boundary != null ? boundary.Points.Count : 0;
-                countText.text = $"Objects: {markers.Length}\nRed Base: {redBases}\nBlue Base: {blueBases}\nTreasure: {treasures}\nSupply: {supplyBoxes}\nBoundary Points: {boundaryPoints}";
+                countText.text = $"Objects: {markers.Length}\nRed Base: {redBases}\nBlue Base: {blueBases}\nTreasure: {treasures}\nSupply: {supplyBoxes}";
             }
         }
 

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Collections.Generic;
 using TreasureArenaMR.Map;
 using UnityEngine;
 
@@ -70,6 +71,7 @@ namespace TreasureArenaMR.MapEditor
         {
             MapExportMarker[] markers = FindObjectsOfType<MapExportMarker>(true);
             MapJsonModels.MapJson map = MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, markers);
+            ApplyBoundary(map, markers);
             MapEditorRuntimeController controller = FindObjectOfType<MapEditorRuntimeController>();
             if (controller != null)
             {
@@ -78,16 +80,89 @@ namespace TreasureArenaMR.MapEditor
                 map.floor_calibration.source = "Manual";
             }
 
-            MapEditorBoundaryData[] boundaries = FindObjectsOfType<MapEditorBoundaryData>(true);
-            if (boundaries != null && boundaries.Length > 0)
+            return map;
+        }
+
+        private static void ApplyBoundary(MapJsonModels.MapJson map, MapExportMarker[] markers)
+        {
+            MapEditorBoundaryData boundary = FindObjectOfType<MapEditorBoundaryData>(true);
+            if (boundary != null && boundary.IsClosed)
             {
                 map.map_boundary = MapSceneJsonBuilder.ToMapBoundaryJson(
-                    boundaries[0].Points,
-                    boundaries[0].Height,
-                    boundaries[0].BoundaryType);
+                    boundary.Points,
+                    boundary.Height,
+                    boundary.BoundaryType);
+                Debug.Log("Runtime map export using MapEditorBoundaryData.");
+                return;
             }
 
-            return map;
+            map.map_boundary = BuildFallbackBoundary(markers);
+            Debug.LogWarning("Runtime map export did not find a closed MapEditorBoundaryData. "
+                + "Generated a fallback rectangular map_boundary from export markers.");
+        }
+
+        private static MapJsonModels.MapBoundaryJson BuildFallbackBoundary(MapExportMarker[] markers)
+        {
+            const float defaultHalfSize = 5f;
+            const float padding = 1.5f;
+            bool hasPoint = false;
+            float minX = 0f;
+            float maxX = 0f;
+            float minZ = 0f;
+            float maxZ = 0f;
+            float floorY = 0f;
+
+            if (markers != null)
+            {
+                for (int i = 0; i < markers.Length; i++)
+                {
+                    MapExportMarker marker = markers[i];
+                    if (marker == null)
+                        continue;
+
+                    Vector3 position = marker.transform.position;
+                    if (!hasPoint)
+                    {
+                        minX = maxX = position.x;
+                        minZ = maxZ = position.z;
+                        floorY = position.y;
+                        hasPoint = true;
+                    }
+                    else
+                    {
+                        minX = Mathf.Min(minX, position.x);
+                        maxX = Mathf.Max(maxX, position.x);
+                        minZ = Mathf.Min(minZ, position.z);
+                        maxZ = Mathf.Max(maxZ, position.z);
+                        floorY = Mathf.Min(floorY, position.y);
+                    }
+                }
+            }
+
+            if (!hasPoint)
+            {
+                minX = -defaultHalfSize;
+                maxX = defaultHalfSize;
+                minZ = -defaultHalfSize;
+                maxZ = defaultHalfSize;
+                floorY = 0f;
+            }
+            else
+            {
+                minX -= padding;
+                maxX += padding;
+                minZ -= padding;
+                maxZ += padding;
+            }
+
+            List<Vector3> points = new List<Vector3>
+            {
+                new Vector3(minX, floorY, minZ),
+                new Vector3(maxX, floorY, minZ),
+                new Vector3(maxX, floorY, maxZ),
+                new Vector3(minX, floorY, maxZ)
+            };
+            return MapSceneJsonBuilder.ToMapBoundaryJson(points, 2.5f);
         }
 
         private static string TryWritePublicAndroidCopy(string fileName, string json)

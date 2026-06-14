@@ -398,9 +398,9 @@ namespace TreasureArenaMR.MapEditor
             SetInteractable(positionXInput, selectedObject != null);
             SetInteractable(positionYInput, selectedObject != null);
             SetInteractable(positionZInput, selectedObject != null);
-            SetInteractable(rotationXInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
-            SetInteractable(rotationYInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
-            SetInteractable(rotationZInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
+            SetInteractable(rotationXInput, selectedObject != null);
+            SetInteractable(rotationYInput, selectedObject != null);
+            SetInteractable(rotationZInput, selectedObject != null);
             SetInteractable(scaleXInput, selectedObject != null);
             SetInteractable(scaleYInput, selectedObject != null);
             SetInteractable(scaleZInput, selectedObject != null);

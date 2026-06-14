@@ -34,6 +34,8 @@ namespace TreasureArenaMR.Client
         private int loadedMapIndex = -1;
         private int loadedMapRevision = -1;
         private bool mapLoading;
+        private string connectionStatus = "Ready";
+        private string mapStatus = "Map: Waiting";
 
         private void Awake()
         {
@@ -135,21 +137,37 @@ namespace TreasureArenaMR.Client
                 return;
 
             var matchState = FindObjectOfType<NetworkMatchState>();
-            if (matchState == null || !matchState.MapConfigured)
+            if (matchState == null)
+            {
+                SetMapStatus("Map: Waiting for NetworkMatchState");
                 return;
+            }
+
+            if (!matchState.MapConfigured)
+            {
+                SetMapStatus("Map: Waiting for map selection");
+                return;
+            }
 
             if (loadedMapIndex == matchState.MapIndex && loadedMapRevision == matchState.MapRevision)
+            {
+                string loadedMapId = RuntimeMapCatalog.GetMapId(matchState.MapIndex);
+                if (!string.IsNullOrEmpty(loadedMapId))
+                    SetMapStatus("Map: Loaded " + loadedMapId + " rev " + matchState.MapRevision);
                 return;
+            }
 
             string mapId = RuntimeMapCatalog.GetMapId(matchState.MapIndex);
             if (string.IsNullOrEmpty(mapId))
             {
+                SetMapStatus("Map: Unknown index " + matchState.MapIndex);
                 Debug.LogError("[PicoClientNetickBootstrap] Unknown network map index: " + matchState.MapIndex);
                 return;
             }
 
             int targetIndex = matchState.MapIndex;
             int targetRevision = matchState.MapRevision;
+            SetMapStatus("Map: Loading " + mapId + " rev " + targetRevision);
             StartCoroutine(LoadMapCoroutine(mapId, targetIndex, targetRevision));
         }
 
@@ -161,17 +179,16 @@ namespace TreasureArenaMR.Client
             string path = MapLoader.ResolveMapPath(mapId);
             string json = null;
             string error = null;
-            bool complete = false;
 
             yield return MapLoader.ReadAllTextCoroutine(path, (j, e) =>
             {
                 json = j;
                 error = e;
-                complete = true;
             });
 
             if (!string.IsNullOrEmpty(error))
             {
+                SetMapStatus("Map: Load failed " + mapId);
                 RefreshStatus("Map load failed: " + error);
                 Debug.LogError("[PicoClientNetickBootstrap] Map load failed: " + error);
                 mapLoading = false;
@@ -194,11 +211,14 @@ namespace TreasureArenaMR.Client
             {
                 runtimeMapRoot = instantiateResult.root;
                 runtimeMapRoot.name = "RuntimeMap_" + map.map_id;
+                GameObject overlay = new MapRuntimeBuilder().BuildGameplayOverlay(map);
+                overlay.transform.SetParent(runtimeMapRoot.transform, false);
             }
 
             loadedMapIndex = targetIndex;
             loadedMapRevision = targetRevision;
 
+            SetMapStatus("Map: Loaded " + map.map_id + " rev " + targetRevision);
             RefreshStatus("Loaded map " + map.map_id);
             Debug.Log("[PicoClientNetickBootstrap] Runtime map visual loaded: " + map.map_id);
             mapLoading = false;
@@ -241,10 +261,12 @@ namespace TreasureArenaMR.Client
 
         private void RefreshStatus(string state)
         {
+            connectionStatus = state;
             string text = "Pico Netick Client\n"
                 + "Server: " + serverAddress + ":" + serverPort + "\n"
                 + "Player: " + playerId + "\n"
-                + "State: " + state;
+                + "State: " + connectionStatus + "\n"
+                + mapStatus;
 
             if (networkManager != null)
             {
@@ -256,6 +278,15 @@ namespace TreasureArenaMR.Client
                 statusText.text = text;
 
             Debug.Log("[PicoClientNetickBootstrap] " + text.Replace("\n", " | "));
+        }
+
+        private void SetMapStatus(string status)
+        {
+            if (mapStatus == status)
+                return;
+
+            mapStatus = status;
+            RefreshStatus(connectionStatus);
         }
 
         private static void BindButton(Button button, UnityEngine.Events.UnityAction action)

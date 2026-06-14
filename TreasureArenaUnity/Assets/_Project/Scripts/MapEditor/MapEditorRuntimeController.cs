@@ -19,8 +19,7 @@ namespace TreasureArenaMR.MapEditor
         Move,
         Rotate,
         Scale,
-        CalibrateFloor,
-        DrawBounds
+        CalibrateFloor
     }
 
     public sealed class MapEditorRuntimeController : MonoBehaviour
@@ -44,9 +43,6 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private float repeatDelay = 0.18f;
         [SerializeField] private float menuLongPressSeconds = 0.75f;
         [SerializeField] private float editorFloorY = 0f;
-        [SerializeField] private float boundaryHeight = 2.5f;
-        [SerializeField] private float boundaryCloseDistance = 0.25f;
-        [SerializeField] private MapEditorBoundaryData boundaryData;
 
         [Header("Editor Fallback Keys")]
         [SerializeField] private KeyCode deleteKey = KeyCode.Delete;
@@ -65,12 +61,13 @@ namespace TreasureArenaMR.MapEditor
         private GameObject selectedObject;
         private readonly Dictionary<string, int> nameCounters = new Dictionary<string, int>();
         private static Material sharedGhostMaterial;
-        private static Material sharedBoundaryMaterial;
+        private static Material sharedSelectionMaterial;
         private bool isDragging;
         private bool isFloorCalibrated;
         private float nextRepeatTime;
         private string statusMessage = "Map editor runtime input ready.";
-        private LineRenderer boundaryLine;
+        private GameObject selectionHighlight;
+        private LineRenderer selectionHighlightLine;
 
         public event Action<string> StatusChanged;
         public event Action<int> BrushChanged;
@@ -119,7 +116,6 @@ namespace TreasureArenaMR.MapEditor
             activeBrushIndex = rightHand.BrushIndex;
 
             RebuildNameCounters();
-            EnsureBoundaryData();
             SetStatus(statusMessage);
         }
 
@@ -127,6 +123,7 @@ namespace TreasureArenaMR.MapEditor
         {
             DestroyPreviewGhost();
             DestroyMoveGhost();
+            DestroySelectionHighlight();
         }
 
         private void Update()
@@ -151,6 +148,7 @@ namespace TreasureArenaMR.MapEditor
             }
 
             UpdateDragging(draggingNow);
+            RefreshSelectionHighlight();
         }
 
         public void SelectBrush(int index)
@@ -218,7 +216,7 @@ namespace TreasureArenaMR.MapEditor
         public void CycleEditMode(MapEditorHand hand)
         {
             HandState state = GetHandState(hand);
-            MapEditorRuntimeEditMode next = state.EditMode == MapEditorRuntimeEditMode.DrawBounds
+            MapEditorRuntimeEditMode next = state.EditMode == MapEditorRuntimeEditMode.CalibrateFloor
                 ? MapEditorRuntimeEditMode.Place
                 : (MapEditorRuntimeEditMode)((int)state.EditMode + 1);
             SetEditMode(next, hand);
@@ -416,10 +414,6 @@ namespace TreasureArenaMR.MapEditor
                 {
                     CalibrateFloor(placement.hitPoint);
                 }
-                else if (state.EditMode == MapEditorRuntimeEditMode.DrawBounds && hasTarget)
-                {
-                    AddBoundaryPoint(placement.hitPoint);
-                }
                 else if (state.EditMode == MapEditorRuntimeEditMode.Place && brush != null && hasTarget)
                 {
                     PlaceObject(placement, state);
@@ -509,6 +503,12 @@ namespace TreasureArenaMR.MapEditor
             Vector3 endPoint = hasTarget ? placement.hitPoint : ray.origin + ray.direction * maxRayDistance;
             SetRayLine(true, ray.origin, endPoint);
 
+            if (TryHandlePanelMoveBar(ray, state, Input.GetMouseButton(0), Input.GetMouseButtonDown(0), fallbackCamera))
+            {
+                activePreviewUpdated = true;
+                return;
+            }
+
             bool pointerOverUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
             if (Input.GetKeyDown(clearBrushKey))
@@ -526,10 +526,6 @@ namespace TreasureArenaMR.MapEditor
                 if (state.EditMode == MapEditorRuntimeEditMode.CalibrateFloor)
                 {
                     CalibrateFloor(placement.hitPoint);
-                }
-                else if (state.EditMode == MapEditorRuntimeEditMode.DrawBounds)
-                {
-                    AddBoundaryPoint(placement.hitPoint);
                 }
                 else if (state.EditMode == MapEditorRuntimeEditMode.Place && brush != null)
                 {
@@ -653,12 +649,56 @@ namespace TreasureArenaMR.MapEditor
 
         private bool TryHandleRuntimeUi(Ray ray, HandState state, RuntimeButtons buttons)
         {
+            if (TryHandlePanelMoveBar(ray, state, buttons.triggerPressed, buttons.triggerPressed && !state.PreviousButtons.triggerPressed, fallbackCamera != null ? fallbackCamera : Camera.main))
+            {
+                return true;
+            }
+
+            RaycastHit[] hits = Physics.RaycastAll(ray, maxRayDistance, ~0, QueryTriggerInteraction.Collide);
+            if (hits == null || hits.Length == 0)
+            {
+                return false;
+            }
+
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            for (int i = 0; i < hits.Length; i++)
+            {
+                MapEditorRuntimeUiHitTarget target = hits[i].collider.GetComponentInParent<MapEditorRuntimeUiHitTarget>();
+                if (target != null)
+                {
+                    SetRayLine(true, ray.origin, hits[i].point);
+                    DestroyPreviewGhost();
+                    DestroyMoveGhost();
+                    if (buttons.triggerPressed && !state.PreviousButtons.triggerPressed)
+                    {
+                        SetActiveHand(state.Hand);
+                        target.Activate(state.Hand);
+                    }
+
+                    return true;
+                }
+
+                MapEditorDockedPanel panel = hits[i].collider.GetComponentInParent<MapEditorDockedPanel>();
+                if (panel != null)
+                {
+                    SetRayLine(true, ray.origin, hits[i].point);
+                    DestroyPreviewGhost();
+                    DestroyMoveGhost();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryHandlePanelMoveBar(Ray ray, HandState state, bool triggerPressed, bool triggerPressedThisFrame, Camera cameraOverride)
+        {
             if (state.DraggingPanelMoveBar != null)
             {
                 SetRayLine(true, ray.origin, ray.origin + ray.direction * maxRayDistance);
                 DestroyPreviewGhost();
                 DestroyMoveGhost();
-                if (buttons.triggerPressed)
+                if (triggerPressed)
                 {
                     state.DraggingPanelMoveBar.UpdateDrag(ray);
                 }
@@ -688,38 +728,14 @@ namespace TreasureArenaMR.MapEditor
                     DestroyPreviewGhost();
                     DestroyMoveGhost();
                     moveBar.SetHover(true);
-                    if (buttons.triggerPressed && !state.PreviousButtons.triggerPressed)
+                    if (triggerPressedThisFrame)
                     {
                         SetActiveHand(state.Hand);
                         state.DraggingPanelMoveBar = moveBar;
-                        moveBar.BeginDrag(ray, fallbackCamera != null ? fallbackCamera : Camera.main);
+                        moveBar.BeginDrag(ray, cameraOverride);
                         SetStatus("Moving panel.");
                     }
 
-                    return true;
-                }
-
-                MapEditorRuntimeUiHitTarget target = hits[i].collider.GetComponentInParent<MapEditorRuntimeUiHitTarget>();
-                if (target != null)
-                {
-                    SetRayLine(true, ray.origin, hits[i].point);
-                    DestroyPreviewGhost();
-                    DestroyMoveGhost();
-                    if (buttons.triggerPressed && !state.PreviousButtons.triggerPressed)
-                    {
-                        SetActiveHand(state.Hand);
-                        target.Activate(state.Hand);
-                    }
-
-                    return true;
-                }
-
-                MapEditorDockedPanel panel = hits[i].collider.GetComponentInParent<MapEditorDockedPanel>();
-                if (panel != null)
-                {
-                    SetRayLine(true, ray.origin, hits[i].point);
-                    DestroyPreviewGhost();
-                    DestroyMoveGhost();
                     return true;
                 }
             }
@@ -747,13 +763,6 @@ namespace TreasureArenaMR.MapEditor
             {
                 DestroyPreviewGhost();
                 UpdateMoveGhost(placementPosition);
-                activePreviewUpdated = true;
-            }
-            else if (state.EditMode == MapEditorRuntimeEditMode.DrawBounds)
-            {
-                DestroyPreviewGhost();
-                DestroyMoveGhost();
-                RefreshBoundaryVisual(hasTarget ? placementPosition : (Vector3?)null);
                 activePreviewUpdated = true;
             }
             else if (state.EditMode == MapEditorRuntimeEditMode.CalibrateFloor)
@@ -845,6 +854,7 @@ namespace TreasureArenaMR.MapEditor
             }
 
             SelectionChanged?.Invoke(selectedObject);
+            RefreshSelectionHighlight();
             SetStatus(selectedObject == null ? "Selection cleared." : "Selected " + selectedObject.name);
         }
 
@@ -874,7 +884,7 @@ namespace TreasureArenaMR.MapEditor
                 }
 
                 MapExportMarker marker = collider.GetComponentInParent<MapExportMarker>();
-                if (marker != null && marker.marker_type != MapExportMarkerType.Bounds)
+                if (marker != null)
                 {
                     SelectObject(marker.gameObject);
                     return;
@@ -1060,7 +1070,7 @@ namespace TreasureArenaMR.MapEditor
                         hit = hit,
                         hitPoint = hit.point,
                         normal = normal,
-                        position = hitPoint + CalculateSurfaceOffset(brush != null ? brush.prefab : null, normal),
+                        position = CalculateBrushPlacementPosition(brush, hitPoint, normal),
                         collider = collider,
                         snapToGrid = snap,
                         groundFallback = false
@@ -1080,7 +1090,7 @@ namespace TreasureArenaMR.MapEditor
                     hit = default,
                     hitPoint = hitPoint,
                     normal = Vector3.up,
-                    position = hitPoint + CalculateSurfaceOffset(brush != null ? brush.prefab : null, Vector3.up),
+                    position = CalculateBrushPlacementPosition(brush, hitPoint, Vector3.up),
                     collider = null,
                     snapToGrid = true,
                     groundFallback = true
@@ -1097,108 +1107,6 @@ namespace TreasureArenaMR.MapEditor
             editorFloorY = point.y;
             isFloorCalibrated = true;
             SetStatus("Floor calibrated at y=" + editorFloorY.ToString("0.###"));
-        }
-
-        private void AddBoundaryPoint(Vector3 point)
-        {
-            EnsureBoundaryData();
-            Vector3 floorPoint = SnapToGrid(point);
-            floorPoint.y = editorFloorY;
-
-            IReadOnlyList<Vector3> points = boundaryData.Points;
-            if (points.Count >= 3 && Vector3.Distance(points[0], floorPoint) <= boundaryCloseDistance)
-            {
-                RefreshBoundaryVisual(null);
-                SetStatus("Map boundary closed with " + points.Count + " points.");
-                return;
-            }
-
-            boundaryData.Height = boundaryHeight;
-            boundaryData.AddPoint(floorPoint);
-            RefreshBoundaryVisual(null);
-            SetStatus("Boundary point added: " + boundaryData.Points.Count);
-        }
-
-        private void EnsureBoundaryData()
-        {
-            if (boundaryData != null)
-            {
-                return;
-            }
-
-            boundaryData = FindObjectOfType<MapEditorBoundaryData>();
-            if (boundaryData != null)
-            {
-                return;
-            }
-
-            GameObject boundaryRoot = new GameObject("MapEditorBoundary");
-            boundaryRoot.transform.SetParent(transform, false);
-            boundaryData = boundaryRoot.AddComponent<MapEditorBoundaryData>();
-            boundaryData.Height = boundaryHeight;
-        }
-
-        private void RefreshBoundaryVisual(Vector3? previewPoint)
-        {
-            EnsureBoundaryData();
-            LineRenderer line = GetBoundaryLine();
-            IReadOnlyList<Vector3> points = boundaryData.Points;
-            int previewCount = previewPoint.HasValue ? 1 : 0;
-            int pointCount = points.Count + previewCount;
-            if (pointCount <= 0)
-            {
-                line.positionCount = 0;
-                line.loop = false;
-                return;
-            }
-
-            bool closed = points.Count >= 3 && !previewPoint.HasValue;
-            line.loop = closed;
-            line.positionCount = pointCount;
-            for (int i = 0; i < points.Count; i++)
-            {
-                line.SetPosition(i, points[i] + Vector3.up * 0.02f);
-            }
-
-            if (previewPoint.HasValue)
-            {
-                Vector3 value = previewPoint.Value;
-                value.y = editorFloorY;
-                line.SetPosition(points.Count, value + Vector3.up * 0.02f);
-            }
-        }
-
-        private LineRenderer GetBoundaryLine()
-        {
-            if (boundaryLine != null)
-            {
-                return boundaryLine;
-            }
-
-            EnsureBoundaryData();
-            boundaryLine = boundaryData.GetComponent<LineRenderer>();
-            if (boundaryLine == null)
-            {
-                boundaryLine = boundaryData.gameObject.AddComponent<LineRenderer>();
-            }
-
-            boundaryLine.useWorldSpace = true;
-            boundaryLine.widthMultiplier = 0.035f;
-            boundaryLine.material = GetSharedBoundaryMaterial();
-            boundaryLine.positionCount = 0;
-            return boundaryLine;
-        }
-
-        private static Material GetSharedBoundaryMaterial()
-        {
-            if (sharedBoundaryMaterial != null)
-            {
-                return sharedBoundaryMaterial;
-            }
-
-            sharedBoundaryMaterial = new Material(Shader.Find("Sprites/Default"));
-            sharedBoundaryMaterial.color = new Color(0.1f, 0.8f, 1f, 0.85f);
-            return sharedBoundaryMaterial;
         }
 
         private bool ShouldSnapPlacement(RaycastHit hit)
@@ -1241,11 +1149,10 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
-            bool selectedIsBounds = IsBoundsObject(selectedObject);
             Vector3 planeNormal = Vector3.up;
             Vector3 planePoint = selectedObject.transform.position;
 
-            if (!selectedIsBounds && placement.valid)
+            if (placement.valid)
             {
                 planeNormal = placement.normal.y > 0.35f ? placement.normal : Vector3.up;
                 planePoint = placement.hitPoint;
@@ -1396,12 +1303,6 @@ namespace TreasureArenaMR.MapEditor
                 return true;
             }
 
-            MapExportMarker marker = collider.GetComponentInParent<MapExportMarker>();
-            if (marker != null && marker.marker_type == MapExportMarkerType.Bounds)
-            {
-                return true;
-            }
-
             string objectName = go.name.ToLowerInvariant();
             string tagName = go.tag.ToLowerInvariant();
             return objectName.Contains("controller")
@@ -1410,12 +1311,6 @@ namespace TreasureArenaMR.MapEditor
                 || objectName.Contains("xr origin")
                 || tagName.Contains("controller")
                 || tagName.Contains("player");
-        }
-
-        private static bool IsBoundsObject(GameObject target)
-        {
-            MapExportMarker marker = target != null ? target.GetComponent<MapExportMarker>() : null;
-            return marker != null && marker.marker_type == MapExportMarkerType.Bounds;
         }
 
         private static Vector3 CalculateSurfaceOffset(GameObject prefab, Vector3 normal)
@@ -1434,6 +1329,108 @@ namespace TreasureArenaMR.MapEditor
             Vector3 absNormal = new Vector3(Mathf.Abs(normal.x), Mathf.Abs(normal.y), Mathf.Abs(normal.z));
             float offset = Vector3.Dot(bounds.extents, absNormal);
             return normal.normalized * offset;
+        }
+
+        private static Vector3 CalculateBrushPlacementPosition(MapEditorRuntimeBrush brush, Vector3 hitPoint, Vector3 normal)
+        {
+            if (brush == null || brush.prefab == null)
+            {
+                return hitPoint;
+            }
+
+            if (normal.y < 0.35f)
+            {
+                return hitPoint;
+            }
+
+            return hitPoint + CalculateSurfaceOffset(brush.prefab, normal);
+        }
+
+        private void RefreshSelectionHighlight()
+        {
+            if (selectedObject == null || !TryGetObjectBounds(selectedObject, out Bounds bounds))
+            {
+                DestroySelectionHighlight();
+                return;
+            }
+
+            LineRenderer line = GetSelectionHighlightLine();
+            Vector3 min = bounds.min;
+            Vector3 max = bounds.max;
+            Vector3[] corners =
+            {
+                new Vector3(min.x, min.y, min.z),
+                new Vector3(max.x, min.y, min.z),
+                new Vector3(max.x, min.y, max.z),
+                new Vector3(min.x, min.y, max.z),
+                new Vector3(min.x, min.y, min.z),
+                new Vector3(min.x, max.y, min.z),
+                new Vector3(max.x, max.y, min.z),
+                new Vector3(max.x, max.y, max.z),
+                new Vector3(min.x, max.y, max.z),
+                new Vector3(min.x, max.y, min.z),
+                new Vector3(max.x, max.y, min.z),
+                new Vector3(max.x, min.y, min.z),
+                new Vector3(max.x, min.y, max.z),
+                new Vector3(max.x, max.y, max.z),
+                new Vector3(min.x, max.y, max.z),
+                new Vector3(min.x, min.y, max.z)
+            };
+
+            line.positionCount = corners.Length;
+            for (int i = 0; i < corners.Length; i++)
+            {
+                line.SetPosition(i, corners[i]);
+            }
+        }
+
+        private LineRenderer GetSelectionHighlightLine()
+        {
+            if (selectionHighlightLine != null)
+            {
+                return selectionHighlightLine;
+            }
+
+            if (selectionHighlight == null)
+            {
+                selectionHighlight = new GameObject("MapEditorSelectionHighlight");
+                selectionHighlight.layer = Physics.IgnoreRaycastLayer;
+            }
+
+            selectionHighlightLine = selectionHighlight.GetComponent<LineRenderer>();
+            if (selectionHighlightLine == null)
+            {
+                selectionHighlightLine = selectionHighlight.AddComponent<LineRenderer>();
+            }
+
+            selectionHighlightLine.useWorldSpace = true;
+            selectionHighlightLine.loop = false;
+            selectionHighlightLine.widthMultiplier = 0.025f;
+            selectionHighlightLine.material = GetSharedSelectionMaterial();
+            selectionHighlightLine.positionCount = 0;
+            return selectionHighlightLine;
+        }
+
+        private void DestroySelectionHighlight()
+        {
+            if (selectionHighlight != null)
+            {
+                Destroy(selectionHighlight);
+                selectionHighlight = null;
+                selectionHighlightLine = null;
+            }
+        }
+
+        private static Material GetSharedSelectionMaterial()
+        {
+            if (sharedSelectionMaterial != null)
+            {
+                return sharedSelectionMaterial;
+            }
+
+            sharedSelectionMaterial = new Material(Shader.Find("Sprites/Default"));
+            sharedSelectionMaterial.color = new Color(1f, 0.82f, 0.16f, 0.95f);
+            return sharedSelectionMaterial;
         }
 
         private static bool TryGetPrefabBounds(GameObject prefab, out Bounds bounds)

@@ -562,11 +562,6 @@ namespace TreasureArenaMR.MapEditor.Editor
                 return;
             }
 
-            if (prefab.name == "Bounds")
-            {
-                return;
-            }
-
             MapExportMarker marker = prefab.GetComponent<MapExportMarker>();
             MapPrefabDefaults defaults = prefab.GetComponent<MapPrefabDefaults>();
             string prefabId = GetPrefabId(prefab);
@@ -742,7 +737,6 @@ namespace TreasureArenaMR.MapEditor.Editor
             new BrushMarkerDefault("Treasure_Rare",   MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Rare),
             new BrushMarkerDefault("Treasure_Final",  MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Final),
             new BrushMarkerDefault("SupplyBox",       MapExportMarkerType.SupplyBox,          TeamType.None,  TreasureType.Normal),
-            new BrushMarkerDefault("Bounds",          MapExportMarkerType.Bounds,             TeamType.None,  TreasureType.Normal),
         };
 
         private struct BrushMarkerDefault

@@ -9,6 +9,7 @@ namespace TreasureArenaMR.Map
         TeamBase,
         TreasureSpawnPoint,
         SupplyBox,
+        [System.Obsolete("Retained for serialization compatibility; not used in active editor workflows.")]
         Bounds
     }
 
