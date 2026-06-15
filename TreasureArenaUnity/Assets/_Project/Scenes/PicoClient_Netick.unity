@@ -793,6 +793,10 @@ PrefabInstance:
       propertyPath: _netickConfig
       value: 
       objectReference: {fileID: 11400000, guid: 1a16f967025f97247a26fc1530aa03c9, type: 2}
+    - target: {fileID: 1830047899682187697, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: m_Text
+      value: "\u8FDE\u63A5"
+      objectReference: {fileID: 0}
     - target: {fileID: 2273921787505719569, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Name
       value: PicoClientNetworkBootstrap
@@ -821,6 +825,10 @@ PrefabInstance:
     - target: {fileID: 4432575719714289989, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Color.r
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4725786401675691745, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
+      propertyPath: m_Text
+      value: "\u65AD\u5F00\u8FDE\u63A5"
       objectReference: {fileID: 0}
     - target: {fileID: 4776672956426324792, guid: fd29cacbdf535f54bb3fc064728f37d6, type: 3}
       propertyPath: m_Type
