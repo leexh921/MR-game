@@ -471,7 +471,9 @@ namespace TreasureArenaMR.Mock
                 return;
             }
 
-            Material material = new Material(Shader.Find("Standard"));
+            // Clone the primitive's existing material (which already uses the correct
+            // RP shader for the current platform) instead of hardcoding Shader.Find("Standard").
+            Material material = new Material(renderer.sharedMaterial);
             material.color = color;
             renderer.sharedMaterial = material;
         }

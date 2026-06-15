@@ -131,3 +131,9 @@ MonoBehaviour:
     prefab: {fileID: 567362939508772860, guid: 3b3574bbb2392ab49b0ba2d669475f72, type: 3}
   - prefab_id: maproot
     prefab: {fileID: 7111921777654563730, guid: 9c97a7a54e66d7149b108517063213b2, type: 3}
+  - prefab_id: Wall
+    prefab: {fileID: 4859803648155879129, guid: 5bfbe84c32bf48a45a4fd0362650c4ea, type: 3}
+  - prefab_id: Floor
+    prefab: {fileID: 2812800884119236220, guid: 7dc4f0d6ac4f8a0438e0ea799f36060f, type: 3}
+  - prefab_id: Cover
+    prefab: {fileID: 6425221460339284544, guid: e398a17cc1e85824a81ed06be4a2a750, type: 3}

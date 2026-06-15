@@ -298,7 +298,10 @@ namespace TreasureArenaMR.Map
                 return;
             }
 
-            Material material = new Material(Shader.Find("Standard"));
+            // Clone the primitive's existing material (which already uses the correct
+            // RP shader for the current platform) instead of hardcoding Shader.Find("Standard")
+            // which breaks on URP and Android builds.
+            Material material = new Material(renderer.sharedMaterial);
             material.color = color;
             renderer.sharedMaterial = material;
         }
