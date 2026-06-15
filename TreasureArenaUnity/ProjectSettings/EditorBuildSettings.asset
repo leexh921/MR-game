@@ -5,15 +5,9 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-<<<<<<< HEAD
-  - enabled: 1
-    path: Assets/_Project/Scenes/Home.unity
-    guid: 57f344bd85c91cb4786190e91034066d
-=======
   - enabled: 0
     path: Assets/_Project/Scenes/MapEditor.unity
     guid: 7c885846a0322af45a530446d71f59a9
->>>>>>> 053b32e39c49ea2136e87a9a1e99659aef04cdd3
   - enabled: 1
     path: Assets/_Project/Scenes/Game.unity
     guid: d8b45f10225f22d42873b59fbe783cd8
