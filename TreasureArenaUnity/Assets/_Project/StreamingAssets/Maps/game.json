@@ -1,0 +1,115 @@
+{
+    "map_id": "game",
+    "map_name": "Game",
+    "map_version": "1.0.0",
+    "description": "Exported from Unity scene: Game",
+    "editor_origin": {
+        "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        }
+    },
+    "floor_calibration": {
+        "is_calibrated": false,
+        "floor_y": 0.0,
+        "source": "Manual"
+    },
+    "objects": [
+        {
+            "object_id": "maproot_01",
+            "prefab_id": "maproot",
+            "object_type": "StaticObstacle",
+            "interaction_type": "None",
+            "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "rotation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "scale": {
+                "x": 1.0,
+                "y": 1.0,
+                "z": 1.0
+            },
+            "has_collider": true,
+            "is_movable": false,
+            "is_grabbable": false,
+            "is_openable": false,
+            "is_shootable": true,
+            "blocks_bullet": true,
+            "decal_enabled": true,
+            "mass": 100.0
+        }
+    ],
+    "team_bases": [
+        {
+            "base_id": "TeamBase_Red_01",
+            "team": "Red",
+            "position": {
+                "x": 0.6700000166893005,
+                "y": -0.014000000432133675,
+                "z": -0.7599999904632568
+            },
+            "radius": 1.0
+        },
+        {
+            "base_id": "TeamBase_Blue_01",
+            "team": "Blue",
+            "position": {
+                "x": -1.909999966621399,
+                "y": -0.014000000432133675,
+                "z": -3.6700000762939455
+            },
+            "radius": 1.0
+        }
+    ],
+    "treasure_spawn_points": [
+        {
+            "point_id": "Treasure_Final_01",
+            "treasure_type": "Final",
+            "position": {
+                "x": -0.10599999874830246,
+                "y": 1.656000018119812,
+                "z": -3.2059812545776369
+            },
+            "radius": 1.0
+        }
+    ],
+    "supply_boxes": [],
+    "map_boundary": {
+        "boundary_type": "Polygon",
+        "height": 2.5,
+        "points": [
+            {
+                "x": -3.4099998474121095,
+                "y": -0.014000000432133675,
+                "z": -5.170000076293945
+            },
+            {
+                "x": 2.1700000762939455,
+                "y": -0.014000000432133675,
+                "z": -5.170000076293945
+            },
+            {
+                "x": 2.1700000762939455,
+                "y": -0.014000000432133675,
+                "z": 1.5
+            },
+            {
+                "x": -3.4099998474121095,
+                "y": -0.014000000432133675,
+                "z": 1.5
+            }
+        ]
+    }
+}
