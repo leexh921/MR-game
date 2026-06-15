@@ -12,7 +12,7 @@
 1. 只导出挂载了 MapExportMarker 组件的 GameObject。
 2. 不递归导出子物体 —— 子物体如果没有自己的 MapExportMarker，不会被导出。
 3. 子物体如果挂载了自己的 MapExportMarker，则作为独立条目导出。
-4. 该规则同时适用于 objects 和所有玩法标记（team_bases / treasure_spawn_points / supply_boxes / bounds）。
+4. 该规则适用于 objects 和玩法标记（team_bases / treasure_spawn_points / supply_boxes）。地图边界不通过 MapExportMarker 导出，而由 map_boundary 保存。
 ```
 
 这意味着：
@@ -142,9 +142,9 @@
 | 蓝队基地 | TeamBase | team_bases | team=Blue，作为出生/复活/提交区 |
 | 宝物刷新点 | TreasureSpawnPoint | treasure_spawn_points | treasure_type=Normal/Rare/Final |
 | 物资箱 | SupplyBox | supply_boxes | 可选，MVP 可先占位 |
-| 地图边界 | Bounds | bounds | 场景中应只有一个 |
+| 地图边界 | 不使用 MapExportMarker | map_boundary | 使用 Draw Bounds / Draw Area 绘制，地图级数据 |
 
-> 注意：这些标记不能作为 MapObject 导出，必须使用正确的 marker_type。
+> 注意：这些标记不能作为 MapObject 导出，必须使用正确的 marker_type。地图边界不再使用 Bounds box prefab 或 `MapExportMarkerType.Bounds` 导出。
 
 ---
 

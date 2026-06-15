@@ -563,6 +563,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             MapExportMarker marker = prefab.GetComponent<MapExportMarker>();
+            MapPrefabDefaults defaults = prefab.GetComponent<MapPrefabDefaults>();
             string prefabId = GetPrefabId(prefab);
             int index = brushes.arraySize;
             brushes.InsertArrayElementAtIndex(index);
@@ -576,7 +577,19 @@ namespace TreasureArenaMR.MapEditor.Editor
             brush.FindPropertyRelative("supply_type").stringValue = marker != null ? marker.supply_type : "WeaponRandom";
             brush.FindPropertyRelative("radius").floatValue = marker != null ? marker.radius : 1f;
             brush.FindPropertyRelative("refresh_interval").floatValue = marker != null ? marker.refresh_interval : 20f;
-            brush.FindPropertyRelative("has_collider").boolValue = prefab.GetComponentInChildren<Collider>() != null;
+            bool hasCollider = prefab.GetComponentInChildren<Collider>() != null;
+            brush.FindPropertyRelative("has_collider").boolValue = defaults != null ? defaults.has_collider : hasCollider;
+            brush.FindPropertyRelative("object_type").enumValueIndex = defaults != null ? (int)defaults.object_type : marker != null ? (int)marker.object_type : (int)MapObjectType.StaticObstacle;
+            brush.FindPropertyRelative("interaction_type").enumValueIndex = defaults != null ? (int)defaults.interaction_type : marker != null ? (int)marker.interaction_type : (int)MapInteractionType.None;
+            brush.FindPropertyRelative("default_scale").vector3Value = defaults != null ? defaults.default_scale : Vector3.one;
+            brush.FindPropertyRelative("default_rotation").vector3Value = defaults != null ? defaults.default_rotation : Vector3.zero;
+            brush.FindPropertyRelative("is_movable").boolValue = defaults != null ? defaults.is_movable : marker != null && marker.is_movable;
+            brush.FindPropertyRelative("is_grabbable").boolValue = defaults != null ? defaults.is_grabbable : marker != null && marker.is_grabbable;
+            brush.FindPropertyRelative("is_openable").boolValue = defaults != null ? defaults.is_openable : marker != null && marker.is_openable;
+            brush.FindPropertyRelative("is_shootable").boolValue = defaults != null ? defaults.is_shootable : marker == null || marker.is_shootable;
+            brush.FindPropertyRelative("blocks_bullet").boolValue = defaults != null ? defaults.blocks_bullet : marker == null || marker.blocks_bullet;
+            brush.FindPropertyRelative("decal_enabled").boolValue = defaults != null ? defaults.decal_enabled : marker == null || marker.decal_enabled;
+            brush.FindPropertyRelative("mass").floatValue = defaults != null ? defaults.mass : marker != null ? marker.mass : 0f;
         }
 
         private static Sprite GetOrCreateThumbnail(GameObject prefab)
@@ -724,7 +737,6 @@ namespace TreasureArenaMR.MapEditor.Editor
             new BrushMarkerDefault("Treasure_Rare",   MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Rare),
             new BrushMarkerDefault("Treasure_Final",  MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Final),
             new BrushMarkerDefault("SupplyBox",       MapExportMarkerType.SupplyBox,          TeamType.None,  TreasureType.Normal),
-            new BrushMarkerDefault("Bounds",          MapExportMarkerType.Bounds,             TeamType.None,  TreasureType.Normal),
         };
 
         private struct BrushMarkerDefault

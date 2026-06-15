@@ -65,9 +65,15 @@ namespace TreasureArenaMR.Server
 
             _serverApp.ConfigureRuntimeMap(SelectedMapId);
             if (!_serverApp.IsRunning)
+            {
+                Debug.Log("[ServerBootstrap] Starting room with map " + SelectedMapId);
                 _serverApp.StartServer();
+            }
             else
+            {
+                Debug.Log("[ServerBootstrap] Applying selected map " + SelectedMapId);
                 _serverApp.ChangeMap(SelectedMapId);
+            }
 
             OnStatusChanged?.Invoke();
         }
@@ -97,6 +103,7 @@ namespace TreasureArenaMR.Server
             else if (_serverApp != null)
                 _serverApp.ConfigureRuntimeMap(mapId);
 
+            Debug.Log("[ServerBootstrap] Selected map: " + mapId + ", applied=" + changed);
             OnStatusChanged?.Invoke();
             return changed;
         }

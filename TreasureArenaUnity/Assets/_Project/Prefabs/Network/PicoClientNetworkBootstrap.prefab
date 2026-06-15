@@ -171,7 +171,7 @@ MonoBehaviour:
   _sandboxPrefab: {fileID: 8665608302707014316, guid: ec196cb105baaa8439de4c90ce317205, type: 3}
   _netickConfig: {fileID: 0}
   _serverPort: 7777
-  _serverAddress: 192.168.61.128
+  _serverAddress: 192.168.61.195
   _maxPlayers: 4
 --- !u!114 &6279448158870362979
 MonoBehaviour:
@@ -186,7 +186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   networkManager: {fileID: 1629647129450060957}
-  serverAddress: 192.168.61.128
+  serverAddress: 192.168.61.195
   serverPort: 7777
   playerId: pico_client_01
   connectOnStart: 1
@@ -569,6 +569,7 @@ GameObject:
   - component: {fileID: 5034436960907205071}
   - component: {fileID: 6606029545409466869}
   - component: {fileID: 2875365746125281851}
+  - component: {fileID: 8314908641529074311}
   m_Layer: 0
   m_Name: PicoClientDebugCanvas
   m_TagString: Untagged
@@ -576,6 +577,27 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &8314908641529074311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7336316551198200536}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2eab81e1b6e6b61409e6b90060544e3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  visibleOnStart: 1
+  editorToggleKey: 109
+  useSecondaryButtonFallback: 1
+  usePrimaryButtonFallback: 0
+  cameraTarget: {fileID: 0}
+  panelDistance: 1.35
+  verticalOffset: 0
+  followWhileVisible: 1
+  followLerp: 20
 --- !u!224 &6233246348479631607
 RectTransform:
   m_ObjectHideFlags: 0

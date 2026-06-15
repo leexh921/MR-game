@@ -1,61 +1,173 @@
 {
   "map_id": "test_map_01",
   "map_name": "测试地图 01",
-  "version": "1.0.0",
   "description": "MVP 测试用小型对称地图。红蓝双方各有一个基地（同时作为出生区和复活区）。中央区域有宝物刷新点。",
   "objects": [
     {
       "object_id": "obj_wall_north",
       "prefab_id": "wall_01",
-      "position": { "x": 0.0, "y": 0.0, "z": 4.0 },
-      "rotation": { "x": 0.0, "y": 0.0, "z": 0.0 },
-      "scale": { "x": 12.0, "y": 1.0, "z": 0.2 },
-      "has_collider": true
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 4.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 12.0,
+        "y": 1.0,
+        "z": 0.2
+      },
+      "has_collider": true,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     },
     {
       "object_id": "obj_wall_south",
       "prefab_id": "wall_01",
-      "position": { "x": 0.0, "y": 0.0, "z": -4.0 },
-      "rotation": { "x": 0.0, "y": 0.0, "z": 0.0 },
-      "scale": { "x": 12.0, "y": 1.0, "z": 0.2 },
-      "has_collider": true
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 12.0,
+        "y": 1.0,
+        "z": 0.2
+      },
+      "has_collider": true,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     },
     {
       "object_id": "obj_wall_west",
       "prefab_id": "wall_01",
-      "position": { "x": -6.0, "y": 0.0, "z": 0.0 },
-      "rotation": { "x": 0.0, "y": 90.0, "z": 0.0 },
-      "scale": { "x": 8.0, "y": 1.0, "z": 0.2 },
-      "has_collider": true
+      "position": {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 8.0,
+        "y": 1.0,
+        "z": 0.2
+      },
+      "has_collider": true,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     },
     {
       "object_id": "obj_wall_east",
       "prefab_id": "wall_01",
-      "position": { "x": 6.0, "y": 0.0, "z": 0.0 },
-      "rotation": { "x": 0.0, "y": 90.0, "z": 0.0 },
-      "scale": { "x": 8.0, "y": 1.0, "z": 0.2 },
-      "has_collider": true
+      "position": {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 8.0,
+        "y": 1.0,
+        "z": 0.2
+      },
+      "has_collider": true,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     },
     {
       "object_id": "obj_center_pillar",
       "prefab_id": "pillar_01",
-      "position": { "x": 0.0, "y": 0.0, "z": 0.0 },
-      "rotation": { "x": 0.0, "y": 0.0, "z": 0.0 },
-      "scale": { "x": 0.5, "y": 1.5, "z": 0.5 },
-      "has_collider": true
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 0.5,
+        "y": 1.5,
+        "z": 0.5
+      },
+      "has_collider": true,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": true,
+      "blocks_bullet": true,
+      "decal_enabled": true,
+      "mass": 0.0
     }
   ],
   "team_bases": [
     {
       "base_id": "red_base",
       "team": "Red",
-      "position": { "x": -5.0, "y": 0.0, "z": 0.0 },
+      "position": {
+        "x": -5.0,
+        "y": 0.0,
+        "z": 0.0
+      },
       "radius": 1.2
     },
     {
       "base_id": "blue_base",
       "team": "Blue",
-      "position": { "x": 5.0, "y": 0.0, "z": 0.0 },
+      "position": {
+        "x": 5.0,
+        "y": 0.0,
+        "z": 0.0
+      },
       "radius": 1.2
     }
   ],
@@ -63,38 +175,98 @@
     {
       "point_id": "treasure_point_001",
       "treasure_type": "Normal",
-      "position": { "x": 0.0, "y": 0.5, "z": 0.0 },
+      "position": {
+        "x": 0.0,
+        "y": 0.5,
+        "z": 0.0
+      },
       "radius": 0.5
     },
     {
       "point_id": "treasure_point_002",
       "treasure_type": "Normal",
-      "position": { "x": -1.5, "y": 0.5, "z": 1.5 },
+      "position": {
+        "x": -1.5,
+        "y": 0.5,
+        "z": 1.5
+      },
       "radius": 0.5
     },
     {
       "point_id": "treasure_point_003",
       "treasure_type": "Normal",
-      "position": { "x": 1.5, "y": 0.5, "z": -1.5 },
+      "position": {
+        "x": 1.5,
+        "y": 0.5,
+        "z": -1.5
+      },
       "radius": 0.5
     },
     {
       "point_id": "treasure_point_004",
       "treasure_type": "Rare",
-      "position": { "x": 0.0, "y": 0.5, "z": 2.5 },
+      "position": {
+        "x": 0.0,
+        "y": 0.5,
+        "z": 2.5
+      },
       "radius": 0.5
     }
   ],
   "supply_boxes": [
     {
       "box_id": "supply_001",
-      "position": { "x": 0.0, "y": 0.0, "z": -2.5 },
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -2.5
+      },
       "supply_type": "WeaponRandom",
       "refresh_interval": 20.0
     }
   ],
-  "bounds": {
-    "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
-    "size": { "x": 12.0, "y": 3.0, "z": 8.0 }
+  "map_boundary": {
+    "boundary_type": "Polygon",
+    "height": 2.5,
+    "points": [
+      {
+        "x": -6.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      {
+        "x": 6.0,
+        "y": 0.0,
+        "z": -4.0
+      },
+      {
+        "x": 6.0,
+        "y": 0.0,
+        "z": 4.0
+      },
+      {
+        "x": -6.0,
+        "y": 0.0,
+        "z": 4.0
+      }
+    ]
+  },
+  "map_version": "1.0.0",
+  "editor_origin": {
+    "position": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "rotation": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    }
+  },
+  "floor_calibration": {
+    "is_calibrated": true,
+    "floor_y": 0.0,
+    "source": "Imported"
   }
 }

@@ -1,5 +1,13 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: e33de07a5fa4a474c88d886701551ba9
+=======
+<<<<<<<< HEAD:TreasureArenaUnity/Assets/_Project/Scripts/Network/NetworkMatchState.cs.meta
+guid: 01ce55d48b1da5d4ba490b2399c636db
+========
+guid: eb53ee23093ef57479931ce96d265c14
+>>>>>>>> origin/feature/sprite-tower:TreasureArenaUnity/Assets/_Project/Scripts/Network/NetickConnectionTester.cs.meta
+>>>>>>> 053b32e39c49ea2136e87a9a1e99659aef04cdd3
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2

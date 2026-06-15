@@ -44,10 +44,11 @@ namespace TreasureArenaMR.MapEditor.Editor
             MapEditorDockedPanel leftPanel = CreatePanel(root.transform, "LeftInfoPanel", "Map", new Vector2(0.5f, 0.5f), new Vector2(280f, 520f), new Vector2(-450f, 0f), PanelColor, out Transform leftExpanded);
             MapEditorDockedPanel mainPanel = CreatePanel(root.transform, "MainBrushPanel", "Brushes", new Vector2(0.5f, 0.5f), new Vector2(520f, 520f), Vector2.zero, MainPanelColor, out Transform mainExpanded);
             MapEditorDockedPanel rightPanel = CreatePanel(root.transform, "RightInspectorPanel", "Inspector", new Vector2(0.5f, 0.5f), new Vector2(340f, 520f), new Vector2(430f, 0f), PanelColor, out Transform rightExpanded);
+            CreatePanelMoveBar(root.transform);
 
             Text mapNameText = CreateText(leftExpanded, "MapNameText", "Map: new_map", 15, new Vector2(0f, 200f), new Vector2(230f, 24f), TextAnchor.MiddleLeft);
             Text mapIdText = CreateText(leftExpanded, "MapIdText", "map_id: new_map", 13, new Vector2(0f, 174f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
-            Text mapVersionText = CreateText(leftExpanded, "MapVersionText", "version: 1.0.0", 13, new Vector2(0f, 150f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
+            Text mapVersionText = CreateText(leftExpanded, "MapVersionText", "map_version: 1.0.0", 13, new Vector2(0f, 150f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
             Text modeText = CreateText(leftExpanded, "ModeText", "Mode: Place", 13, new Vector2(0f, 118f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
             Text statusText = CreateText(leftExpanded, "StatusText", "Validation: Not validated", 13, new Vector2(0f, 94f), new Vector2(230f, 22f), TextAnchor.MiddleLeft);
             Text countText = CreateText(leftExpanded, "CountText", "Objects: 0", 13, new Vector2(0f, 34f), new Vector2(230f, 86f), TextAnchor.UpperLeft);
@@ -74,14 +75,20 @@ namespace TreasureArenaMR.MapEditor.Editor
             Button brushButtonTemplate = CreateBrushCardButton(mainExpanded, "BrushButtonTemplate", new Vector2(0f, -250f), new Vector2(220f, 76f));
             brushButtonTemplate.gameObject.SetActive(false);
 
-            Button placeButton = CreateButton(mainExpanded, "PlaceButton", "Place", new Vector2(-204f, -156f), new Vector2(92f, 38f), ButtonColor);
-            Button moveButton = CreateButton(mainExpanded, "MoveButton", "Move", new Vector2(-102f, -156f), new Vector2(92f, 38f), ButtonColor);
-            Button rotateButton = CreateButton(mainExpanded, "RotateButton", "Rotate", new Vector2(0f, -156f), new Vector2(92f, 38f), ButtonColor);
-            Button scaleButton = CreateButton(mainExpanded, "ScaleButton", "Scale", new Vector2(102f, -156f), new Vector2(92f, 38f), ButtonColor);
-            Button deleteButton = CreateButton(mainExpanded, "DeleteButton", "Delete", new Vector2(204f, -156f), new Vector2(92f, 38f), DangerColor);
-            Text gridStepText = CreateText(mainExpanded, "GridStepText", "Grid 0.5m", 12, new Vector2(-120f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
-            Text rotateStepText = CreateText(mainExpanded, "RotateStepText", "Rotate 15 deg", 12, new Vector2(12f, -204f), new Vector2(120f, 22f), TextAnchor.MiddleLeft);
-            Text scaleStepText = CreateText(mainExpanded, "ScaleStepText", "Scale 0.1", 12, new Vector2(140f, -204f), new Vector2(96f, 22f), TextAnchor.MiddleLeft);
+            Button placeButton = CreateButton(mainExpanded, "PlaceButton", "Place", new Vector2(-204f, -156f), new Vector2(92f, 34f), ButtonColor);
+            Button moveButton = CreateButton(mainExpanded, "MoveButton", "Move", new Vector2(-102f, -156f), new Vector2(92f, 34f), ButtonColor);
+            Button rotateButton = CreateButton(mainExpanded, "RotateButton", "Rotate", new Vector2(0f, -156f), new Vector2(92f, 34f), ButtonColor);
+            Button scaleButton = CreateButton(mainExpanded, "ScaleButton", "Scale", new Vector2(102f, -156f), new Vector2(92f, 34f), ButtonColor);
+            Button deleteButton = CreateButton(mainExpanded, "DeleteButton", "Delete", new Vector2(204f, -156f), new Vector2(92f, 34f), DangerColor);
+            Button calibrateFloorButton = CreateButton(mainExpanded, "CalibrateFloorButton", "Cal Floor", new Vector2(-126f, -198f), new Vector2(116f, 34f), ButtonColor);
+            Toggle gridSnapToggle = CreateToggle(mainExpanded, "GridSnapToggle", "Grid Snap", new Vector2(142f, -198f), new Vector2(120f, 28f));
+            Button gridStep01Button = CreateButton(mainExpanded, "GridStep01Button", "0.1", new Vector2(-174f, -236f), new Vector2(60f, 28f), ButtonColor);
+            Button gridStep025Button = CreateButton(mainExpanded, "GridStep025Button", "0.25", new Vector2(-106f, -236f), new Vector2(60f, 28f), ButtonColor);
+            Button gridStep05Button = CreateButton(mainExpanded, "GridStep05Button", "0.5", new Vector2(-38f, -236f), new Vector2(60f, 28f), ButtonColor);
+            Button gridStep1Button = CreateButton(mainExpanded, "GridStep1Button", "1", new Vector2(30f, -236f), new Vector2(60f, 28f), ButtonColor);
+            Text gridStepText = CreateText(mainExpanded, "GridStepText", "Grid 0.5m On", 12, new Vector2(110f, -236f), new Vector2(96f, 22f), TextAnchor.MiddleLeft);
+            Text rotateStepText = CreateText(mainExpanded, "RotateStepText", "Rot 15", 12, new Vector2(190f, -228f), new Vector2(80f, 18f), TextAnchor.MiddleLeft);
+            Text scaleStepText = CreateText(mainExpanded, "ScaleStepText", "Scale 0.1", 12, new Vector2(190f, -248f), new Vector2(80f, 18f), TextAnchor.MiddleLeft);
 
             MapEditorObjectInspector inspector = rightPanel.gameObject.AddComponent<MapEditorObjectInspector>();
             Text selectedNameText = CreateText(rightExpanded, "SelectedNameText", "Selected: none", 14, new Vector2(0f, 200f), new Vector2(280f, 24f), TextAnchor.MiddleLeft);
@@ -103,13 +110,34 @@ namespace TreasureArenaMR.MapEditor.Editor
             InputField radiusField = CreateInputField(rightExpanded, "RadiusField", "radius", new Vector2(-78f, -128f), new Vector2(134f, 32f));
             InputField supplyField = CreateInputField(rightExpanded, "SupplyTypeField", "supply", new Vector2(78f, -128f), new Vector2(134f, 32f));
             InputField refreshField = CreateInputField(rightExpanded, "RefreshIntervalField", "refresh", new Vector2(0f, -166f), new Vector2(280f, 32f));
-            Button duplicateButton = CreateButton(rightExpanded, "DuplicateButton", "Duplicate", new Vector2(-96f, -212f), new Vector2(88f, 36f), ButtonColor);
-            Button inspectorDeleteButton = CreateButton(rightExpanded, "InspectorDeleteButton", "Delete", new Vector2(0f, -212f), new Vector2(88f, 36f), DangerColor);
-            Button resetTransformButton = CreateButton(rightExpanded, "ResetTransformButton", "Reset", new Vector2(96f, -212f), new Vector2(88f, 36f), ButtonColor);
+            Dropdown objectTypeDropdown = CreateDropdown(rightExpanded, "ObjectTypeDropdown", "object_type", new Vector2(-78f, -200f), new Vector2(134f, 28f), new[] { "StaticFloor", "StaticObstacle", "PhysicsProp", "OpenableObject" });
+            Dropdown interactionTypeDropdown = CreateDropdown(rightExpanded, "InteractionTypeDropdown", "interaction", new Vector2(78f, -200f), new Vector2(134f, 28f), new[] { "None", "Grab", "Openable" });
+            Toggle movableToggle = CreateToggle(rightExpanded, "MovableToggle", "movable", new Vector2(-104f, -232f), new Vector2(92f, 24f));
+            Toggle grabbableToggle = CreateToggle(rightExpanded, "GrabbableToggle", "grab", new Vector2(-8f, -232f), new Vector2(82f, 24f));
+            Toggle openableToggle = CreateToggle(rightExpanded, "OpenableToggle", "open", new Vector2(82f, -232f), new Vector2(82f, 24f));
+            Toggle shootableToggle = CreateToggle(rightExpanded, "ShootableToggle", "shoot", new Vector2(-104f, -258f), new Vector2(92f, 24f));
+            Toggle blocksBulletToggle = CreateToggle(rightExpanded, "BlocksBulletToggle", "block", new Vector2(-8f, -258f), new Vector2(82f, 24f));
+            Toggle decalEnabledToggle = CreateToggle(rightExpanded, "DecalEnabledToggle", "decal", new Vector2(82f, -258f), new Vector2(82f, 24f));
+            InputField massField = CreateInputField(rightExpanded, "MassField", "mass", new Vector2(0f, -286f), new Vector2(280f, 26f));
+            Button duplicateButton = CreateButton(rightExpanded, "DuplicateButton", "Duplicate", new Vector2(-96f, -318f), new Vector2(88f, 28f), ButtonColor);
+            Button inspectorDeleteButton = CreateButton(rightExpanded, "InspectorDeleteButton", "Delete", new Vector2(0f, -318f), new Vector2(88f, 28f), DangerColor);
+            Button resetTransformButton = CreateButton(rightExpanded, "ResetTransformButton", "Reset", new Vector2(96f, -318f), new Vector2(88f, 28f), ButtonColor);
+            Button nudgeXMinusButton = CreateButton(rightExpanded, "NudgeXMinusButton", "X-", new Vector2(-120f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button nudgeXPlusButton = CreateButton(rightExpanded, "NudgeXPlusButton", "X+", new Vector2(-66f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button nudgeYMinusButton = CreateButton(rightExpanded, "NudgeYMinusButton", "Y-", new Vector2(-12f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button nudgeYPlusButton = CreateButton(rightExpanded, "NudgeYPlusButton", "Y+", new Vector2(42f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button nudgeZMinusButton = CreateButton(rightExpanded, "NudgeZMinusButton", "Z-", new Vector2(96f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button nudgeZPlusButton = CreateButton(rightExpanded, "NudgeZPlusButton", "Z+", new Vector2(150f, -350f), new Vector2(48f, 24f), ButtonColor);
+            Button rotateMinusButton = CreateButton(rightExpanded, "RotateMinusButton", "R-", new Vector2(-120f, -378f), new Vector2(48f, 24f), ButtonColor);
+            Button rotatePlusButton = CreateButton(rightExpanded, "RotatePlusButton", "R+", new Vector2(-66f, -378f), new Vector2(48f, 24f), ButtonColor);
+            Button scaleMinusButton = CreateButton(rightExpanded, "ScaleMinusButton", "S-", new Vector2(-12f, -378f), new Vector2(48f, 24f), ButtonColor);
+            Button scalePlusButton = CreateButton(rightExpanded, "ScalePlusButton", "S+", new Vector2(42f, -378f), new Vector2(48f, 24f), ButtonColor);
+            Button snapToFloorButton = CreateButton(rightExpanded, "SnapToFloorButton", "Floor", new Vector2(104f, -378f), new Vector2(64f, 24f), ButtonColor);
+            Button resetRotationButton = CreateButton(rightExpanded, "ResetRotationButton", "Rot 0", new Vector2(176f, -378f), new Vector2(64f, 24f), ButtonColor);
 
             BindPresenter(presenter, recentLogText, errorListText);
-            BindInspector(inspector, selectedNameText, selectedTypeText, idField, prefabField, posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, scaleZ, colliderToggle, teamDropdown, treasureDropdown, radiusField, supplyField, refreshField, duplicateButton, inspectorDeleteButton, resetTransformButton);
-            BindController(root.GetComponent<MapEditorDockedUiController>(), leftPanel, mainPanel, rightPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, saveButton, loadButton, previewButton, clearMapButton, mapSettingsButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, leftHandBrushText, rightHandBrushText, activeHandText, hintText, placeButton, moveButton, rotateButton, scaleButton, deleteButton, null, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
+            BindInspector(inspector, selectedNameText, selectedTypeText, idField, prefabField, posX, posY, posZ, rotX, rotY, rotZ, scaleX, scaleY, scaleZ, colliderToggle, objectTypeDropdown, interactionTypeDropdown, movableToggle, grabbableToggle, openableToggle, shootableToggle, blocksBulletToggle, decalEnabledToggle, massField, teamDropdown, treasureDropdown, radiusField, supplyField, refreshField, duplicateButton, inspectorDeleteButton, resetTransformButton);
+            BindController(root.GetComponent<MapEditorDockedUiController>(), leftPanel, mainPanel, rightPanel, mapNameText, mapIdText, mapVersionText, modeText, countText, statusText, validateButton, exportButton, saveButton, loadButton, previewButton, clearMapButton, mapSettingsButton, mapObjectsList, gameplayMarkersList, brushButtonTemplate, leftHandBrushText, rightHandBrushText, activeHandText, hintText, placeButton, moveButton, rotateButton, scaleButton, calibrateFloorButton, deleteButton, null, gridSnapToggle, gridStep01Button, gridStep025Button, gridStep05Button, gridStep1Button, nudgeXPlusButton, nudgeXMinusButton, nudgeYPlusButton, nudgeYMinusButton, nudgeZPlusButton, nudgeZMinusButton, rotatePlusButton, rotateMinusButton, scalePlusButton, scaleMinusButton, snapToFloorButton, resetRotationButton, gridStepText, rotateStepText, scaleStepText, presenter, inspector);
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
@@ -388,6 +416,28 @@ namespace TreasureArenaMR.MapEditor.Editor
             return dot;
         }
 
+        private static MapEditorPanelMoveBar CreatePanelMoveBar(Transform parent)
+        {
+            GameObject go = new GameObject("PanelMoveBar", typeof(RectTransform), typeof(Image), typeof(BoxCollider), typeof(MapEditorRuntimeUiHitTarget), typeof(MapEditorPanelMoveBar));
+            go.transform.SetParent(parent, false);
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(520f, 28f);
+            rect.anchoredPosition = new Vector2(0f, -286f);
+
+            Image image = go.GetComponent<Image>();
+            image.color = new Color(0.10f, 0.16f, 0.22f, 0.95f);
+
+            BoxCollider collider = go.GetComponent<BoxCollider>();
+            collider.size = new Vector3(rect.sizeDelta.x, rect.sizeDelta.y, 8f);
+            collider.center = Vector3.zero;
+
+            Text label = CreateText(go.transform, "PanelMoveBarLabel", "Move Panel", 12, Vector2.zero, new Vector2(180f, 22f), TextAnchor.MiddleCenter);
+            label.color = new Color(0.85f, 0.94f, 1f, 1f);
+            return go.GetComponent<MapEditorPanelMoveBar>();
+        }
+
         private static void SetBoxCollider(GameObject go, Vector2 size)
         {
             BoxCollider collider = go.GetComponent<BoxCollider>();
@@ -407,7 +457,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void BindInspector(MapEditorObjectInspector inspector, Text selectedNameText, Text selectedTypeText, InputField idField, InputField prefabField, InputField posX, InputField posY, InputField posZ, InputField rotX, InputField rotY, InputField rotZ, InputField scaleX, InputField scaleY, InputField scaleZ, Toggle colliderToggle, Dropdown teamDropdown, Dropdown treasureDropdown, InputField radiusField, InputField supplyField, InputField refreshField, Button duplicateButton, Button deleteButton, Button resetTransformButton)
+        private static void BindInspector(MapEditorObjectInspector inspector, Text selectedNameText, Text selectedTypeText, InputField idField, InputField prefabField, InputField posX, InputField posY, InputField posZ, InputField rotX, InputField rotY, InputField rotZ, InputField scaleX, InputField scaleY, InputField scaleZ, Toggle colliderToggle, Dropdown objectTypeDropdown, Dropdown interactionTypeDropdown, Toggle movableToggle, Toggle grabbableToggle, Toggle openableToggle, Toggle shootableToggle, Toggle blocksBulletToggle, Toggle decalEnabledToggle, InputField massField, Dropdown teamDropdown, Dropdown treasureDropdown, InputField radiusField, InputField supplyField, InputField refreshField, Button duplicateButton, Button deleteButton, Button resetTransformButton)
         {
             SerializedObject serialized = new SerializedObject(inspector);
             serialized.FindProperty("selectedNameText").objectReferenceValue = selectedNameText;
@@ -424,6 +474,15 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.FindProperty("scaleYInput").objectReferenceValue = scaleY;
             serialized.FindProperty("scaleZInput").objectReferenceValue = scaleZ;
             serialized.FindProperty("hasColliderToggle").objectReferenceValue = colliderToggle;
+            serialized.FindProperty("objectTypeDropdown").objectReferenceValue = objectTypeDropdown;
+            serialized.FindProperty("interactionTypeDropdown").objectReferenceValue = interactionTypeDropdown;
+            serialized.FindProperty("movableToggle").objectReferenceValue = movableToggle;
+            serialized.FindProperty("grabbableToggle").objectReferenceValue = grabbableToggle;
+            serialized.FindProperty("openableToggle").objectReferenceValue = openableToggle;
+            serialized.FindProperty("shootableToggle").objectReferenceValue = shootableToggle;
+            serialized.FindProperty("blocksBulletToggle").objectReferenceValue = blocksBulletToggle;
+            serialized.FindProperty("decalEnabledToggle").objectReferenceValue = decalEnabledToggle;
+            serialized.FindProperty("massInput").objectReferenceValue = massField;
             serialized.FindProperty("teamDropdown").objectReferenceValue = teamDropdown;
             serialized.FindProperty("treasureTypeDropdown").objectReferenceValue = treasureDropdown;
             serialized.FindProperty("radiusInput").objectReferenceValue = radiusField;
@@ -435,7 +494,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void BindController(MapEditorDockedUiController controller, MapEditorDockedPanel leftPanel, MapEditorDockedPanel mainPanel, MapEditorDockedPanel rightPanel, Text mapNameText, Text mapIdText, Text mapVersionText, Text modeText, Text countText, Text statusText, Button validateButton, Button exportButton, Button saveButton, Button loadButton, Button previewButton, Button clearMapButton, Button mapSettingsButton, Transform mapObjectsList, Transform gameplayMarkersList, Button brushButtonTemplate, Text leftHandBrushText, Text rightHandBrushText, Text activeHandText, Text hintText, Button placeButton, Button moveButton, Button rotateButton, Button scaleButton, Button deleteButton, Button clearBrushButton, Text gridStepText, Text rotateStepText, Text scaleStepText, MapEditorValidationPresenter presenter, MapEditorObjectInspector inspector)
+        private static void BindController(MapEditorDockedUiController controller, MapEditorDockedPanel leftPanel, MapEditorDockedPanel mainPanel, MapEditorDockedPanel rightPanel, Text mapNameText, Text mapIdText, Text mapVersionText, Text modeText, Text countText, Text statusText, Button validateButton, Button exportButton, Button saveButton, Button loadButton, Button previewButton, Button clearMapButton, Button mapSettingsButton, Transform mapObjectsList, Transform gameplayMarkersList, Button brushButtonTemplate, Text leftHandBrushText, Text rightHandBrushText, Text activeHandText, Text hintText, Button placeButton, Button moveButton, Button rotateButton, Button scaleButton, Button calibrateFloorButton, Button deleteButton, Button clearBrushButton, Toggle gridSnapToggle, Button gridStep01Button, Button gridStep025Button, Button gridStep05Button, Button gridStep1Button, Button nudgeXPlusButton, Button nudgeXMinusButton, Button nudgeYPlusButton, Button nudgeYMinusButton, Button nudgeZPlusButton, Button nudgeZMinusButton, Button rotatePlusButton, Button rotateMinusButton, Button scalePlusButton, Button scaleMinusButton, Button snapToFloorButton, Button resetRotationButton, Text gridStepText, Text rotateStepText, Text scaleStepText, MapEditorValidationPresenter presenter, MapEditorObjectInspector inspector)
         {
             SerializedObject serialized = new SerializedObject(controller);
             serialized.FindProperty("leftInfoPanel").objectReferenceValue = leftPanel;
@@ -465,8 +524,26 @@ namespace TreasureArenaMR.MapEditor.Editor
             serialized.FindProperty("moveButton").objectReferenceValue = moveButton;
             serialized.FindProperty("rotateButton").objectReferenceValue = rotateButton;
             serialized.FindProperty("scaleButton").objectReferenceValue = scaleButton;
+            serialized.FindProperty("calibrateFloorButton").objectReferenceValue = calibrateFloorButton;
             serialized.FindProperty("deleteButton").objectReferenceValue = deleteButton;
             serialized.FindProperty("clearBrushButton").objectReferenceValue = clearBrushButton;
+            serialized.FindProperty("gridSnapToggle").objectReferenceValue = gridSnapToggle;
+            serialized.FindProperty("gridStep01Button").objectReferenceValue = gridStep01Button;
+            serialized.FindProperty("gridStep025Button").objectReferenceValue = gridStep025Button;
+            serialized.FindProperty("gridStep05Button").objectReferenceValue = gridStep05Button;
+            serialized.FindProperty("gridStep1Button").objectReferenceValue = gridStep1Button;
+            serialized.FindProperty("nudgeXPlusButton").objectReferenceValue = nudgeXPlusButton;
+            serialized.FindProperty("nudgeXMinusButton").objectReferenceValue = nudgeXMinusButton;
+            serialized.FindProperty("nudgeYPlusButton").objectReferenceValue = nudgeYPlusButton;
+            serialized.FindProperty("nudgeYMinusButton").objectReferenceValue = nudgeYMinusButton;
+            serialized.FindProperty("nudgeZPlusButton").objectReferenceValue = nudgeZPlusButton;
+            serialized.FindProperty("nudgeZMinusButton").objectReferenceValue = nudgeZMinusButton;
+            serialized.FindProperty("rotatePlusButton").objectReferenceValue = rotatePlusButton;
+            serialized.FindProperty("rotateMinusButton").objectReferenceValue = rotateMinusButton;
+            serialized.FindProperty("scalePlusButton").objectReferenceValue = scalePlusButton;
+            serialized.FindProperty("scaleMinusButton").objectReferenceValue = scaleMinusButton;
+            serialized.FindProperty("snapToFloorButton").objectReferenceValue = snapToFloorButton;
+            serialized.FindProperty("resetRotationButton").objectReferenceValue = resetRotationButton;
             serialized.FindProperty("gridStepText").objectReferenceValue = gridStepText;
             serialized.FindProperty("rotateStepText").objectReferenceValue = rotateStepText;
             serialized.FindProperty("scaleStepText").objectReferenceValue = scaleStepText;

@@ -24,7 +24,7 @@ TreasureArenaMR 是一个基于 Pico 4 的 MR 多人联机双队夺宝竞技游�
 ```text
 1. 地图编辑器先在 TreasureArenaUnity 工程内作为独立场景/模块开发。
 2. 后续如有需要可拆成单独的 Unity App。
-3. 编辑器 MVP 只负责摆放 prefab、玩法点、bounds，并导出当前 JSON 协议文件。
+3. 编辑器 MVP 只负责摆放 prefab、玩法点、绘制 map_boundary，并导出当前 JSON 协议文件。
 4. 编辑器不参与战斗判定，不修改服务器权威边界。
 5. 编辑器导出的 JSON 必须通过 MapValidator 校验。
 ```
@@ -38,7 +38,7 @@ TreasureArenaMR 是一个基于 Pico 4 的 MR 多人联机双队夺宝竞技游�
 4. 支持放置 red_base、blue_base（带 TeamBase 标记）。
 5. 支持放置 treasure points（带 TreasureSpawnPoint 标记）。
 6. 支持放置 supply boxes（带 SupplyBox 标记）。
-7. 支持放置 bounds（带 Bounds 标记）。
+7. 支持通过 Draw Bounds / Draw Area 绘制 map_boundary。
 8. 可导出地图 JSON，并通过 MapValidator 校验。
 ```
 
@@ -297,7 +297,7 @@ MVP 阶段采用限时积分制：
 14. 对局结果写入数据库。
 15. 管理端显示结果。
 16. MapEditor 独立模块/场景，可选择 prefab 并放置/移动/旋转/缩放/删除对象。
-17. MapEditor 可放置 red_base、blue_base、treasure points、supply boxes、bounds。
+17. MapEditor 可放置 red_base、blue_base、treasure points、supply boxes，并绘制 map_boundary。
 18. MapEditor 可保存地图 JSON，并通过 MapValidator 校验。
 ```
 
@@ -545,7 +545,7 @@ Unity 管理端创建多人房间
 - database/seed_data.sql（新建）
 
 已完成功能：
-- 地图 JSON 协议完整：team_bases（合并出生区/复活区/基地）/ treasure_spawn_points / supply_boxes / bounds / objects
+- 地图 JSON 协议完整：team_bases（合并出生区/复活区/基地）/ treasure_spawn_points / supply_boxes / map_boundary / objects
 - 房间配置 JSON 完整：game_mode / map_id / match_time / player_max_hp / respawn_countdown / weapon_config / treasure_scores
 - 网络消息完整：join_room / switch_team / start_match / pickup_treasure / submit_treasure / attack / ghost_retreat / respawn_countdown_started / player_respawned / room_state_update / match_finished
 - 错误码完整：覆盖房间、玩家、宝物、武器、复活等所有操作

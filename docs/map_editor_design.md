@@ -38,7 +38,7 @@
 1. Prefab 库管理（读取可用 prefab 列表）。
 2. 物件放置、选择、移动、旋转、缩放、删除。
 3. 玩法标记放置与参数设置。
-4. 地图元数据编辑（map_id、map_name、version、description）。
+4. 地图元数据编辑（map_id、map_name、map_version、description）。
 5. 导出地图 JSON。
 6. 调用 MapValidator 校验导出结果。
 7. 调用 MapLoader 预览地图加载效果（可选，Editor 模式）。
@@ -218,27 +218,31 @@ has_collider    : bool     // 默认 true
 
 ---
 
-## 7. bounds 如何生成
+## 7. map_boundary 如何生成
 
-### 7.1 编辑器中放置地图边界
+### 7.1 编辑器中绘制地图边界
 
 ```text
-1. 用户从标记面板选择"地图边界"。
-2. 编辑器中放置一个带 Bounds 标记的 GameObject（建议用半透明 Cube 可视化）。
-3. 自动添加 MapExportMarker：
-     - marker_type = Bounds
-     - position → bounds.center
-     - localScale → bounds.size
-4. 整个场景只应有 1 个 bounds。
-5. bounds 在 MVP 中为可选，MapValidator 不强制要求。
+1. 用户进入 Draw Bounds / Draw Area 模式。
+2. 用 Trigger 在真实地面上逐点绘制地图边界。
+3. 所有边界点贴当前 editorFloorY / floorPlane。
+4. 至少 3 个点后可闭合边界。
+5. 编辑器保存一个地图级 MapEditorBoundaryData，不通过 MapExportMarker 导出。
+6. 导出 JSON 时写入 map_boundary：
+     - boundary_type = "Polygon"
+     - height = 默认 2.5
+     - points = 按绘制顺序排列的边界点，最后一点不重复首点
+7. 每张地图最多 1 个 map_boundary。
+8. map_boundary 为必填字段，MapValidator 会拒绝缺失或少于 3 个点的地图。
 ```
 
-### 7.2 bounds 用途
+### 7.2 map_boundary 用途
 
 ```text
 1. 定义地图有效活动范围。
-2. Server 可用于判断玩家是否离开地图。
+2. Server 可用于基于 Polygon XZ 点内检测 + height 判断玩家是否离开地图。
 3. 编辑器预览时可视化显示边界。
+4. 不再依赖固定 Bounds box prefab。
 ```
 
 ---
@@ -251,13 +255,13 @@ has_collider    : bool     // 默认 true
 编辑器中放置物件/标记
         │
         ▼
-每个 GameObject 挂载 MapExportMarker（marker_type + 参数）
+每个导出物件/玩法点挂载 MapExportMarker，地图边界保存为 MapEditorBoundaryData
         │
         ▼
-编辑器保存按钮 → 调用 MapSceneJsonExporter（或编辑器内等价逻辑）
+编辑器保存按钮 → 调用 MapSceneJsonExporter（或编辑器内等价逻辑）并收集 MapEditorBoundaryData
         │
         ▼
-所有 MapExportMarker 被扫描，按 marker_type 分类写入 MapJson 结构
+所有 MapExportMarker 被扫描，按 marker_type 分类写入 MapJson 结构；MapEditorBoundaryData 写入 map_boundary
         │
         ▼
 MapJson 传入 MapValidator.Validate()
@@ -275,9 +279,9 @@ MapJson 传入 MapValidator.Validate()
 | 模块 | 角色 | 关键动作 |
 |------|------|---------|
 | MapExportMarker | 数据标记 | 挂在 GameObject 上，存储 object_id / prefab_id / marker_type / transform 等 |
-| MapSceneJsonExporter | 数据收集 | 扫描所有 MapExportMarker，按类型写入 MapJson 结构 |
-| MapValidator | 数据校验 | 检查 MapJson 是否满足最低要求（红蓝基地、宝物点等） |
-| MapLoader | 数据消费 | 读取 MapJson，实例化 prefab，生成基地、宝物、物资箱、边界 |
+| MapSceneJsonExporter | 数据收集 | 扫描所有 MapExportMarker，按类型写入 MapJson 结构，并写入 map_boundary |
+| MapValidator | 数据校验 | 检查 MapJson 是否满足最低要求（红蓝基地、宝物点、地图边界等） |
+| MapLoader | 数据消费 | 读取 MapJson，实例化 prefab，读取基地、宝物、物资箱、map_boundary |
 
 ### 8.3 编辑器中的调用关系
 
@@ -286,8 +290,9 @@ MapJson 传入 MapValidator.Validate()
 编辑器导出流程：
   1. 遍历场景中所有带 MapExportMarker 的 GameObject。
   2. 按 marker_type 构造 MapJson。
-  3. 调用 MapValidator.Validate(map)。
-  4. 成功则写入 JSON 文件。
+  3. 收集 MapEditorBoundaryData 并写入 map_boundary。
+  4. 调用 MapValidator.Validate(map)。
+  5. 成功则写入 JSON 文件。
 ```
 
 > 编辑器在 ME-1~ME-3 阶段可复用 `MapSceneJsonExporter.ExportCurrentSceneToDefaultPath()`。
@@ -360,10 +365,11 @@ MapJson 传入 MapValidator.Validate()
      - 可编辑 radius。
   4. 放置 supply box：
      - 可编辑 supply_type 和 refresh_interval。
-  5. 放置 bounds：
-     - 以半透明 Box 可视化。
-     - 可拖拽调整 size。
-  6. 所有标记的 MapExportMarker 参数可在 Inspector 面板中修改。
+  5. 绘制 map_boundary：
+     - 进入 Draw Bounds / Draw Area 模式逐点绘制 Polygon。
+     - 所有边界点贴真实地面。
+     - 至少 3 个点后可闭合。
+  6. 所有标记的 MapExportMarker 参数可在 Inspector 面板中修改，地图边界不使用 MapExportMarker。
 ```
 
 ### ME-3：地图保存与验证
@@ -372,8 +378,8 @@ MapJson 传入 MapValidator.Validate()
 目标：编辑器可导出地图 JSON，并通过 MapValidator 校验。
 
 验收标准：
-  1. 编辑器有"导出"按钮，点击后收集所有 MapExportMarker 数据。
-  2. 构造 MapJson 对象，调用 MapValidator.Validate()。
+  1. 编辑器有"导出"按钮，点击后收集所有 MapExportMarker 数据和 MapEditorBoundaryData。
+  2. 构造 MapJson 对象，写入 map_boundary，调用 MapValidator.Validate()。
   3. 校验失败时：
      - 显示具体错误列表（如"缺少红队基地""缺少宝物刷新点"）。
      - 阻止导出，不生成 JSON 文件。
@@ -395,7 +401,7 @@ MapJson 传入 MapValidator.Validate()
   3. MapLoader 正确生成 team_bases（红蓝基地区域）。
   4. MapLoader 正确生成 treasure_spawn_points（宝物刷新点）。
   5. MapLoader 正确生成 supply_boxes（物资箱）。
-  6. MapLoader 正确生成 bounds（地图边界）。
+  6. MapLoader 正确读取 map_boundary（地图边界）。
   7. 编辑器导出 → MapLoader 加载 → Play Mode 可视化验证，三者闭环通过。
 ```
 
@@ -438,7 +444,7 @@ MapJson 传入 MapValidator.Validate()
   2. 红蓝玩家在各自基地出生。
   3. 宝物在 treasure_spawn_points 位置生成。
   4. 物资箱在 supply_boxes 位置生成。
-  5. 地图边界 bounds 生效。
+  5. 地图边界 map_boundary 生效。
   6. 墙体/掩体 Collider 正常阻挡射线和玩家移动。
   7. GhostRetreat 玩家走回己方基地可触发复活倒计时。
   8. 玩家进入己方基地可提交宝物。
@@ -472,5 +478,5 @@ MapJson 传入 MapValidator.Validate()
 3. 不得在编辑器中实现战斗判定逻辑。
 4. 不得将动画状态写入地图 JSON。
 5. 不得将交互状态（拾取/提交/刷新）写入地图 JSON。
-6. 编辑器导出的 JSON 不得包含当前 MapJson 协议定义字段之外的字段（即仅限 map_id / map_name / version / description / objects / team_bases / treasure_spawn_points / supply_boxes / bounds）。
+6. 编辑器导出的 JSON 不得包含当前 MapJson 协议定义字段之外的字段（即仅限 map_id / map_name / map_version / description / editor_origin / floor_calibration / objects / team_bases / treasure_spawn_points / supply_boxes / map_boundary）。
 ```

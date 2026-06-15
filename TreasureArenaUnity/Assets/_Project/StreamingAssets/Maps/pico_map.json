@@ -1,106 +1,155 @@
 {
-    "map_id": "pico_map",
-    "map_name": "PicoMap",
-    "version": "1.0.0",
-    "description": "Exported from Pico MR map editor.",
-    "objects": [
-        {
-            "object_id": "book_2_01",
-            "prefab_id": "book_2",
-            "position": {
-                "x": -2.5,
-                "y": 1.5,
-                "z": -2.0
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-            },
-            "has_collider": false
-        },
-        {
-            "object_id": "antique_light_01",
-            "prefab_id": "antique_light",
-            "position": {
-                "x": -0.5,
-                "y": 0.0,
-                "z": 1.0
-            },
-            "rotation": {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0
-            },
-            "scale": {
-                "x": 1.0,
-                "y": 1.0,
-                "z": 1.0
-            },
-            "has_collider": false
-        }
-    ],
-    "team_bases": [
-        {
-            "base_id": "TeamBase_Red_01",
-            "team": "Red",
-            "position": {
-                "x": 2.5,
-                "y": 1.5,
-                "z": -5.0
-            },
-            "radius": 1.0
-        },
-        {
-            "base_id": "TeamBase_Blue_01",
-            "team": "Blue",
-            "position": {
-                "x": -4.0,
-                "y": 1.5,
-                "z": -0.5
-            },
-            "radius": 1.0
-        }
-    ],
-    "treasure_spawn_points": [
-        {
-            "point_id": "Treasure_Final_01",
-            "treasure_type": "Final",
-            "position": {
-                "x": -1.5,
-                "y": 1.5,
-                "z": -3.5
-            },
-            "radius": 1.0
-        }
-    ],
-    "supply_boxes": [
-        {
-            "box_id": "SupplyBox_01",
-            "position": {
-                "x": -1.5,
-                "y": 1.5,
-                "z": -1.0
-            },
-            "supply_type": "WeaponRandom",
-            "refresh_interval": 20.0
-        }
-    ],
-    "bounds": {
-        "center": {
-            "x": 0.5,
-            "y": 0.0,
-            "z": -2.0
-        },
-        "size": {
-            "x": 12.0,
-            "y": 3.0,
-            "z": 8.0
-        }
+  "map_id": "pico_map",
+  "map_name": "PicoMap",
+  "description": "Exported from Pico MR map editor.",
+  "objects": [
+    {
+      "object_id": "book_2_01",
+      "prefab_id": "book_2",
+      "position": {
+        "x": -2.5,
+        "y": 1.5,
+        "z": -2.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "has_collider": false,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": false,
+      "blocks_bullet": false,
+      "decal_enabled": false,
+      "mass": 0.0
+    },
+    {
+      "object_id": "antique_light_01",
+      "prefab_id": "antique_light",
+      "position": {
+        "x": -0.5,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "has_collider": false,
+      "object_type": "StaticObstacle",
+      "interaction_type": "None",
+      "is_movable": false,
+      "is_grabbable": false,
+      "is_openable": false,
+      "is_shootable": false,
+      "blocks_bullet": false,
+      "decal_enabled": false,
+      "mass": 0.0
     }
+  ],
+  "team_bases": [
+    {
+      "base_id": "TeamBase_Red_01",
+      "team": "Red",
+      "position": {
+        "x": -1.91,
+        "y": -0.014,
+        "z": 4.543
+      },
+      "radius": 1.0
+    },
+    {
+      "base_id": "TeamBase_Blue_01",
+      "team": "Blue",
+      "position": {
+        "x": -1.91,
+        "y": -0.014,
+        "z": -3.67
+      },
+      "radius": 1.0
+    }
+  ],
+  "treasure_spawn_points": [
+    {
+      "point_id": "Treasure_Final_01",
+      "treasure_type": "Final",
+      "position": {
+        "x": -0.106,
+        "y": 1.656,
+        "z": -3.20598125
+      },
+      "radius": 1.0
+    }
+  ],
+  "supply_boxes": [
+    {
+      "box_id": "SupplyBox_01",
+      "position": {
+        "x": -1.5,
+        "y": 1.5,
+        "z": -1.0
+      },
+      "supply_type": "WeaponRandom",
+      "refresh_interval": 20.0
+    }
+  ],
+  "map_boundary": {
+    "boundary_type": "Polygon",
+    "height": 2.5,
+    "points": [
+      {
+        "x": -3.5,
+        "y": 0.0,
+        "z": -4.8
+      },
+      {
+        "x": 1.5,
+        "y": 0.0,
+        "z": -4.8
+      },
+      {
+        "x": 1.5,
+        "y": 0.0,
+        "z": 5.7
+      },
+      {
+        "x": -3.5,
+        "y": 0.0,
+        "z": 5.7
+      }
+    ]
+  },
+  "map_version": "1.0.0",
+  "editor_origin": {
+    "position": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "rotation": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    }
+  },
+  "floor_calibration": {
+    "is_calibrated": true,
+    "floor_y": 0.0,
+    "source": "Imported"
+  }
 }
