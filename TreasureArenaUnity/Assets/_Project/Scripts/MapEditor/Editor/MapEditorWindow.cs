@@ -362,7 +362,9 @@ namespace TreasureArenaMR.MapEditor
         {
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
             {
-                Material mat = new Material(Shader.Find("Standard"));
+                // Clone the object's existing material (which already uses the correct
+                // RP shader for the current platform) instead of hardcoding Shader.Find("Standard").
+                Material mat = new Material(r.sharedMaterial);
                 mat.color = color;
                 mat.SetFloat("_Mode", 3);
                 mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);

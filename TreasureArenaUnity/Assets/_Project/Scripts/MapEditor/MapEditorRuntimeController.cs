@@ -1657,22 +1657,27 @@ namespace TreasureArenaMR.MapEditor
 
         private static void SetPreviewMaterial(GameObject root)
         {
-            Material material = GetSharedGhostMaterial();
             Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+                return;
+
+            Material material = GetSharedGhostMaterial(renderers[0].sharedMaterial);
             for (int i = 0; i < renderers.Length; i++)
             {
                 renderers[i].sharedMaterial = material;
             }
         }
 
-        private static Material GetSharedGhostMaterial()
+        private static Material GetSharedGhostMaterial(Material template)
         {
             if (sharedGhostMaterial != null)
             {
                 return sharedGhostMaterial;
             }
 
-            sharedGhostMaterial = new Material(Shader.Find("Standard"));
+            // Clone from the template material (which already uses the correct RP shader)
+            // instead of hardcoding Shader.Find("Standard") which breaks on URP/Android.
+            sharedGhostMaterial = new Material(template);
             sharedGhostMaterial.color = new Color(0f, 1f, 0.5f, 0.35f);
             sharedGhostMaterial.SetFloat("_Mode", 3f);
             sharedGhostMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
