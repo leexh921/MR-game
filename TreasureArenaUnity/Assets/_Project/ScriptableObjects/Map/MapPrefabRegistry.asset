@@ -129,3 +129,5 @@ MonoBehaviour:
     prefab: {fileID: 3806619352732832944, guid: d385c519a2e71a74899ddf539825e79e, type: 3}
   - prefab_id: wall_with_two_window
     prefab: {fileID: 567362939508772860, guid: 3b3574bbb2392ab49b0ba2d669475f72, type: 3}
+  - prefab_id: maproot
+    prefab: {fileID: 7111921777654563730, guid: 9c97a7a54e66d7149b108517063213b2, type: 3}

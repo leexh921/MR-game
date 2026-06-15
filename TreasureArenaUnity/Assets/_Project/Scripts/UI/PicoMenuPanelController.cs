@@ -12,6 +12,7 @@ namespace TreasureArenaMR.UI
     {
         [Header("Visibility")]
         [SerializeField] private bool visibleOnStart;
+        [SerializeField] private bool toggleWithMenuButton = true;
         [SerializeField] private KeyCode editorToggleKey = KeyCode.M;
         [SerializeField] private bool useSecondaryButtonFallback = true;
         [SerializeField] private bool usePrimaryButtonFallback;
@@ -44,6 +45,9 @@ namespace TreasureArenaMR.UI
 
         private void Update()
         {
+            if (!toggleWithMenuButton)
+                return;
+
             bool menuPressed = IsPicoMenuPressed();
             bool pressedThisFrame = menuPressed && !previousMenuPressed;
             previousMenuPressed = menuPressed;

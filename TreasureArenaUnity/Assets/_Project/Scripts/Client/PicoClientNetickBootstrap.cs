@@ -36,6 +36,7 @@ namespace TreasureArenaMR.Client
         private bool mapLoading;
         private string connectionStatus = "Ready";
         private string mapStatus = "Map: Waiting";
+        private string lastMapDiagnostic;
 
         private void Awake()
         {
@@ -139,12 +140,16 @@ namespace TreasureArenaMR.Client
             var matchState = FindObjectOfType<NetworkMatchState>();
             if (matchState == null)
             {
+                LogMapDiagnostic("waiting_match_state", "Waiting for NetworkMatchState. "
+                    + "If this stays here, check server logs for NetworkMatchState ready.");
                 SetMapStatus("Map: Waiting for NetworkMatchState");
                 return;
             }
 
             if (!matchState.MapConfigured)
             {
+                LogMapDiagnostic("waiting_map_config", "NetworkMatchState found but MapConfigured=false. "
+                    + "index=" + matchState.MapIndex + ", revision=" + matchState.MapRevision);
                 SetMapStatus("Map: Waiting for map selection");
                 return;
             }
@@ -160,6 +165,9 @@ namespace TreasureArenaMR.Client
             string mapId = RuntimeMapCatalog.GetMapId(matchState.MapIndex);
             if (string.IsNullOrEmpty(mapId))
             {
+                LogMapDiagnostic("unknown_index_" + matchState.MapIndex,
+                    "Unknown network map index " + matchState.MapIndex
+                    + ". Catalog=[" + string.Join(",", RuntimeMapCatalog.GetMapIds()) + "]");
                 SetMapStatus("Map: Unknown index " + matchState.MapIndex);
                 Debug.LogError("[PicoClientNetickBootstrap] Unknown network map index: " + matchState.MapIndex);
                 return;
@@ -167,6 +175,11 @@ namespace TreasureArenaMR.Client
 
             int targetIndex = matchState.MapIndex;
             int targetRevision = matchState.MapRevision;
+            LogMapDiagnostic("load_" + targetIndex + "_" + targetRevision,
+                "Received map sync. index=" + targetIndex
+                + ", mapId=" + mapId
+                + ", revision=" + targetRevision
+                + ", catalog=[" + string.Join(",", RuntimeMapCatalog.GetMapIds()) + "]");
             SetMapStatus("Map: Loading " + mapId + " rev " + targetRevision);
             StartCoroutine(LoadMapCoroutine(mapId, targetIndex, targetRevision));
         }
@@ -179,6 +192,8 @@ namespace TreasureArenaMR.Client
             string path = MapLoader.ResolveMapPath(mapId);
             string json = null;
             string error = null;
+            Debug.Log("[PicoClientNetickBootstrap] Loading map JSON. mapId="
+                + mapId + ", revision=" + targetRevision + ", path=" + path);
 
             yield return MapLoader.ReadAllTextCoroutine(path, (j, e) =>
             {
@@ -196,6 +211,8 @@ namespace TreasureArenaMR.Client
             }
 
             MapJsonModels.MapJson map = JsonUtility.FromJson<MapJsonModels.MapJson>(json);
+            Debug.Log("[PicoClientNetickBootstrap] Parsed map JSON. "
+                + BuildMapSummary(map));
 
             MapLoader loader = new MapLoader();
             MapInstantiationResult instantiateResult = loader.InstantiateObjects(map, prefabRegistry, runtimeMapParent);
@@ -213,6 +230,8 @@ namespace TreasureArenaMR.Client
                 runtimeMapRoot.name = "RuntimeMap_" + map.map_id;
                 GameObject overlay = new MapRuntimeBuilder().BuildGameplayOverlay(map);
                 overlay.transform.SetParent(runtimeMapRoot.transform, false);
+                Debug.Log("[PicoClientNetickBootstrap] Instantiated map prefabs. objects="
+                    + instantiateResult.objectCount + ", root=" + DescribeTransform(runtimeMapRoot.transform));
             }
 
             loadedMapIndex = targetIndex;
@@ -220,7 +239,9 @@ namespace TreasureArenaMR.Client
 
             SetMapStatus("Map: Loaded " + map.map_id + " rev " + targetRevision);
             RefreshStatus("Loaded map " + map.map_id);
-            Debug.Log("[PicoClientNetickBootstrap] Runtime map visual loaded: " + map.map_id);
+            Debug.Log("[PicoClientNetickBootstrap] Runtime map visual loaded. "
+                + BuildMapSummary(map)
+                + ", root=" + DescribeTransform(runtimeMapRoot != null ? runtimeMapRoot.transform : null));
             mapLoading = false;
         }
 
@@ -287,6 +308,49 @@ namespace TreasureArenaMR.Client
 
             mapStatus = status;
             RefreshStatus(connectionStatus);
+        }
+
+        private void LogMapDiagnostic(string key, string message)
+        {
+            if (lastMapDiagnostic == key)
+                return;
+
+            lastMapDiagnostic = key;
+            Debug.Log("[PicoClientNetickBootstrap] Map diagnostic: " + message);
+        }
+
+        private static string BuildMapSummary(MapJsonModels.MapJson map)
+        {
+            if (map == null)
+                return "map=null";
+
+            int objectCount = map.objects != null ? map.objects.Count : 0;
+            int baseCount = map.team_bases != null ? map.team_bases.Count : 0;
+            int treasureCount = map.treasure_spawn_points != null ? map.treasure_spawn_points.Count : 0;
+            int supplyCount = map.supply_boxes != null ? map.supply_boxes.Count : 0;
+            int boundaryCount = map.map_boundary != null && map.map_boundary.points != null
+                ? map.map_boundary.points.Count
+                : 0;
+
+            return "mapId=" + map.map_id
+                + ", objects=" + objectCount
+                + ", teamBases=" + baseCount
+                + ", treasurePoints=" + treasureCount
+                + ", supplyBoxes=" + supplyCount
+                + ", boundaryPoints=" + boundaryCount;
+        }
+
+        private static string DescribeTransform(Transform target)
+        {
+            if (target == null)
+                return "null";
+
+            Vector3 position = target.position;
+            Vector3 scale = target.lossyScale;
+            return target.name
+                + " pos=" + position.ToString("F3")
+                + " scale=" + scale.ToString("F3")
+                + " children=" + target.childCount;
         }
 
         private static void BindButton(Button button, UnityEngine.Events.UnityAction action)

@@ -1,4 +1,3 @@
-using System.Collections;
 using Netick.Unity;
 using TreasureArenaMR.Map;
 using TreasureArenaMR.Network;
@@ -81,16 +80,21 @@ namespace TreasureArenaMR.Server
             // 4b. Load map data
             var loadResult = new MapLoader().LoadFromMapId(_roomManager.CurrentRoomConfig.map_id);
             if (loadResult.ok)
+            {
                 _roomManager.SetMapData(loadResult.mapData);
+                Debug.Log("[ServerApp] Room map loaded. path=" + loadResult.path
+                    + ", " + BuildMapSummary(loadResult.map));
+            }
             else
+            {
                 Debug.LogError($"[ServerApp] Map load failed: {loadResult.error}");
+            }
 
             // 5. Start Netick server
             _networkManager.StartAsServer();
 
             IsRunning = true;
             Debug.Log("[ServerApp] Server booted successfully");
-            StartCoroutine(InitializeNetworkRuntimeWhenReady());
         }
 
         public bool ChangeMap(string mapId)
@@ -119,19 +123,26 @@ namespace TreasureArenaMR.Server
             _runtimeMapIdOverride = mapId;
             _roomManager.ChangeMap(mapId, loadResult.mapData);
             _mapRevision++;
+            Debug.Log("[ServerApp] Room map changed. path=" + loadResult.path
+                + ", revision=" + _mapRevision
+                + ", " + BuildMapSummary(loadResult.map));
 
-            var treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
-            if (treasureAuthority != null)
+            bool networkRuntimeReady = _networkRuntimeInitialized
+                && _networkManager != null
+                && _networkManager.IsServer
+                && _networkManager.Sandbox != null
+                && _networkManager.IsSceneLoaded;
+
+            NetworkMatchState matchState = null;
+            if (networkRuntimeReady)
             {
-                treasureAuthority.ClearTreasures();
-                if (_networkManager != null && _networkManager.Sandbox != null && _networkManager.IsServer)
+                var treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
+                if (treasureAuthority != null)
+                {
+                    treasureAuthority.ClearTreasures();
                     treasureAuthority.SpawnTreasures(_networkManager, _roomManager);
-            }
+                }
 
-            var matchState = FindObjectOfType<NetworkMatchState>();
-            if (matchState == null && _networkManager != null && _networkManager.Sandbox != null && _networkManager.IsServer)
-            {
-                SpawnMatchState();
                 matchState = FindObjectOfType<NetworkMatchState>();
             }
 
@@ -146,7 +157,8 @@ namespace TreasureArenaMR.Server
             }
             else
             {
-                Debug.LogWarning("[ServerApp] Map changed but NetworkMatchState is still missing; clients will wait for map sync.");
+                Debug.Log("[ServerApp] Map changed before network runtime synchronization. "
+                    + "NetworkMatchState will be initialized by the Netick scene-loaded event.");
             }
 
             Debug.Log("[ServerApp] Map changed to " + mapId + ", revision=" + _mapRevision);
@@ -155,22 +167,11 @@ namespace TreasureArenaMR.Server
 
         public void OnNetworkReady()
         {
-            TryInitializeNetworkRuntime(false);
-        }
-
-        private IEnumerator InitializeNetworkRuntimeWhenReady()
-        {
-            const int maxAttempts = 120;
-            for (int i = 0; i < maxAttempts; i++)
-            {
-                if (_networkRuntimeInitialized)
-                    yield break;
-
-                if (TryInitializeNetworkRuntime(i == 0 || i == maxAttempts - 1))
-                    yield break;
-
-                yield return null;
-            }
+            Debug.Log("[ServerApp] OnNetworkReady. IsServer="
+                + (_networkManager != null && _networkManager.IsServer)
+                + ", HasSandbox=" + (_networkManager != null && _networkManager.Sandbox != null)
+                + ", IsSceneLoaded=" + (_networkManager != null && _networkManager.IsSceneLoaded));
+            TryInitializeNetworkRuntime(true);
         }
 
         private bool TryInitializeNetworkRuntime(bool logIfBlocked)
@@ -195,13 +196,6 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            if (_networkManager.Sandbox == null)
-            {
-                var sandbox = FindObjectOfType<NetworkSandbox>();
-                if (sandbox != null)
-                    _networkManager.OnSandboxStarted(sandbox);
-            }
-
             if (!_networkManager.IsServer || _networkManager.Sandbox == null)
             {
                 if (logIfBlocked)
@@ -209,10 +203,11 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            if (!_networkManager.IsSceneLoaded && logIfBlocked)
+            if (!_networkManager.IsSceneLoaded)
             {
-                Debug.LogWarning("[ServerApp] Network scene load callback not received yet; "
-                    + "continuing with runtime state initialization for single-scene MVP.");
+                if (logIfBlocked)
+                    Debug.LogWarning("[ServerApp] Network runtime not ready: network scene not loaded.");
+                return false;
             }
 
             if (_roomManager == null || _roomManager.CurrentRoomConfig == null)
@@ -299,10 +294,32 @@ namespace TreasureArenaMR.Server
                 Debug.Log("[ServerApp] NetworkMatchState ready. Map="
                     + _roomManager.CurrentRoomConfig.map_id
                     + ", index=" + mapIndex
-                    + ", revision=" + _mapRevision);
+                    + ", revision=" + _mapRevision
+                    + ", catalog=[" + string.Join(",", RuntimeMapCatalog.GetMapIds()) + "]");
             }
 
             Debug.Log("[ServerApp] NetworkMatchState spawned.");
+        }
+
+        private static string BuildMapSummary(MapJsonModels.MapJson map)
+        {
+            if (map == null)
+                return "map=null";
+
+            int objectCount = map.objects != null ? map.objects.Count : 0;
+            int baseCount = map.team_bases != null ? map.team_bases.Count : 0;
+            int treasureCount = map.treasure_spawn_points != null ? map.treasure_spawn_points.Count : 0;
+            int supplyCount = map.supply_boxes != null ? map.supply_boxes.Count : 0;
+            int boundaryCount = map.map_boundary != null && map.map_boundary.points != null
+                ? map.map_boundary.points.Count
+                : 0;
+
+            return "mapId=" + map.map_id
+                + ", objects=" + objectCount
+                + ", teamBases=" + baseCount
+                + ", treasurePoints=" + treasureCount
+                + ", supplyBoxes=" + supplyCount
+                + ", boundaryPoints=" + boundaryCount;
         }
 
         private void OnDestroy()
