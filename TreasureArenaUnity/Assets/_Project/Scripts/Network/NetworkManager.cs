@@ -86,8 +86,8 @@ namespace TreasureArenaMR.Network
                 return;
             }
 
-            Debug.Log($"[NetworkManager] _transport={_transport}, _sandboxPrefab={_sandboxPrefab}");
             EnsureReferences();
+            Debug.Log($"[NetworkManager] _transport={_transport}, _sandboxPrefab={_sandboxPrefab}");
             Debug.Log($"[NetworkManager] Starting Netick server on port {_serverPort}");
             NetickNetwork.StartAsServer(_transport, _serverPort, _sandboxPrefab, _netickConfig);
             OnServerStarted?.Invoke();
@@ -128,11 +128,11 @@ namespace TreasureArenaMR.Network
         private void EnsureReferences()
         {
             if (_transport == null)
-                _transport = Resources.Load<NetworkTransportProvider>("LiteNetLibTransport");
+                _transport = Resources.Load("LiteNetLibTransport") as NetworkTransportProvider;
             if (_sandboxPrefab == null)
-                _sandboxPrefab = Resources.Load<GameObject>("SandboxRoot");
+                _sandboxPrefab = Resources.Load("SandboxRoot") as GameObject;
             if (_netickConfig == null)
-                _netickConfig = Resources.Load<NetickConfig>("netickConfig");
+                _netickConfig = Resources.Load("netickConfig") as NetickConfig;
         }
 
         public void Shutdown()

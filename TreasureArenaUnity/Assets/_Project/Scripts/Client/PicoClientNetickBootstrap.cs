@@ -80,6 +80,12 @@ namespace TreasureArenaMR.Client
 
         public void Connect()
         {
+            if (networkManager != null && (networkManager.IsRunning || networkManager.IsConnected))
+            {
+                Debug.LogWarning("[PicoClientNetickBootstrap] Already running or connected; skipping.");
+                return;
+            }
+
             if (networkManager == null)
             {
                 RefreshStatus("Missing NetworkManager");
