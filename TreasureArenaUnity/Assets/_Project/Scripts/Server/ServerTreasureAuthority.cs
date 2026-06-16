@@ -64,6 +64,45 @@ namespace TreasureArenaMR.Server
             return true;
         }
 
+        public bool TryPickupNearest(string playerId, RoomManager roomManager)
+        {
+            if (roomManager == null || roomManager.MapData == null)
+            {
+                return false;
+            }
+
+            var netPlayer = roomManager.GetNetickPlayer(playerId);
+            var playerObject = netPlayer != null ? netPlayer.PlayerObject as GameObject : null;
+            if (playerObject == null)
+            {
+                return false;
+            }
+
+            var points = roomManager.MapData.GetTreasureSpawnPoints();
+            MapTreasureSpawnPoint nearest = null;
+            float nearestDistance = float.MaxValue;
+            Vector3 playerPosition = playerObject.transform.position;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                MapTreasureSpawnPoint point = points[i];
+                float distance = Vector3.Distance(playerPosition, point.Position);
+                if (distance < nearestDistance)
+                {
+                    nearest = point;
+                    nearestDistance = distance;
+                }
+            }
+
+            if (nearest == null || nearestDistance > nearest.Radius + _pickupDistance)
+            {
+                return false;
+            }
+
+            string treasureId = string.IsNullOrEmpty(nearest.PointId) ? nearest.TreasureType.ToString() : nearest.PointId;
+            return TryPickup(playerId, treasureId, nearest.Position, roomManager);
+        }
+
         /// <summary>
         /// Drop a treasure at a world position (called when player enters GhostRetreat).
         /// </summary>

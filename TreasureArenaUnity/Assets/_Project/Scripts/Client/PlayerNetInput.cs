@@ -29,7 +29,7 @@ namespace TreasureArenaMR.Client
         [Header("Tracking")]
         [SerializeField] private Transform trackingTarget;
         [SerializeField] private bool useMainCameraFallback = true;
-        [SerializeField] private bool preserveSpawnHeight = true;
+        [SerializeField] private bool alignHeightToTrackingTarget = true;
         [SerializeField] private bool syncYaw = true;
 
         [Header("Editor Input")]
@@ -40,11 +40,6 @@ namespace TreasureArenaMR.Client
         private Rigidbody cachedRigidbody;
         private Transform resolvedTrackingTarget;
         private GameNetworkPlayer networkPlayer;
-
-        private bool hasCalibration;
-        private Vector3 calibrationTrackingPosition;
-        private Vector3 calibrationPlayerPosition;
-        private float calibrationPlayerY;
 
         private bool previousTrigger;
         private bool previousGrip;
@@ -69,7 +64,7 @@ namespace TreasureArenaMR.Client
 
         public override void OnInputSourceChanged(NetickPlayer previous)
         {
-            hasCalibration = false;
+            resolvedTrackingTarget = trackingTarget;
         }
 
         public override void NetworkUpdate()
@@ -100,12 +95,11 @@ namespace TreasureArenaMR.Client
         {
             trackingTarget = target;
             resolvedTrackingTarget = target;
-            hasCalibration = false;
         }
 
         public void Recalibrate()
         {
-            hasCalibration = false;
+            resolvedTrackingTarget = trackingTarget;
         }
 
         private void ProcessServerInput(PlayerBattleInput input)
@@ -129,16 +123,20 @@ namespace TreasureArenaMR.Client
                     var weapon = roomManager.CurrentRoomConfig?.weapon_config;
                     int damage = weapon != null ? weapon.damage : 25;
                     float range = weapon != null ? weapon.range : 15f;
+                    string weaponId = weapon != null ? weapon.weapon_id : "default_weapon";
 
                     Vector3 origin = transform.position + Vector3.up * 1.2f + transform.forward * 0.25f;
-                    combatAuthority.ProcessAttack(
+                    AttackResult result = combatAuthority.ProcessAttack(
                         playerId,
+                        weaponId,
                         origin,
                         transform.forward,
                         damage,
-                        range,
-                        roomManager,
-                        treasureAuthority);
+                        range);
+                    if (result != null && result.hit)
+                    {
+                        result.target_hp_after = combatAuthority.ApplyDamage(result.target_player_id, result.damage, roomManager);
+                    }
                 }
             }
 
@@ -192,12 +190,9 @@ namespace TreasureArenaMR.Client
             if (target == null)
                 return;
 
-            if (!hasCalibration)
-                Calibrate(target);
-
-            Vector3 trackingDelta = target.position - calibrationTrackingPosition;
-            Vector3 desiredPosition = calibrationPlayerPosition + new Vector3(trackingDelta.x, 0f, trackingDelta.z);
-            desiredPosition.y = preserveSpawnHeight ? calibrationPlayerY : target.position.y;
+            Vector3 desiredPosition = target.position;
+            if (!alignHeightToTrackingTarget)
+                desiredPosition.y = transform.position.y;
 
             Quaternion desiredRotation = transform.rotation;
             if (syncYaw)
@@ -259,14 +254,6 @@ namespace TreasureArenaMR.Client
 
             resolvedTrackingTarget = mainCamera.transform;
             return resolvedTrackingTarget;
-        }
-
-        private void Calibrate(Transform target)
-        {
-            calibrationTrackingPosition = target.position;
-            calibrationPlayerPosition = transform.position;
-            calibrationPlayerY = transform.position.y;
-            hasCalibration = true;
         }
     }
 }

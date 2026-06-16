@@ -15,6 +15,8 @@ namespace TreasureArenaMR.Server
         [Header("Core References")]
         [SerializeField] private NetworkManager _networkManager;
         [SerializeField] private RoomManager _roomManager;
+        [SerializeField] private bool _autoStart = false;
+        [SerializeField] private string _runtimeMapId = "test_map_01";
 
         public static ServerApp Instance { get; private set; }
         public bool IsRunning { get; private set; }
@@ -32,7 +34,41 @@ namespace TreasureArenaMR.Server
 
         private void Start()
         {
-            StartServer();
+            if (_autoStart)
+            {
+                StartServer();
+            }
+        }
+
+        public void SetAutoStart(bool autoStart)
+        {
+            _autoStart = autoStart;
+        }
+
+        public void ConfigureRuntimeMap(string mapId)
+        {
+            if (!string.IsNullOrEmpty(mapId))
+            {
+                _runtimeMapId = mapId;
+            }
+        }
+
+        public bool ChangeMap(string mapId)
+        {
+            if (string.IsNullOrEmpty(mapId))
+            {
+                return false;
+            }
+
+            ConfigureRuntimeMap(mapId);
+            EnsureRuntimeReferences();
+
+            if (_roomManager.CurrentRoomConfig != null)
+            {
+                _roomManager.CurrentRoomConfig.map_id = _runtimeMapId;
+            }
+
+            return LoadRuntimeMapData();
         }
 
         public void StartServer()
@@ -45,34 +81,14 @@ namespace TreasureArenaMR.Server
 
             Debug.Log("[ServerApp] Booting server...");
 
-            // 1. Ensure NetworkManager exists
-            if (_networkManager == null)
-                _networkManager = FindObjectOfType<NetworkManager>();
-            if (_networkManager == null)
-            {
-                var go = new GameObject("NetworkManager");
-                _networkManager = go.AddComponent<NetworkManager>();
-            }
-
-            // 3. Ensure RoomManager exists
-            if (_roomManager == null)
-                _roomManager = FindObjectOfType<RoomManager>();
-            if (_roomManager == null)
-            {
-                var go = new GameObject("RoomManager");
-                _roomManager = go.AddComponent<RoomManager>();
-            }
+            EnsureRuntimeReferences();
             _roomManager.Initialize(_networkManager);
 
             // 4. Create default room for MVP
-            _roomManager.CreateRoom("room_default", "默认房间");
+            _roomManager.CreateRoom("room_default", "默认房间", _runtimeMapId);
 
             // 4b. Load map data
-            var loadResult = new MapLoader().LoadFromMapId(_roomManager.CurrentRoomConfig.map_id);
-            if (loadResult.ok)
-                _roomManager.SetMapData(loadResult.mapData);
-            else
-                Debug.LogError($"[ServerApp] Map load failed: {loadResult.error}");
+            LoadRuntimeMapData();
 
             // 5. Start Netick server
             _networkManager.StartAsServer();
@@ -94,6 +110,38 @@ namespace TreasureArenaMR.Server
 
             IsRunning = false;
             Debug.Log("[ServerApp] Server shut down");
+        }
+
+        private void EnsureRuntimeReferences()
+        {
+            if (_networkManager == null)
+                _networkManager = FindObjectOfType<NetworkManager>();
+            if (_networkManager == null)
+            {
+                var go = new GameObject("NetworkManager");
+                _networkManager = go.AddComponent<NetworkManager>();
+            }
+
+            if (_roomManager == null)
+                _roomManager = FindObjectOfType<RoomManager>();
+            if (_roomManager == null)
+            {
+                var go = new GameObject("RoomManager");
+                _roomManager = go.AddComponent<RoomManager>();
+            }
+        }
+
+        private bool LoadRuntimeMapData()
+        {
+            var loadResult = new MapLoader().LoadFromMapId(_runtimeMapId);
+            if (loadResult.ok)
+            {
+                _roomManager.SetMapData(loadResult.mapData);
+                return true;
+            }
+
+            Debug.LogError($"[ServerApp] Map load failed: {loadResult.error}");
+            return false;
         }
 
         private void OnDestroy()

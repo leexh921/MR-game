@@ -218,5 +218,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trackingTarget: {fileID: 0}
   useMainCameraFallback: 1
-  preserveSpawnHeight: 1
+  alignHeightToTrackingTarget: 1
   syncYaw: 1

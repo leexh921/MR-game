@@ -9,11 +9,12 @@ using UnityEngine.UI;
 namespace TreasureArenaMR.Mock
 {
     /// <summary>
-    /// Local no-network gameplay driver for validating map loading, primitive map building, gameplay rules, and HUD refresh.
+    /// Local no-network gameplay driver for validating map loading, registry-based map building, gameplay rules, and HUD refresh.
     /// </summary>
     public sealed class LocalTestGameplayDriver : MonoBehaviour
     {
         public string map_id = "map_template_gameplay";
+        public PrefabRegistry prefabRegistry;
 
         [Header("HUD")]
         public Text statusText;
@@ -80,7 +81,15 @@ namespace TreasureArenaMR.Mock
             }
 
             map = loadResult.map;
-            mapRoot = new MapRuntimeBuilder().Build(map);
+            MapInstantiationResult instantiationResult = new MapLoader().InstantiateObjects(map, prefabRegistry, null);
+            if (instantiationResult == null || !instantiationResult.ok)
+            {
+                AddLog("Map instantiate failed: " + (instantiationResult != null ? instantiationResult.error : "null_result"));
+                RefreshHud();
+                return;
+            }
+
+            mapRoot = instantiationResult.root;
             actorRoot = new GameObject("LocalTestRuntimeActors");
             CreateRuntimeStatesFromMap();
             CreateActorViews();

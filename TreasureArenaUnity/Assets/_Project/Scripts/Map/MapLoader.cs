@@ -44,6 +44,65 @@ namespace TreasureArenaMR.Map
 
             return MapLoadResult.Success(map, validation, path);
         }
+
+        public MapInstantiationResult InstantiateObjects(
+            MapJsonModels.MapJson map,
+            PrefabRegistry prefabRegistry,
+            Transform parent)
+        {
+            if (map == null)
+            {
+                return MapInstantiationResult.Fail("map_is_null");
+            }
+
+            MapInstantiationResult registryValidation = ValidatePrefabRegistry(map, prefabRegistry);
+            if (!registryValidation.ok)
+            {
+                return registryValidation;
+            }
+
+            GameObject root = new MapRuntimeBuilder().Build(map, prefabRegistry);
+            if (parent != null)
+            {
+                root.transform.SetParent(parent, false);
+            }
+
+            return MapInstantiationResult.Success(root, map.objects != null ? map.objects.Count : 0);
+        }
+
+        private static MapInstantiationResult ValidatePrefabRegistry(MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
+        {
+            if (prefabRegistry == null)
+            {
+                return MapInstantiationResult.Fail("missing_map_prefab_registry");
+            }
+
+            if (map.objects == null)
+            {
+                return MapInstantiationResult.Success(null, 0);
+            }
+
+            for (int i = 0; i < map.objects.Count; i++)
+            {
+                MapJsonModels.MapObjectJson item = map.objects[i];
+                if (item == null)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(item.prefab_id))
+                {
+                    return MapInstantiationResult.Fail("missing_prefab_id:" + item.object_id);
+                }
+
+                if (!prefabRegistry.TryGetPrefab(item.prefab_id, out GameObject prefab) || prefab == null)
+                {
+                    return MapInstantiationResult.Fail("prefab_not_registered:" + item.prefab_id);
+                }
+            }
+
+            return MapInstantiationResult.Success(null, map.objects.Count);
+        }
     }
 
     public sealed class MapLoadResult
@@ -81,6 +140,33 @@ namespace TreasureArenaMR.Map
                 map = map,
                 mapData = null,
                 validation = validation
+            };
+        }
+    }
+
+    public sealed class MapInstantiationResult
+    {
+        public bool ok;
+        public string error;
+        public GameObject root;
+        public int objectCount;
+
+        public static MapInstantiationResult Success(GameObject root, int objectCount)
+        {
+            return new MapInstantiationResult
+            {
+                ok = true,
+                root = root,
+                objectCount = objectCount
+            };
+        }
+
+        public static MapInstantiationResult Fail(string error)
+        {
+            return new MapInstantiationResult
+            {
+                ok = false,
+                error = error
             };
         }
     }

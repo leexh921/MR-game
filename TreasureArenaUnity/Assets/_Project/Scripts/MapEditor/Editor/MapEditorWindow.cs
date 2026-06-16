@@ -35,6 +35,7 @@ namespace TreasureArenaMR.MapEditor
     {
         private const string MapObjectsDir = "Assets/_Project/Prefabs/MapEditor/MapObjects";
         private const string GameplayMarkersDir = "Assets/_Project/Prefabs/MapEditor/GameplayMarkers";
+        private const string MapPrefabRegistryPath = "Assets/_Project/ScriptableObjects/Map/MapPrefabRegistry.asset";
 
         private string mapName = "NewMap";
         private string mapDescription = "";
@@ -510,8 +511,15 @@ namespace TreasureArenaMR.MapEditor
             mapDescription = loadResult.map.description ?? "";
 
             ClearAllMarkersSilent();
-            MapRuntimeBuilder builder = new MapRuntimeBuilder();
-            GameObject root = builder.Build(loadResult.map);
+            PrefabRegistry registry = AssetDatabase.LoadAssetAtPath<PrefabRegistry>(MapPrefabRegistryPath);
+            MapInstantiationResult instantiationResult = new MapLoader().InstantiateObjects(loadResult.map, registry, null);
+            if (instantiationResult == null || !instantiationResult.ok)
+            {
+                EditorUtility.DisplayDialog("加载失败", instantiationResult != null ? instantiationResult.error : "map_instantiation_failed", "确定");
+                return;
+            }
+
+            GameObject root = instantiationResult.root;
             AddMarkersToBuiltObjects(root, loadResult.map);
             SetStatus($"已加载：{mapId}");
             Repaint();

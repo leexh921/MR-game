@@ -1,13 +1,19 @@
+using System;
 using UnityEngine;
 
 namespace TreasureArenaMR.Map
 {
     /// <summary>
-    /// Builds primitive runtime map placeholders from validated map JSON.
+    /// Builds runtime map objects from validated map JSON.
     /// </summary>
     public sealed class MapRuntimeBuilder
     {
         public GameObject Build(MapJsonModels.MapJson map)
+        {
+            throw new InvalidOperationException("MapRuntimeBuilder requires a PrefabRegistry for runtime object instantiation.");
+        }
+
+        public GameObject Build(MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             GameObject root = new GameObject("MapRuntimeRoot");
             if (map == null)
@@ -15,7 +21,7 @@ namespace TreasureArenaMR.Map
                 return root;
             }
 
-            BuildObjects(root.transform, map);
+            BuildObjects(root.transform, map, prefabRegistry);
             BuildTeamBases(root.transform, map);
             BuildTreasurePoints(root.transform, map);
             BuildSupplyBoxes(root.transform, map);
@@ -23,7 +29,7 @@ namespace TreasureArenaMR.Map
             return root;
         }
 
-        private static void BuildObjects(Transform root, MapJsonModels.MapJson map)
+        private static void BuildObjects(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (map.objects == null)
             {
@@ -39,12 +45,10 @@ namespace TreasureArenaMR.Map
                     continue;
                 }
 
-                PrimitiveType type = IsFloor(item.prefab_id) ? PrimitiveType.Plane : PrimitiveType.Cube;
-                GameObject go = CreatePrimitive(item.object_id, type, parent);
+                GameObject go = CreateMapObject(item, prefabRegistry, parent);
                 go.transform.position = ToVector3(item.position);
                 go.transform.eulerAngles = ToVector3(item.rotation);
                 go.transform.localScale = ToVector3(item.scale, Vector3.one);
-                SetColor(go, new Color(0.28f, 0.3f, 0.32f, 1f));
 
                 Collider collider = go.GetComponent<Collider>();
                 if (collider != null)
@@ -52,6 +56,38 @@ namespace TreasureArenaMR.Map
                     collider.enabled = item.has_collider;
                 }
             }
+        }
+
+        private static GameObject CreateMapObject(
+            MapJsonModels.MapObjectJson item,
+            PrefabRegistry prefabRegistry,
+            Transform parent)
+        {
+            if (prefabRegistry == null)
+            {
+                throw new InvalidOperationException("Cannot instantiate map object without MapPrefabRegistry: " + item.object_id);
+            }
+
+            if (!prefabRegistry.TryGetPrefab(item.prefab_id, out GameObject prefab) || prefab == null)
+            {
+                throw new InvalidOperationException("Map prefab id is not registered: " + item.prefab_id);
+            }
+
+            GameObject go = UnityEngine.Object.Instantiate(prefab, parent);
+            go.name = string.IsNullOrEmpty(item.object_id) ? prefab.name : item.object_id;
+
+            MapRuntimeObject runtimeObject = go.GetComponent<MapRuntimeObject>();
+            if (runtimeObject == null)
+            {
+                runtimeObject = go.AddComponent<MapRuntimeObject>();
+            }
+
+            runtimeObject.object_id = item.object_id;
+            runtimeObject.prefab_id = item.prefab_id;
+            runtimeObject.is_shootable = true;
+            runtimeObject.blocks_bullet = true;
+            runtimeObject.decal_enabled = true;
+            return go;
         }
 
         private static void BuildTeamBases(Transform root, MapJsonModels.MapJson map)
@@ -155,11 +191,6 @@ namespace TreasureArenaMR.Map
             go.name = string.IsNullOrEmpty(name) ? type.ToString() : name;
             go.transform.SetParent(parent, false);
             return go;
-        }
-
-        private static bool IsFloor(string prefabId)
-        {
-            return !string.IsNullOrEmpty(prefabId) && prefabId.ToLowerInvariant().Contains("floor");
         }
 
         private static Color TreasureColor(string treasureType)

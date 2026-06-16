@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:TreasureArenaUnity/Assets/_Project/Scripts/Client/PlayerNetInput.cs.meta
 guid: d22a4564f5534e649bddbd98e94ed109
-========
-guid: 1688f39acffb2ce46a1aee7182db9807
->>>>>>>> origin/feature/sprite-tower:TreasureArenaUnity/Assets/_Project/Scripts/Gun/Bullet.cs.meta
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2

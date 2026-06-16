@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
+using TreasureArenaMR.Server;
+using TreasureArenaMR.Shared;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace TreasureArenaMR.UI
 {
     /// <summary>
-    /// Local-only manager home UI prototype for Stage 1.5.
-    /// It demonstrates room selection and panel refresh without touching networking,
-    /// database, map loading, or authoritative gameplay logic.
+    /// PC manager home for the combined Manager + Server MVP.
+    /// Creates the real Netick server room and lets the manager assign Red/Blue teams.
     /// </summary>
     public sealed class ManagerHomeView : MonoBehaviour
     {
@@ -41,113 +42,132 @@ namespace TreasureArenaMR.UI
         [Header("Controls")]
         [SerializeField] private Button startButton;
         [SerializeField] private Button stopButton;
+        [SerializeField] private int minPlayersToStart = 1;
+
+        [Header("Runtime")]
+        [SerializeField] private ServerBootstrap serverBootstrap;
+        [SerializeField] private RoomManager roomManager;
 
         [Header("Log")]
         [SerializeField] private Text logText;
 
-        private readonly List<MockRoom> rooms = new List<MockRoom>();
-        private int selectedRoomIndex;
-        private int createdRoomCount = 3;
+        private readonly List<GameObject> teamRows = new List<GameObject>();
+        private RectTransform teamSwitchPanel;
+        private float refreshTimer;
 
         private void Awake()
         {
             AutoBindMissingReferences();
-            SeedRooms();
+            EnsureServerReferences();
             WireButtons();
-            SelectRoom(0);
+            SubscribeRoomEvents(true);
+            Refresh();
         }
 
-        public void SelectRoom(int roomIndex)
+        private void OnEnable()
         {
-            if (roomIndex < 0 || roomIndex >= rooms.Count)
+            SubscribeRoomEvents(true);
+            Refresh();
+        }
+
+        private void OnDisable()
+        {
+            SubscribeRoomEvents(false);
+        }
+
+        private void Update()
+        {
+            refreshTimer -= Time.deltaTime;
+            if (refreshTimer > 0f)
             {
                 return;
             }
 
-            selectedRoomIndex = roomIndex;
+            refreshTimer = 0.5f;
             Refresh();
-            AppendLog("Selected " + rooms[selectedRoomIndex].Name + ".");
         }
 
-        public void CreateMockRoom()
+        public void CreateRoomAndStartServer()
         {
-            createdRoomCount++;
-            rooms.Add(new MockRoom(
-                "Room " + createdRoomCount,
-                "test_map_01",
-                "Waiting",
-                100,
-                25,
-                5,
-                300,
-                new[] { "RedTestPlayer" },
-                new[] { "BlueTestPlayer" }));
-
-            selectedRoomIndex = rooms.Count - 1;
-            Refresh();
-            AppendLog("Created local mock room. No server room was created.");
-        }
-
-        public void CycleSelectedRoomMap()
-        {
-            MockRoom room = GetSelectedRoom();
-            if (room == null)
+            EnsureServerReferences();
+            if (serverBootstrap == null)
             {
+                AppendLog("Create room failed: ServerBootstrap is missing.");
                 return;
             }
 
-            room.MapId = room.MapId == "test_map_01" ? "test_map_02_placeholder" : "test_map_01";
+            serverBootstrap.CreateOrStartRoom();
+            roomManager = serverBootstrap.RoomManager;
+            SubscribeRoomEvents(true);
             Refresh();
-            AppendLog("Changed displayed map for " + room.Name + " to " + room.MapId + ".");
+            AppendLog("Server room created or refreshed.");
+        }
+
+        public void SelectNextMap()
+        {
+            EnsureServerReferences();
+            if (serverBootstrap == null)
+            {
+                AppendLog("Select map failed: ServerBootstrap is missing.");
+                return;
+            }
+
+            serverBootstrap.SelectNextMap();
+            Refresh();
+            AppendLog("Selected map: " + serverBootstrap.SelectedMapId + ".");
         }
 
         public void StartSelectedRoom()
         {
-            MockRoom room = GetSelectedRoom();
-            if (room == null)
+            EnsureServerReferences();
+            if (serverBootstrap == null)
             {
+                AppendLog("Start failed: ServerBootstrap is missing.");
                 return;
             }
 
-            room.State = "Playing";
+            bool started = serverBootstrap.StartMatch(minPlayersToStart);
             Refresh();
-            AppendLog("Start clicked for " + room.Name + ". UI state only.");
+            AppendLog(started ? "Match started." : "Match did not start. Check server, map, players, and room state.");
         }
 
         public void StopSelectedRoom()
         {
-            MockRoom room = GetSelectedRoom();
-            if (room == null)
+            EnsureServerReferences();
+            if (serverBootstrap == null)
             {
+                AppendLog("Stop failed: ServerBootstrap is missing.");
                 return;
             }
 
-            room.State = "Finished";
+            serverBootstrap.StopMatch();
             Refresh();
-            AppendLog("Stop clicked for " + room.Name + ". UI state only.");
+            AppendLog("Match marked as finished.");
         }
 
         public void Refresh()
         {
-            MockRoom room = GetSelectedRoom();
-            if (room == null)
-            {
-                return;
-            }
+            EnsureServerReferences();
 
-            SetText(roleText, "Role: Manager");
-            SetText(connectionText, "Connection: UI Mock");
-            SetText(roomNameText, "Room: " + room.Name);
-            SetText(roomStateText, "State: " + room.State);
-            SetText(hpText, "HP: " + room.Hp);
-            SetText(damageText, "Damage: " + room.Damage);
-            SetText(respawnText, "Respawn Countdown: " + room.RespawnCountdown);
-            SetText(matchTimeText, "Match Time: " + room.MatchTime);
-            SetText(mapNameText, "Map: " + room.MapId);
-            SetText(mapStatusText, "Preview: placeholder only");
-            SetText(redTeamListText, BuildTeamText("Red Team", room.RedPlayers));
-            SetText(blueTeamListText, BuildTeamText("Blue Team", room.BluePlayers));
-            RefreshRoomButtons();
+            RoomConfig config = roomManager != null ? roomManager.CurrentRoomConfig : null;
+            string selectedMap = serverBootstrap != null ? serverBootstrap.SelectedMapId : "None";
+            bool serverRunning = serverBootstrap != null && serverBootstrap.IsServerRunning;
+
+            SetText(roleText, "Role: Manager + Server");
+            SetText(connectionText, "Server: " + (serverRunning ? "Running" : "Stopped"));
+            SetText(roomNameText, config != null ? "Room: " + config.room_name : "Room: Not Created");
+            SetText(roomStateText, roomManager != null ? "State: " + roomManager.CurrentRoomState : "State: Offline");
+            SetText(hpText, config != null ? "HP: " + config.player_max_hp : "HP: -");
+            SetText(damageText, config != null && config.weapon_config != null ? "Damage: " + config.weapon_config.damage : "Damage: -");
+            SetText(respawnText, config != null ? "Respawn Countdown: " + config.respawn_countdown : "Respawn Countdown: -");
+            SetText(matchTimeText, config != null ? "Match Time: " + config.match_time : "Match Time: -");
+            SetText(mapNameText, config != null ? "Map: " + config.map_id : "Map: " + selectedMap);
+            SetText(mapStatusText, roomManager != null && roomManager.MapData != null ? "MapData: Loaded" : "MapData: Not Loaded");
+            SetText(redTeamListText, BuildTeamText("Red Team", TeamType.Red));
+            SetText(blueTeamListText, BuildTeamText("Blue Team", TeamType.Blue));
+
+            RefreshRoomButtons(config, serverRunning);
+            RefreshTeamControls();
         }
 
         public void Show()
@@ -161,70 +181,29 @@ namespace TreasureArenaMR.UI
             gameObject.SetActive(false);
         }
 
-        private void SeedRooms()
-        {
-            if (rooms.Count > 0)
-            {
-                return;
-            }
-
-            rooms.Add(new MockRoom(
-                "Room A",
-                "test_map_01",
-                "Waiting",
-                100,
-                25,
-                5,
-                300,
-                new[] { "PicoClient_01" },
-                new[] { "EditorClient_01" }));
-
-            rooms.Add(new MockRoom(
-                "Room B",
-                "test_map_01",
-                "Playing",
-                120,
-                20,
-                6,
-                240,
-                new[] { "Red_01", "Red_02" },
-                new[] { "Blue_01", "Blue_02" }));
-
-            rooms.Add(new MockRoom(
-                "Room C",
-                "test_map_01",
-                "Waiting",
-                100,
-                30,
-                5,
-                180,
-                new[] { "Waiting_Red" },
-                new string[0]));
-        }
-
         private void WireButtons()
         {
             if (createRoomButton != null)
             {
-                createRoomButton.onClick.RemoveListener(CreateMockRoom);
-                createRoomButton.onClick.AddListener(CreateMockRoom);
+                createRoomButton.onClick.RemoveAllListeners();
+                createRoomButton.onClick.AddListener(CreateRoomAndStartServer);
             }
 
             if (selectMapButton != null)
             {
-                selectMapButton.onClick.RemoveListener(CycleSelectedRoomMap);
-                selectMapButton.onClick.AddListener(CycleSelectedRoomMap);
+                selectMapButton.onClick.RemoveAllListeners();
+                selectMapButton.onClick.AddListener(SelectNextMap);
             }
 
             if (startButton != null)
             {
-                startButton.onClick.RemoveListener(StartSelectedRoom);
+                startButton.onClick.RemoveAllListeners();
                 startButton.onClick.AddListener(StartSelectedRoom);
             }
 
             if (stopButton != null)
             {
-                stopButton.onClick.RemoveListener(StopSelectedRoom);
+                stopButton.onClick.RemoveAllListeners();
                 stopButton.onClick.AddListener(StopSelectedRoom);
             }
 
@@ -241,13 +220,58 @@ namespace TreasureArenaMR.UI
                     continue;
                 }
 
-                int capturedIndex = i;
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => SelectRoom(capturedIndex));
+                button.onClick.AddListener(Refresh);
             }
         }
 
-        private void RefreshRoomButtons()
+        private void SubscribeRoomEvents(bool subscribe)
+        {
+            EnsureServerReferences(false);
+            if (serverBootstrap != null)
+            {
+                serverBootstrap.OnStatusChanged -= Refresh;
+                if (subscribe)
+                {
+                    serverBootstrap.OnStatusChanged += Refresh;
+                }
+            }
+
+            if (roomManager == null)
+            {
+                return;
+            }
+
+            roomManager.OnRoomStateChanged -= HandleRoomStateChanged;
+            roomManager.OnPlayerJoined -= HandlePlayerChanged;
+            roomManager.OnPlayerLeft -= HandlePlayerChanged;
+            roomManager.OnTeamChanged -= HandleTeamChanged;
+
+            if (subscribe)
+            {
+                roomManager.OnRoomStateChanged += HandleRoomStateChanged;
+                roomManager.OnPlayerJoined += HandlePlayerChanged;
+                roomManager.OnPlayerLeft += HandlePlayerChanged;
+                roomManager.OnTeamChanged += HandleTeamChanged;
+            }
+        }
+
+        private void HandleRoomStateChanged(RoomState state)
+        {
+            Refresh();
+        }
+
+        private void HandlePlayerChanged(PlayerInfo player)
+        {
+            Refresh();
+        }
+
+        private void HandleTeamChanged(PlayerInfo player, TeamType team)
+        {
+            Refresh();
+        }
+
+        private void RefreshRoomButtons(RoomConfig config, bool serverRunning)
         {
             if (roomSelectButtons == null || roomSelectLabels == null)
             {
@@ -257,30 +281,196 @@ namespace TreasureArenaMR.UI
             int slotCount = Mathf.Min(roomSelectButtons.Length, roomSelectLabels.Length);
             for (int i = 0; i < slotCount; i++)
             {
-                bool hasRoom = i < rooms.Count;
+                bool isCurrentRoomSlot = i == 0 && config != null;
                 if (roomSelectButtons[i] != null)
                 {
-                    roomSelectButtons[i].gameObject.SetActive(hasRoom);
-                    roomSelectButtons[i].interactable = hasRoom && i != selectedRoomIndex;
+                    roomSelectButtons[i].gameObject.SetActive(isCurrentRoomSlot);
+                    roomSelectButtons[i].interactable = false;
                 }
 
                 if (roomSelectLabels[i] != null)
                 {
-                    roomSelectLabels[i].text = hasRoom
-                        ? rooms[i].Name + " / " + rooms[i].State
+                    roomSelectLabels[i].text = isCurrentRoomSlot
+                        ? config.room_name + " / " + (serverRunning ? "Server Running" : "Server Stopped")
                         : "Empty";
                 }
             }
         }
 
-        private MockRoom GetSelectedRoom()
+        private void RefreshTeamControls()
         {
-            if (selectedRoomIndex < 0 || selectedRoomIndex >= rooms.Count)
+            EnsureTeamSwitchPanel();
+
+            for (int i = 0; i < teamRows.Count; i++)
             {
-                return null;
+                if (teamRows[i] != null)
+                {
+                    Destroy(teamRows[i]);
+                }
             }
 
-            return rooms[selectedRoomIndex];
+            teamRows.Clear();
+
+            IReadOnlyList<PlayerInfo> players = roomManager != null ? roomManager.Players : null;
+            if (players == null || players.Count == 0)
+            {
+                teamRows.Add(CreateTeamLabelRow("No connected players."));
+                return;
+            }
+
+            for (int i = 0; i < players.Count; i++)
+            {
+                PlayerInfo player = players[i];
+                if (player == null)
+                {
+                    continue;
+                }
+
+                teamRows.Add(CreateTeamButtonRow(player, i));
+            }
+        }
+
+        private GameObject CreateTeamLabelRow(string label)
+        {
+            GameObject row = CreateRowContainer("TeamInfoRow", 0);
+            Text text = CreateText(row.transform, "TeamInfoText", label, 16, TextAnchor.MiddleLeft);
+            RectTransform rect = text.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(8f, 0f);
+            rect.offsetMax = new Vector2(-8f, 0f);
+            return row;
+        }
+
+        private GameObject CreateTeamButtonRow(PlayerInfo player, int index)
+        {
+            GameObject row = CreateRowContainer("TeamPlayerRow_" + player.player_id, index);
+            CreateText(row.transform, "PlayerLabel", player.nickname + " [" + player.player_id + "]  " + player.team, 14, TextAnchor.MiddleLeft);
+            CreateTeamButton(row.transform, "RedButton", "Red", new Vector2(350f, 0f), () => SwitchPlayerTeam(player.player_id, TeamType.Red));
+            CreateTeamButton(row.transform, "BlueButton", "Blue", new Vector2(430f, 0f), () => SwitchPlayerTeam(player.player_id, TeamType.Blue));
+            return row;
+        }
+
+        private GameObject CreateRowContainer(string name, int index)
+        {
+            GameObject row = new GameObject(name, typeof(RectTransform));
+            row.transform.SetParent(teamSwitchPanel, false);
+
+            RectTransform rect = row.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = new Vector2(0f, 30f);
+            rect.anchoredPosition = new Vector2(0f, -index * 34f);
+            return row;
+        }
+
+        private Text CreateText(Transform parent, string name, string value, int fontSize, TextAnchor alignment)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent, false);
+
+            Text text = go.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize;
+            text.color = Color.white;
+            text.alignment = alignment;
+            text.text = value;
+
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.offsetMin = new Vector2(8f, 0f);
+            rect.offsetMax = new Vector2(-180f, 0f);
+            return text;
+        }
+
+        private void CreateTeamButton(Transform parent, string name, string label, Vector2 anchoredPosition, UnityEngine.Events.UnityAction action)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+
+            Image image = go.GetComponent<Image>();
+            image.color = label == "Red" ? new Color(0.75f, 0.18f, 0.18f, 0.9f) : new Color(0.18f, 0.32f, 0.75f, 0.9f);
+
+            Button button = go.GetComponent<Button>();
+            button.onClick.AddListener(action);
+
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0.5f);
+            rect.anchorMax = new Vector2(0f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.sizeDelta = new Vector2(72f, 26f);
+            rect.anchoredPosition = anchoredPosition;
+
+            Text text = CreateText(go.transform, "Text", label, 13, TextAnchor.MiddleCenter);
+            RectTransform textRect = text.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+        }
+
+        private void SwitchPlayerTeam(string playerId, TeamType team)
+        {
+            EnsureServerReferences();
+            bool changed = serverBootstrap != null && serverBootstrap.SwitchTeam(playerId, team);
+            Refresh();
+            AppendLog(changed ? "Player " + playerId + " -> " + team + "." : "Switch team failed for " + playerId + ".");
+        }
+
+        private void EnsureTeamSwitchPanel()
+        {
+            if (teamSwitchPanel != null)
+            {
+                return;
+            }
+
+            Transform parent = FindChildRecursive(transform, "PlayerPanel") ?? transform;
+            Transform existing = FindChildRecursive(parent, "TeamSwitchPanel");
+            if (existing != null)
+            {
+                teamSwitchPanel = existing as RectTransform;
+                return;
+            }
+
+            GameObject panel = new GameObject("TeamSwitchPanel", typeof(RectTransform), typeof(Image));
+            panel.transform.SetParent(parent, false);
+
+            Image image = panel.GetComponent<Image>();
+            image.color = new Color(0.04f, 0.04f, 0.04f, 0.55f);
+
+            teamSwitchPanel = panel.GetComponent<RectTransform>();
+            teamSwitchPanel.anchorMin = new Vector2(0f, 0f);
+            teamSwitchPanel.anchorMax = new Vector2(1f, 0f);
+            teamSwitchPanel.pivot = new Vector2(0.5f, 0f);
+            teamSwitchPanel.anchoredPosition = new Vector2(0f, 12f);
+            teamSwitchPanel.sizeDelta = new Vector2(-24f, 120f);
+        }
+
+        private string BuildTeamText(string title, TeamType team)
+        {
+            string text = title;
+            IReadOnlyList<PlayerInfo> players = roomManager != null ? roomManager.Players : null;
+            if (players == null || players.Count == 0)
+            {
+                return text + "\n- Empty";
+            }
+
+            bool any = false;
+            for (int i = 0; i < players.Count; i++)
+            {
+                PlayerInfo player = players[i];
+                if (player == null || player.team != team)
+                {
+                    continue;
+                }
+
+                any = true;
+                text += "\n- " + player.nickname + " (" + player.player_id + ")";
+            }
+
+            return any ? text : text + "\n- Empty";
         }
 
         private void AppendLog(string message)
@@ -290,23 +480,28 @@ namespace TreasureArenaMR.UI
                 return;
             }
 
-            logText.text = "[UI Mock] " + message + "\n" + logText.text;
+            logText.text = "[Manager] " + message + "\n" + logText.text;
         }
 
-        private static string BuildTeamText(string title, IReadOnlyList<string> players)
+        private void EnsureServerReferences(bool createIfMissing = true)
         {
-            string text = title;
-            if (players == null || players.Count == 0)
+            if (serverBootstrap == null)
             {
-                return text + "\n- Empty";
+                serverBootstrap = FindObjectOfType<ServerBootstrap>();
             }
 
-            for (int i = 0; i < players.Count; i++)
+            if (serverBootstrap == null && createIfMissing)
             {
-                text += "\n- " + players[i];
+                GameObject go = new GameObject("ManagerServerBootstrap");
+                serverBootstrap = go.AddComponent<ServerBootstrap>();
             }
 
-            return text;
+            if (roomManager == null)
+            {
+                roomManager = serverBootstrap != null && serverBootstrap.RoomManager != null
+                    ? serverBootstrap.RoomManager
+                    : FindObjectOfType<RoomManager>();
+            }
         }
 
         private static void SetText(Text target, string value)
@@ -340,72 +535,38 @@ namespace TreasureArenaMR.UI
 
         private Text FindText(string objectName)
         {
-            Transform child = transform.Find(objectName);
-            if (child != null)
-            {
-                return child.GetComponent<Text>();
-            }
-
-            Text[] texts = GetComponentsInChildren<Text>(true);
-            for (int i = 0; i < texts.Length; i++)
-            {
-                if (texts[i].name == objectName)
-                {
-                    return texts[i];
-                }
-            }
-
-            return null;
+            Transform child = FindChildRecursive(transform, objectName);
+            return child != null ? child.GetComponent<Text>() : null;
         }
 
         private Button FindButton(string objectName)
         {
-            Button[] buttons = GetComponentsInChildren<Button>(true);
-            for (int i = 0; i < buttons.Length; i++)
+            Transform child = FindChildRecursive(transform, objectName);
+            return child != null ? child.GetComponent<Button>() : null;
+        }
+
+        private static Transform FindChildRecursive(Transform parent, string objectName)
+        {
+            if (parent == null)
             {
-                if (buttons[i].name == objectName)
+                return null;
+            }
+
+            if (parent.name == objectName)
+            {
+                return parent;
+            }
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform found = FindChildRecursive(parent.GetChild(i), objectName);
+                if (found != null)
                 {
-                    return buttons[i];
+                    return found;
                 }
             }
 
             return null;
-        }
-
-        [Serializable]
-        private sealed class MockRoom
-        {
-            public readonly string Name;
-            public string MapId;
-            public string State;
-            public readonly int Hp;
-            public readonly int Damage;
-            public readonly int RespawnCountdown;
-            public readonly int MatchTime;
-            public readonly string[] RedPlayers;
-            public readonly string[] BluePlayers;
-
-            public MockRoom(
-                string name,
-                string mapId,
-                string state,
-                int hp,
-                int damage,
-                int respawnCountdown,
-                int matchTime,
-                string[] redPlayers,
-                string[] bluePlayers)
-            {
-                Name = name;
-                MapId = mapId;
-                State = state;
-                Hp = hp;
-                Damage = damage;
-                RespawnCountdown = respawnCountdown;
-                MatchTime = matchTime;
-                RedPlayers = redPlayers;
-                BluePlayers = bluePlayers;
-            }
         }
     }
 }

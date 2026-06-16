@@ -193,7 +193,7 @@ MonoBehaviour:
   statusText: {fileID: 2477889773776607746}
   connectButton: {fileID: 1185709155526131783}
   disconnectButton: {fileID: 1955080626552019375}
-  prefabRegistry: {fileID: 0}
+  prefabRegistry: {fileID: 11400000, guid: 8eaf3ef015b86684cbc88420fb6cb901, type: 2}
   runtimeMapParent: {fileID: 0}
 --- !u!1 &4144281618833270087
 GameObject:

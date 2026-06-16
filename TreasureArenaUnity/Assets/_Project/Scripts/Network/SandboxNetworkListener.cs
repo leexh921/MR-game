@@ -103,8 +103,19 @@ namespace TreasureArenaMR.Network
         {
             if (!sandbox.IsServer) return;
 
+            CacheReferences();
             string playerId = networkPlayer.PlayerId.ToString();
             Debug.Log($"[SandboxNetworkListener] Player disconnected: {playerId}, reason={reason}");
+
+            if (sandbox.TryGetPlayerObject(networkPlayer.PlayerId, out var playerObj))
+            {
+                sandbox.Destroy(playerObj);
+                Debug.Log($"[SandboxNetworkListener] Despawned player object for {playerId}");
+            }
+            else
+            {
+                Debug.LogWarning($"[SandboxNetworkListener] No player object found to despawn for {playerId}");
+            }
 
             if (_roomManager != null)
                 _roomManager.RemoveNetworkPlayer(playerId);

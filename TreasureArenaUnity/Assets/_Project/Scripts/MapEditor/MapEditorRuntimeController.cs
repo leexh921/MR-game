@@ -27,6 +27,7 @@ namespace TreasureArenaMR.MapEditor
 
         [Header("Editing")]
         [SerializeField] private Transform placedObjectsRoot;
+        [SerializeField] private PrefabRegistry prefabRegistry;
         [SerializeField] private List<MapEditorRuntimeBrush> brushes = new List<MapEditorRuntimeBrush>();
         [SerializeField] private int activeBrushIndex;
         [SerializeField] private MapEditorRuntimeEditMode editMode = MapEditorRuntimeEditMode.Place;
@@ -104,6 +105,11 @@ namespace TreasureArenaMR.MapEditor
 
             RebuildNameCounters();
             SetStatus(statusMessage);
+        }
+
+        public void SetPrefabRegistry(PrefabRegistry registry)
+        {
+            prefabRegistry = registry;
         }
 
         private void OnDisable()
@@ -412,13 +418,12 @@ namespace TreasureArenaMR.MapEditor
         private void PlaceObject(Vector3 position)
         {
             MapEditorRuntimeBrush brush = ActiveBrush;
-            if (brush == null || brush.prefab == null)
+            if (!TryResolveBrushPrefab(brush, out GameObject prefab))
             {
-                SetStatus("Cannot place: active brush has no prefab.");
                 return;
             }
 
-            GameObject instance = Instantiate(brush.prefab, position, Quaternion.identity, placedObjectsRoot);
+            GameObject instance = Instantiate(prefab, position, Quaternion.identity, placedObjectsRoot);
             instance.name = CreateUniqueName(brush.PrefabId);
             ApplyMarker(instance, brush);
             SelectObject(instance);
@@ -472,7 +477,7 @@ namespace TreasureArenaMR.MapEditor
         private void UpdatePreviewGhost(Vector3 position)
         {
             MapEditorRuntimeBrush brush = ActiveBrush;
-            if (brush == null || brush.prefab == null)
+            if (!TryResolveBrushPrefab(brush, out GameObject prefab))
             {
                 DestroyPreviewGhost();
                 return;
@@ -480,7 +485,7 @@ namespace TreasureArenaMR.MapEditor
 
             if (previewGhost == null)
             {
-                previewGhost = Instantiate(brush.prefab);
+                previewGhost = Instantiate(prefab);
                 previewGhost.name = "MapEditorPreviewGhost";
                 SetLayerRecursive(previewGhost, Physics.IgnoreRaycastLayer);
                 SetPreviewMaterial(previewGhost);
@@ -488,6 +493,49 @@ namespace TreasureArenaMR.MapEditor
             }
 
             previewGhost.transform.position = position;
+        }
+
+        private bool TryResolveBrushPrefab(MapEditorRuntimeBrush brush, out GameObject prefab)
+        {
+            prefab = null;
+            if (brush == null)
+            {
+                SetStatus("Cannot place: no active brush.");
+                return false;
+            }
+
+            if (brush.marker_type != MapExportMarkerType.MapObject)
+            {
+                prefab = brush.prefab;
+                if (prefab == null)
+                {
+                    SetStatus("Cannot place: marker brush has no prefab.");
+                    return false;
+                }
+
+                return true;
+            }
+
+            string prefabId = brush.PrefabId;
+            if (string.IsNullOrEmpty(prefabId))
+            {
+                SetStatus("Cannot place: map object brush has no prefab_id.");
+                return false;
+            }
+
+            if (prefabRegistry == null)
+            {
+                SetStatus("Cannot place: MapPrefabRegistry is not assigned.");
+                return false;
+            }
+
+            if (!prefabRegistry.TryGetPrefab(prefabId, out prefab) || prefab == null)
+            {
+                SetStatus("Cannot place: prefab_id is not registered: " + prefabId);
+                return false;
+            }
+
+            return true;
         }
 
         private void DestroyPreviewGhost()
