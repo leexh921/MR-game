@@ -1,0 +1,65 @@
+[33mfc63efd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/sprite-tower[m[33m)[m new
+[33me7fd0d5[m style:gungun
+[33mad42978[m style:gun
+[33m2e47753[m Save local changes to Demo_Scene.unity
+[33m190d24e[m Save local changes to Demo_Scene.unity
+[33m8546cde[m Merge remote-tracking branch 'origin/feature/client-hud' into develop
+[33mf96004e[m Merge remote-tracking branch 'origin/feature/server-database' into develop
+[33mdac5dd3[m Merge remote-tracking branch 'origin/feature/client-hud' into develop
+[33ma91a08e[m Merge remote-tracking branch 'origin/feature/ui' into develop
+[33m94c79dc[m Merge branch 'develop' into feature/client-hud
+[33m5d1f89a[m 修改netickconfig
+[33ma23c4da[m UI设计
+[33m1396a75[m UI代码修改
+[33m6346a7b[m 删掉重复的文件
+[33mc07b807[m 1 创建 Player Prefab 自己做 Capsule + NetworkPlayer + Netick.NetworkObject 组件，拖入 SandboxRoot Prefab 的 Player Prefab 字段 2 补上 SetMapData 调用 自己做 ServerApp.cs 里 TODO 换成 李潇涵给的 new MapLoader().LoadFromMapId("test_map_01") 那几行 3 GhostRetreat 复活区检测 自己做 当前 ServerCombatAuthority 把玩家改成 GhostRetreat 后，缺少一个每帧检测 "玩家是否走到复活区" 的逻辑。需要新增或补在 RoomManager 的 Update 里
+[33m9b265d9[m 地图编辑器可点击按钮放置预制体
+[33m3441a6a[m Merge remote-tracking branch 'origin/feature/sprite-tower' into develop
+[33m056c7f5[m 不知道是什么
+[33mc309fa8[m no message
+[33m1eea1c2[m new1
+[33me49c3fa[m ui调整
+[33md710f89[m UI设计
+[33med41d0a[m UI代码修改
+[33ma4492ac[m 删掉重复的文件
+[33m9b782c3[m Merge remote-tracking branch 'origin/feature/server-database' into develop
+[33md2fa296[m 1 创建 Player Prefab 自己做 Capsule + NetworkPlayer + Netick.NetworkObject 组件，拖入 SandboxRoot Prefab 的 Player Prefab 字段 2 补上 SetMapData 调用 自己做 ServerApp.cs 里 TODO 换成 李潇涵给的 new MapLoader().LoadFromMapId("test_map_01") 那几行 3 GhostRetreat 复活区检测 自己做 当前 ServerCombatAuthority 把玩家改成 GhostRetreat 后，缺少一个每帧检测 "玩家是否走到复活区" 的逻辑。需要新增或补在 RoomManager 的 Update 里
+[33m34a92c0[m pico
+[33m8a862a7[m[33m ([m[1;34mgrafted[m[33m)[m Merge remote-tracking branch 'origin/feature/client-hud' into develop
+[33mcca0a8c[m pico与服务器连接测试
+[33mfddaea0[m Merge remote-tracking branch 'origin/feature/server-database' into develop
+[33m28256f7[m 改bug
+[33m982f497[m Merge remote-tracking branch 'origin/feature/client-hud' into develop
+[33mb7b274b[m Merge branch 'develop' into feature/server-database
+[33m7f9e707[m 服务端删去数据库
+[33m99516a6[m mapdata
+[33m72d4643[m 素材放到地图编辑器里
+[33m16dcd57[m 地图编辑器
+[33mbc890c1[m 地图编辑器unity初版
+[33m4d9883c[m 地图编辑器M0
+[33ma481db3[m 地图编辑器基本做好，可以调试pico
+[33m8053b96[m 地图连接pico端
+[33md7177fd[m 地图编辑器
+[33m53c5d23[m 地图编辑器unity初版
+[33m1e0b4a6[m 地图编辑器M0
+[33m6b8a5a9[m Mock逻辑
+[33mefd7d52[m Merge remote-tracking branch 'origin/feature/sprite-tower' into develop
+[33mfce39ac[m version1.1
+[33md30ddcc[m Merge remote-tracking branch 'origin/feature/sprite-tower' into develop
+[33mcc899b3[m 修改地图json
+[33m6a3f2ca[m 1
+[33m14c148a[m Server第一次提交
+[33m4930226[m version1.0
+[33mb9a5ecb[m 22
+[33m0dcf201[m UI 框架
+[33m2f688b2[m Merge branch 'develop' of github.com:leexh921/MR-game into feature/core-gameplay
+[33mf65a363[m 移动test
+[33m10714b8[m Merge remote-tracking branch 'origin/feature/client-hud' into develop
+[33m6662a37[m Merge branch 'develop' into feature/core-gameplay
+[33mc050ae1[m pico插件到package里
+[33ma189b7d[m 依旧pico！
+[33ma6fe6a6[m pico插件
+[33m9cc0694[m 显示场景
+[33mcb9f402[m 导入package，切换Android平台
+[33m97dd7d1[m 骨架搭建
+[33m2049a63[m 新建文件
