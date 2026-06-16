@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:TreasureArenaUnity/Assets/_Project/Materials/begin/TeleportDestinationInvalid.fbx.meta
 guid: 5c7a9252c8cd87640af5c018c7ae05f3
+=======
+guid: 2cb1085ae26b3b64fb7309d0c33e573d
+>>>>>>> origin/feature/client-hud:TreasureArenaUnity/Assets/SteamVR/InteractionSystem/Teleport/Models/TeleportDestinationInvalid.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []

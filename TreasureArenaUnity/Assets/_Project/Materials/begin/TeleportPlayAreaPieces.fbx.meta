@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:TreasureArenaUnity/Assets/_Project/Materials/begin/TeleportPlayAreaPieces.fbx.meta
 guid: 52bf5b77a5093c74ebf8d4b4ad9cff29
+=======
+guid: fea4bceeac0d37541bf7572ad5c916f7
+>>>>>>> origin/feature/client-hud:TreasureArenaUnity/Assets/SteamVR/InteractionSystem/Teleport/Models/TeleportPlayAreaPieces.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
