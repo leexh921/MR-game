@@ -16,8 +16,12 @@ namespace TreasureArenaMR.Network
         [Header("Player Spawn")]
         [SerializeField] private GameObject _playerPrefab;
 
+        [Header("Match State Sync")]
+        [SerializeField] private GameObject _networkMatchStatePrefab;
+
         private RoomManager _roomManager;
         private NetworkManager _networkManager;
+        private NetworkMatchState _networkMatchStateInstance;
 
         private void CacheReferences()
         {
@@ -34,6 +38,13 @@ namespace TreasureArenaMR.Network
 
             if (_networkManager != null)
                 _networkManager.OnSandboxStarted(sandbox);
+
+            if (sandbox.IsServer && _networkMatchStatePrefab != null)
+            {
+                var obj = sandbox.NetworkInstantiate(_networkMatchStatePrefab, Vector3.zero, Quaternion.identity);
+                _networkMatchStateInstance = obj.GetComponent<NetworkMatchState>();
+                Debug.Log($"[SandboxNetworkListener] NetworkMatchState spawned: {_networkMatchStateInstance != null}");
+            }
         }
 
         public override void OnShutdown(NetworkSandbox sandbox)
@@ -68,33 +79,52 @@ namespace TreasureArenaMR.Network
 
         private void SpawnPlayer(NetworkSandbox sandbox, string playerId, NetickPlayer netPlayer)
         {
-            if (_roomManager?.MapData == null) return;
+            if (_roomManager?.MapData == null)
+            {
+                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: MapData is null (roomManager={_roomManager != null})");
+                return;
+            }
 
             var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
-            if (playerInfo == null) return;
+            if (playerInfo == null)
+            {
+                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: playerInfo not found for {playerId}. Players count={_roomManager.Players.Count}");
+                return;
+            }
 
             var teamType = playerInfo.team;
-            if (teamType == TeamType.None) return;
+            if (teamType == TeamType.None)
+            {
+                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: team is None for {playerId}");
+                return;
+            }
 
             var spawnZones = _roomManager.MapData.GetSpawnZones(teamType);
-            if (spawnZones == null || spawnZones.Count == 0) return;
+            if (spawnZones == null || spawnZones.Count == 0)
+            {
+                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: no spawn zones for team {teamType}");
+                return;
+            }
 
             Vector3 spawnPos = spawnZones[0]; // First available spawn point
 
             Debug.Log($"[SandboxNetworkListener] Spawning player {playerId} ({teamType}) at {spawnPos}");
 
-            if (_playerPrefab != null)
+            if (_playerPrefab == null)
             {
-                var playerObj = sandbox.NetworkInstantiate(_playerPrefab,
-                    spawnPos, Quaternion.identity, netPlayer);
-                sandbox.SetPlayerObject(netPlayer.PlayerId, playerObj);
+                Debug.LogError("[SandboxNetworkListener] SpawnPlayer blocked: _playerPrefab is not assigned in inspector!");
+                return;
+            }
 
-                var netComp = playerObj.GetComponent<NetworkPlayer>();
-                if (netComp != null)
-                {
-                    netComp.Initialize(playerId, $"Player_{playerId}", teamType);
-                    netComp.NetickPlayerId = netPlayer.PlayerId;
-                }
+            var playerObj = sandbox.NetworkInstantiate(_playerPrefab,
+                spawnPos, Quaternion.identity, netPlayer);
+            sandbox.SetPlayerObject(netPlayer.PlayerId, playerObj);
+
+            var netComp = playerObj.GetComponent<NetworkPlayer>();
+            if (netComp != null)
+            {
+                netComp.Initialize(playerId, $"Player_{playerId}", teamType);
+                netComp.NetickPlayerId = netPlayer.PlayerId;
             }
         }
 

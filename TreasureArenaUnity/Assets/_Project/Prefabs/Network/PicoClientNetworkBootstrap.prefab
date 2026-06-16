@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 7134862058625338136}
   - component: {fileID: 1629647129450060957}
   - component: {fileID: 6279448158870362979}
+  - component: {fileID: 9112274589580814400}
   m_Layer: 0
   m_Name: PicoClientNetworkBootstrap
   m_TagString: Untagged
@@ -193,8 +194,20 @@ MonoBehaviour:
   statusText: {fileID: 2477889773776607746}
   connectButton: {fileID: 1185709155526131783}
   disconnectButton: {fileID: 1955080626552019375}
-  prefabRegistry: {fileID: 11400000, guid: 8eaf3ef015b86684cbc88420fb6cb901, type: 2}
-  runtimeMapParent: {fileID: 0}
+--- !u!114 &9112274589580814400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2273921787505719569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f8c7e6d5a4b3c2d1e0f9a8b7c6d5e4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _prefabRegistry: {fileID: 11400000, guid: 8eaf3ef015b86684cbc88420fb6cb901, type: 2}
+  _defaultMapId: pico_map
 --- !u!1 &4144281618833270087
 GameObject:
   m_ObjectHideFlags: 0

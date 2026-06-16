@@ -62,6 +62,30 @@ namespace TreasureArenaMR.Client
             ConfigureRigidbody();
         }
 
+        public override void NetworkStart()
+        {
+            if (IsInputSource)
+            {
+                // Move visual mesh to a child so capsule body renders below camera
+                var meshFilter = GetComponent<MeshFilter>();
+                var meshRenderer = GetComponent<MeshRenderer>();
+                if (meshFilter != null && meshRenderer != null)
+                {
+                    var visual = new GameObject("BodyVisual", typeof(MeshFilter), typeof(MeshRenderer));
+                    visual.transform.SetParent(transform, false);
+                    visual.transform.localPosition = new Vector3(0f, -1.2f, 0f);
+
+                    var childFilter = visual.GetComponent<MeshFilter>();
+                    childFilter.mesh = meshFilter.mesh;
+                    var childRenderer = visual.GetComponent<MeshRenderer>();
+                    childRenderer.materials = meshRenderer.materials;
+
+                    Destroy(meshFilter);
+                    Destroy(meshRenderer);
+                }
+            }
+        }
+
         public override void OnInputSourceChanged(NetickPlayer previous)
         {
             resolvedTrackingTarget = trackingTarget;

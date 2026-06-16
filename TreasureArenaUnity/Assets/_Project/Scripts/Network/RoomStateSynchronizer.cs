@@ -4,10 +4,8 @@ using UnityEngine;
 namespace TreasureArenaMR.Network
 {
     /// <summary>
-    /// Periodically syncs server-owned room state to all clients.
-    /// Phase 3: Uses Debug logging. 
-    /// TODO Phase 5: Implement via Netick.NetworkBehaviour with [Networked] properties
-    /// or RPCs for automatic state replication instead of manual JSON broadcasting.
+    /// Periodically writes server room state into NetworkMatchState networked properties,
+    /// which Netick replicates to all clients.
     /// </summary>
     public sealed class RoomStateSynchronizer : MonoBehaviour
     {
@@ -15,6 +13,7 @@ namespace TreasureArenaMR.Network
         [SerializeField] private RoomManager _roomManager;
         [SerializeField] private NetworkManager _networkManager;
 
+        private NetworkMatchState _networkMatchState;
         private float _syncTimer;
 
         private void Start()
@@ -40,12 +39,31 @@ namespace TreasureArenaMR.Network
 
         private void SyncState()
         {
-            var config = _roomManager.CurrentRoomConfig;
-            if (config == null) return;
+            if (_networkMatchState == null)
+                _networkMatchState = FindObjectOfType<NetworkMatchState>();
 
-            Debug.Log($"[RoomStateSynchronizer] State={_roomManager.CurrentRoomState}, " +
+            if (_networkMatchState == null)
+            {
+                Debug.LogWarning("[RoomStateSynchronizer] NetworkMatchState not found yet");
+                return;
+            }
+
+            _networkMatchState.Sync(
+                _roomManager.CurrentRoomState,
+                _roomManager.RedScore,
+                _roomManager.BlueScore,
+                _roomManager.RemainingTime);
+
+            var config = _roomManager.CurrentRoomConfig;
+            if (config != null)
+            {
+                int mapIndex = Map.RuntimeMapCatalog.GetIndex(config.map_id);
+                _networkMatchState.SetMap(mapIndex, 1);
+            }
+
+            Debug.Log($"[RoomStateSynchronizer] Synced: State={_roomManager.CurrentRoomState}, " +
                 $"Red={_roomManager.RedScore}, Blue={_roomManager.BlueScore}, " +
-                $"Time={_roomManager.RemainingTime:F1}, Players={_roomManager.Players.Count}");
+                $"Time={_roomManager.RemainingTime:F0}, Players={_roomManager.Players.Count}");
         }
     }
 }

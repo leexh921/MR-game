@@ -323,6 +323,12 @@ namespace TreasureArenaMR.Server
             _matchTimer -= Time.deltaTime;
             RemainingTime = _matchTimer;
 
+            // Log every 5 seconds
+            int prevFloor = Mathf.CeilToInt((_matchTimer + Time.deltaTime) / 5f);
+            int currFloor = Mathf.CeilToInt(_matchTimer / 5f);
+            if (currFloor < prevFloor)
+                Debug.Log($"[RoomManager] Timer: {Mathf.CeilToInt(_matchTimer)}s remaining, Red={RedScore} Blue={BlueScore}");
+
             if (_matchTimer <= 0f)
             {
                 _matchTimer = 0f;

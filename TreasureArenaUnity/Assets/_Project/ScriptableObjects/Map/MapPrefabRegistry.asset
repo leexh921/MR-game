@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: MapPrefabRegistry
   m_EditorClassIdentifier: 
   entries:
+  - prefab_id: antique_light
+    prefab: {fileID: 3817291492257878440, guid: af1e992e086f33c468d592bca3775939, type: 3}
   - prefab_id: book_1
     prefab: {fileID: 1062339710358336084, guid: 17fb35b971b05f34d882726f8017b37e, type: 3}
   - prefab_id: book_2
