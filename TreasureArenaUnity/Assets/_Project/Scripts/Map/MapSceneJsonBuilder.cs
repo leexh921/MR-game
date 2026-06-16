@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ namespace TreasureArenaMR.Map
             {
                 map_id = ToMapId(mapName),
                 map_name = mapName,
-                map_version = "1.0.0",
+                version = "1.0.0",
                 description = description
             };
 
@@ -98,25 +97,23 @@ namespace TreasureArenaMR.Map
                     });
                     break;
 
+                case MapExportMarkerType.Bounds:
+                    map.bounds = new MapJsonModels.BoundsJson
+                    {
+                        center = ToVector3Json(marker.transform.position),
+                        size = ToVector3Json(marker.transform.localScale)
+                    };
+                    break;
 
                 default:
                     map.objects.Add(new MapJsonModels.MapObjectJson
                     {
                         object_id = marker.GetDefaultId(),
                         prefab_id = string.IsNullOrEmpty(marker.prefab_id) ? marker.gameObject.name : marker.prefab_id,
-                        object_type = marker.object_type.ToString(),
-                        interaction_type = marker.interaction_type.ToString(),
                         position = ToVector3Json(marker.transform.position),
                         rotation = ToRotationJson(marker.transform.eulerAngles),
                         scale = ToScaleJson(marker.transform.localScale),
-                        has_collider = marker.has_collider,
-                        is_movable = marker.is_movable,
-                        is_grabbable = marker.is_grabbable,
-                        is_openable = marker.is_openable,
-                        is_shootable = marker.is_shootable,
-                        blocks_bullet = marker.blocks_bullet,
-                        decal_enabled = marker.decal_enabled,
-                        mass = marker.mass
+                        has_collider = marker.has_collider
                     });
                     break;
             }
@@ -125,30 +122,6 @@ namespace TreasureArenaMR.Map
         private static MapJsonModels.Vector3Json ToVector3Json(Vector3 value)
         {
             return new MapJsonModels.Vector3Json { x = value.x, y = value.y, z = value.z };
-        }
-
-        public static MapJsonModels.MapBoundaryJson ToMapBoundaryJson(
-            IReadOnlyList<Vector3> points,
-            float height,
-            string boundaryType = "Polygon")
-        {
-            MapJsonModels.MapBoundaryJson boundary = new MapJsonModels.MapBoundaryJson
-            {
-                boundary_type = string.IsNullOrEmpty(boundaryType) ? "Polygon" : boundaryType,
-                height = height
-            };
-
-            if (points == null)
-            {
-                return boundary;
-            }
-
-            for (int i = 0; i < points.Count; i++)
-            {
-                boundary.points.Add(ToVector3Json(points[i]));
-            }
-
-            return boundary;
         }
 
         private static MapJsonModels.RotationJson ToRotationJson(Vector3 value)

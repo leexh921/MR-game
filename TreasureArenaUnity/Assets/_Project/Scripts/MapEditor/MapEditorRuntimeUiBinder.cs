@@ -101,19 +101,7 @@ namespace TreasureArenaMR.MapEditor
             }
 
             MapEditorRuntimeExportResult result = exporter.ExportCurrentMap();
-            if (!result.ok)
-            {
-                SetStatus("Map export failed: " + result.error);
-                return;
-            }
-
-            string message = "Map exported: " + result.path;
-            if (!string.IsNullOrEmpty(result.publicPath))
-            {
-                message += "\nPublic copy: " + result.publicPath;
-            }
-
-            SetStatus(message);
+            SetStatus(result.ok ? "Map exported: " + result.path : "Map export failed: " + result.error);
         }
 
         private void BindController()

@@ -1,5 +1,4 @@
 using UnityEngine;
-using TreasureArenaMR.Gameplay;
 
 public class Bullet : MonoBehaviour
 {
@@ -19,16 +18,9 @@ public class Bullet : MonoBehaviour
 
     void OnCollisionEnter(Collision collision)
     {
-        ContactPoint hit = collision.contacts[0];
-        BulletSurface surface = collision.collider.GetComponentInParent<BulletSurface>();
-        bool shouldSpawnDecal = surface == null || surface.decal_enabled;
-
-        if (shouldSpawnDecal && BulletHoleManager.Instance != null)
+        if (bulletHolePrefab != null)
         {
-            BulletHoleManager.Instance.SpawnBulletHoleFromCollision(hit);
-        }
-        else if (shouldSpawnDecal && bulletHolePrefab != null)
-        {
+            ContactPoint hit = collision.contacts[0];
 
             // 生成弹孔（稍微往外推一点）
             GameObject hole = Instantiate(

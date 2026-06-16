@@ -1,6 +1,5 @@
 using TreasureArenaMR.Map;
 using TreasureArenaMR.Shared;
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -19,13 +18,11 @@ namespace TreasureArenaMR.MapEditor.Editor
         private const string MapEditorPrefabRoot = "Assets/_Project/Prefabs/MapEditor";
         private const string PaletteDir = "Assets/_Project/Prefabs/MapEditor/Palette";
         private const string BasicShapesDir = "Assets/_Project/Prefabs/MapEditor/Palette/Basic Shapes";
-        private const string UserPrefabsDir = "Assets/_Project/Prefabs/MapEditor/Palette/Prefabs";
-        private const string BrushThumbnailDir = "Assets/_Project/Textures/MapEditor/BrushThumbnails";
         private static readonly string[] BrushSearchFolders =
         {
-            UserPrefabsDir,
+            "Assets/_Project/Prefabs/MapEditor/MapObjects",
             "Assets/_Project/Prefabs/MapEditor/GameplayMarkers",
-            BasicShapesDir
+            "Assets/_Project/Prefabs/MapEditor/Palette"
         };
 
         [MenuItem("Tools/TreasureArena/地图编辑器/创建 MR 运行时输入控制器")]
@@ -72,7 +69,10 @@ namespace TreasureArenaMR.MapEditor.Editor
             serializedController.FindProperty("placedObjectsRoot").objectReferenceValue = placedRoot.transform;
             SerializedProperty brushes = serializedController.FindProperty("brushes");
             FillDefaultBrushes(brushes);
-            serializedController.FindProperty("activeBrushIndex").intValue = -1;
+            if (brushes.arraySize > 0)
+            {
+                serializedController.FindProperty("activeBrushIndex").intValue = 0;
+            }
             serializedController.ApplyModifiedProperties();
 
             CreateOrUpdateDockedCanvas(controller, exporter);
@@ -82,40 +82,6 @@ namespace TreasureArenaMR.MapEditor.Editor
             EditorUtility.SetDirty(placedRoot);
             EditorUtility.SetDirty(rayOrigin);
             Debug.Log("MapEditor MR runtime input controller created. Save the scene to keep it.");
-        }
-
-        [MenuItem("Tools/TreasureArena/地图编辑器/重新生成 Brush 缩略图")]
-        public static void RegenerateBrushThumbnails()
-        {
-            EnsureDefaultPalettePrefabs();
-            EnsureThumbnailFolder();
-
-            int generated = 0;
-            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", BrushSearchFolders);
-            for (int i = 0; i < prefabGuids.Length; i++)
-            {
-                string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
-                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                if (prefab == null)
-                {
-                    continue;
-                }
-
-                string prefabId = GetPrefabId(prefab);
-                string assetPath = GetThumbnailPath(prefabId);
-                if (AssetDatabase.LoadAssetAtPath<Sprite>(assetPath) != null)
-                {
-                    AssetDatabase.DeleteAsset(assetPath);
-                }
-
-                if (CreateThumbnailAsset(prefab, prefabId, true) != null)
-                {
-                    generated++;
-                }
-            }
-
-            AssetDatabase.Refresh();
-            Debug.Log("MapEditor brush thumbnails regenerated: " + generated);
         }
 
         private static void CreateOrUpdateDockedCanvas(MapEditorRuntimeController controller, MapEditorRuntimeExporter exporter)
@@ -128,49 +94,11 @@ namespace TreasureArenaMR.MapEditor.Editor
                 Undo.DestroyObjectImmediate(oldPanel);
             }
 
-            bool hadDockedCanvas = false;
-            Vector3 savedPosition = Vector3.zero;
-            Quaternion savedRotation = Quaternion.identity;
-            Vector3 savedScale = Vector3.one;
-            Vector2 savedSize = new Vector2(1200f, 560f);
-            float savedDistance = 0.95f;
-            float savedVerticalOffset = 0.45f;
-            float savedTilt = 28f;
-            float savedYawOffset = 180f;
-            Vector2 savedDesignSize = new Vector2(1200f, 560f);
-            float savedWorldScale = 0.001f;
-
             GameObject[] existingCanvases = GameObject.FindObjectsOfType<GameObject>(true);
             for (int i = 0; i < existingCanvases.Length; i++)
             {
                 if (existingCanvases[i].name == DockedCanvasName)
                 {
-                    if (!hadDockedCanvas)
-                    {
-                        hadDockedCanvas = true;
-                        Transform oldTransform = existingCanvases[i].transform;
-                        savedPosition = oldTransform.position;
-                        savedRotation = oldTransform.rotation;
-                        savedScale = oldTransform.localScale;
-                        RectTransform oldRect = existingCanvases[i].GetComponent<RectTransform>();
-                        if (oldRect != null)
-                        {
-                            savedSize = oldRect.sizeDelta;
-                        }
-
-                        MapEditorDockedUiController oldUi = existingCanvases[i].GetComponent<MapEditorDockedUiController>();
-                        if (oldUi != null)
-                        {
-                            SerializedObject oldSerialized = new SerializedObject(oldUi);
-                            savedDistance = oldSerialized.FindProperty("workbenchDistance").floatValue;
-                            savedVerticalOffset = oldSerialized.FindProperty("workbenchVerticalOffset").floatValue;
-                            savedTilt = oldSerialized.FindProperty("workbenchTiltDegrees").floatValue;
-                            savedYawOffset = oldSerialized.FindProperty("workbenchYawOffset").floatValue;
-                            savedDesignSize = oldSerialized.FindProperty("workbenchDesignSize").vector2Value;
-                            savedWorldScale = oldSerialized.FindProperty("workbenchWorldScale").floatValue;
-                        }
-                    }
-
                     Undo.DestroyObjectImmediate(existingCanvases[i]);
                 }
             }
@@ -193,34 +121,8 @@ namespace TreasureArenaMR.MapEditor.Editor
                 return;
             }
 
-            if (hadDockedCanvas)
-            {
-                canvasGo.transform.SetPositionAndRotation(savedPosition, savedRotation);
-                canvasGo.transform.localScale = savedScale;
-                RectTransform rect = canvasGo.GetComponent<RectTransform>();
-                if (rect != null)
-                {
-                    rect.sizeDelta = savedSize;
-                }
-
-                MapEditorDockedUiController newUi = canvasGo.GetComponent<MapEditorDockedUiController>();
-                if (newUi != null)
-                {
-                    SerializedObject newSerialized = new SerializedObject(newUi);
-                    newSerialized.FindProperty("workbenchDistance").floatValue = savedDistance;
-                    newSerialized.FindProperty("workbenchVerticalOffset").floatValue = savedVerticalOffset;
-                    newSerialized.FindProperty("workbenchTiltDegrees").floatValue = savedTilt;
-                    newSerialized.FindProperty("workbenchYawOffset").floatValue = savedYawOffset;
-                    newSerialized.FindProperty("workbenchDesignSize").vector2Value = savedDesignSize;
-                    newSerialized.FindProperty("workbenchWorldScale").floatValue = savedWorldScale;
-                    newSerialized.ApplyModifiedPropertiesWithoutUndo();
-                }
-            }
-            else
-            {
-                PlacePanelNearCamera(canvasGo.transform);
-                canvasGo.transform.localScale = Vector3.one * 0.001f;
-            }
+            PlacePanelNearCamera(canvasGo.transform);
+            canvasGo.transform.localScale = Vector3.one * 0.0024f;
 
             Canvas canvas = canvasGo.GetComponent<Canvas>();
             if (canvas != null)
@@ -563,152 +465,19 @@ namespace TreasureArenaMR.MapEditor.Editor
             }
 
             MapExportMarker marker = prefab.GetComponent<MapExportMarker>();
-            MapPrefabDefaults defaults = prefab.GetComponent<MapPrefabDefaults>();
-            string prefabId = GetPrefabId(prefab);
+            string prefabId = marker != null && !string.IsNullOrEmpty(marker.prefab_id) ? marker.prefab_id : prefab.name;
             int index = brushes.arraySize;
             brushes.InsertArrayElementAtIndex(index);
             SerializedProperty brush = brushes.GetArrayElementAtIndex(index);
             brush.FindPropertyRelative("label").stringValue = ObjectNames.NicifyVariableName(prefab.name);
             brush.FindPropertyRelative("folder").stringValue = GetBrushFolder(prefabPath);
             brush.FindPropertyRelative("prefab").objectReferenceValue = prefab;
-            brush.FindPropertyRelative("thumbnail").objectReferenceValue = GetOrCreateThumbnail(prefab);
             brush.FindPropertyRelative("prefab_id").stringValue = prefabId;
             ApplyBrushMarkerDefaults(brush, prefab.name, marker);
             brush.FindPropertyRelative("supply_type").stringValue = marker != null ? marker.supply_type : "WeaponRandom";
             brush.FindPropertyRelative("radius").floatValue = marker != null ? marker.radius : 1f;
             brush.FindPropertyRelative("refresh_interval").floatValue = marker != null ? marker.refresh_interval : 20f;
-            bool hasCollider = prefab.GetComponentInChildren<Collider>() != null;
-            brush.FindPropertyRelative("has_collider").boolValue = defaults != null ? defaults.has_collider : hasCollider;
-            brush.FindPropertyRelative("object_type").enumValueIndex = defaults != null ? (int)defaults.object_type : marker != null ? (int)marker.object_type : (int)MapObjectType.StaticObstacle;
-            brush.FindPropertyRelative("interaction_type").enumValueIndex = defaults != null ? (int)defaults.interaction_type : marker != null ? (int)marker.interaction_type : (int)MapInteractionType.None;
-            brush.FindPropertyRelative("default_scale").vector3Value = defaults != null ? defaults.default_scale : Vector3.one;
-            brush.FindPropertyRelative("default_rotation").vector3Value = defaults != null ? defaults.default_rotation : Vector3.zero;
-            brush.FindPropertyRelative("is_movable").boolValue = defaults != null ? defaults.is_movable : marker != null && marker.is_movable;
-            brush.FindPropertyRelative("is_grabbable").boolValue = defaults != null ? defaults.is_grabbable : marker != null && marker.is_grabbable;
-            brush.FindPropertyRelative("is_openable").boolValue = defaults != null ? defaults.is_openable : marker != null && marker.is_openable;
-            brush.FindPropertyRelative("is_shootable").boolValue = defaults != null ? defaults.is_shootable : marker == null || marker.is_shootable;
-            brush.FindPropertyRelative("blocks_bullet").boolValue = defaults != null ? defaults.blocks_bullet : marker == null || marker.blocks_bullet;
-            brush.FindPropertyRelative("decal_enabled").boolValue = defaults != null ? defaults.decal_enabled : marker == null || marker.decal_enabled;
-            brush.FindPropertyRelative("mass").floatValue = defaults != null ? defaults.mass : marker != null ? marker.mass : 0f;
-        }
-
-        private static Sprite GetOrCreateThumbnail(GameObject prefab)
-        {
-            if (prefab == null)
-            {
-                return null;
-            }
-
-            EnsureThumbnailFolder();
-            string prefabId = GetPrefabId(prefab);
-            string assetPath = GetThumbnailPath(prefabId);
-            Sprite existing = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-            if (existing != null)
-            {
-                return existing;
-            }
-
-            return CreateThumbnailAsset(prefab, prefabId, false);
-        }
-
-        private static Sprite CreateThumbnailAsset(GameObject prefab, string prefabId, bool waitForPreview)
-        {
-            Texture2D source = GetPreviewTexture(prefab, waitForPreview);
-            if (source == null)
-            {
-                return null;
-            }
-
-            Texture2D readable = CopyReadableTexture(source, 128, 128);
-            byte[] png = readable.EncodeToPNG();
-            Object.DestroyImmediate(readable);
-            string assetPath = GetThumbnailPath(prefabId);
-            File.WriteAllBytes(assetPath, png);
-            AssetDatabase.ImportAsset(assetPath);
-
-            TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.alphaIsTransparency = true;
-                importer.SaveAndReimport();
-            }
-
-            return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-        }
-
-        private static Texture2D GetPreviewTexture(GameObject prefab, bool waitForPreview)
-        {
-            if (prefab == null)
-            {
-                return null;
-            }
-
-            int attempts = waitForPreview ? 30 : 1;
-            for (int i = 0; i < attempts; i++)
-            {
-                Texture2D source = AssetPreview.GetAssetPreview(prefab);
-                if (source != null)
-                {
-                    return source;
-                }
-
-                if (waitForPreview)
-                {
-                    System.Threading.Thread.Sleep(100);
-                }
-            }
-
-            return null;
-        }
-
-        private static string GetPrefabId(GameObject prefab)
-        {
-            MapExportMarker marker = prefab != null ? prefab.GetComponent<MapExportMarker>() : null;
-            return marker != null && !string.IsNullOrEmpty(marker.prefab_id) ? marker.prefab_id : prefab != null ? prefab.name : "missing_prefab";
-        }
-
-        private static string GetThumbnailPath(string prefabId)
-        {
-            return BrushThumbnailDir + "/" + MakeSafeAssetName(prefabId) + ".png";
-        }
-
-        private static string MakeSafeAssetName(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                return "missing_prefab";
-            }
-
-            char[] invalid = System.IO.Path.GetInvalidFileNameChars();
-            string safeName = value.Replace(' ', '_');
-            for (int i = 0; i < invalid.Length; i++)
-            {
-                safeName = safeName.Replace(invalid[i], '_');
-            }
-
-            return safeName;
-        }
-
-        private static Texture2D CopyReadableTexture(Texture2D source, int width, int height)
-        {
-            RenderTexture previous = RenderTexture.active;
-            RenderTexture temporary = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
-            Graphics.Blit(source, temporary);
-            RenderTexture.active = temporary;
-            Texture2D readable = new Texture2D(width, height, TextureFormat.ARGB32, false);
-            readable.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
-            readable.Apply();
-            RenderTexture.active = previous;
-            RenderTexture.ReleaseTemporary(temporary);
-            return readable;
-        }
-
-        private static void EnsureThumbnailFolder()
-        {
-            EnsureFolder("Assets/_Project/Textures", "MapEditor");
-            EnsureFolder("Assets/_Project/Textures/MapEditor", "BrushThumbnails");
+            brush.FindPropertyRelative("has_collider").boolValue = prefab.GetComponentInChildren<Collider>() != null;
         }
 
         private static void ApplyBrushMarkerDefaults(SerializedProperty brush, string prefabName, MapExportMarker marker)
@@ -737,6 +506,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             new BrushMarkerDefault("Treasure_Rare",   MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Rare),
             new BrushMarkerDefault("Treasure_Final",  MapExportMarkerType.TreasureSpawnPoint, TeamType.None,  TreasureType.Final),
             new BrushMarkerDefault("SupplyBox",       MapExportMarkerType.SupplyBox,          TeamType.None,  TreasureType.Normal),
+            new BrushMarkerDefault("Bounds",          MapExportMarkerType.Bounds,             TeamType.None,  TreasureType.Normal),
         };
 
         private struct BrushMarkerDefault
@@ -774,7 +544,6 @@ namespace TreasureArenaMR.MapEditor.Editor
         private static void EnsureDefaultPalettePrefabs()
         {
             EnsureFolder(MapEditorPrefabRoot, "Palette");
-            EnsureFolder(PaletteDir, "Prefabs");
             EnsureFolder(PaletteDir, "Basic Shapes");
             EnsurePrimitivePrefab("Basic_Cube", PrimitiveType.Cube, Vector3.one);
             EnsurePrimitivePrefab("Basic_Cylinder", PrimitiveType.Cylinder, Vector3.one);
@@ -815,24 +584,17 @@ namespace TreasureArenaMR.MapEditor.Editor
             Camera camera = Camera.main;
             if (camera == null)
             {
-                panel.position = new Vector3(0f, 0.95f, 0.9f);
-                panel.rotation = Quaternion.Euler(60f, 180f, 0f);
+                panel.position = new Vector3(-1.8f, 1.6f, -2.2f);
+                panel.rotation = Quaternion.Euler(20f, 18f, 0f);
                 return;
             }
 
             Transform cameraTransform = camera.transform;
-            Vector3 flatForward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up);
-            if (flatForward.sqrMagnitude < 0.001f)
-            {
-                flatForward = Vector3.ProjectOnPlane(cameraTransform.up, Vector3.up);
-            }
-
-            flatForward.Normalize();
             panel.position = cameraTransform.position
-                + flatForward * 0.95f
-                - Vector3.up * 0.45f;
-            Quaternion faceUser = Quaternion.LookRotation(cameraTransform.position - panel.position, Vector3.up);
-            panel.rotation = faceUser * Quaternion.Euler(28f, 0f, 0f);
+                + cameraTransform.forward * 2.2f
+                - cameraTransform.right * 0.8f
+                + cameraTransform.up * 0.1f;
+            panel.rotation = Quaternion.LookRotation(panel.position - cameraTransform.position, Vector3.up);
         }
     }
 }

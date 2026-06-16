@@ -14,15 +14,6 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private InputField idInput;
         [SerializeField] private InputField prefabIdInput;
         [SerializeField] private Toggle hasColliderToggle;
-        [SerializeField] private Dropdown objectTypeDropdown;
-        [SerializeField] private Dropdown interactionTypeDropdown;
-        [SerializeField] private Toggle movableToggle;
-        [SerializeField] private Toggle grabbableToggle;
-        [SerializeField] private Toggle openableToggle;
-        [SerializeField] private Toggle shootableToggle;
-        [SerializeField] private Toggle blocksBulletToggle;
-        [SerializeField] private Toggle decalEnabledToggle;
-        [SerializeField] private InputField massInput;
         [SerializeField] private InputField positionXInput;
         [SerializeField] private InputField positionYInput;
         [SerializeField] private InputField positionZInput;
@@ -37,9 +28,6 @@ namespace TreasureArenaMR.MapEditor
         [SerializeField] private InputField radiusInput;
         [SerializeField] private InputField supplyTypeInput;
         [SerializeField] private InputField refreshIntervalInput;
-        [SerializeField] private Button duplicateButton;
-        [SerializeField] private Button deleteButton;
-        [SerializeField] private Button resetTransformButton;
 
         private GameObject selectedObject;
         private MapExportMarker selectedMarker;
@@ -85,15 +73,6 @@ namespace TreasureArenaMR.MapEditor
             SetText(idInput, selectedMarker != null ? selectedMarker.GetDefaultId() : "");
             SetText(prefabIdInput, selectedMarker != null ? selectedMarker.prefab_id : "");
             SetToggle(hasColliderToggle, selectedMarker != null && selectedMarker.has_collider);
-            SetDropdown(objectTypeDropdown, selectedMarker != null ? (int)selectedMarker.object_type : 0);
-            SetDropdown(interactionTypeDropdown, selectedMarker != null ? (int)selectedMarker.interaction_type : 0);
-            SetToggle(movableToggle, selectedMarker != null && selectedMarker.is_movable);
-            SetToggle(grabbableToggle, selectedMarker != null && selectedMarker.is_grabbable);
-            SetToggle(openableToggle, selectedMarker != null && selectedMarker.is_openable);
-            SetToggle(shootableToggle, selectedMarker != null && selectedMarker.is_shootable);
-            SetToggle(blocksBulletToggle, selectedMarker != null && selectedMarker.blocks_bullet);
-            SetToggle(decalEnabledToggle, selectedMarker != null && selectedMarker.decal_enabled);
-            SetText(massInput, selectedMarker != null ? F(selectedMarker.mass) : "");
 
             Transform t = selectedObject != null ? selectedObject.transform : null;
             Vector3 position = t != null ? t.position : Vector3.zero;
@@ -153,29 +132,11 @@ namespace TreasureArenaMR.MapEditor
             Bind(radiusInput, ApplyMarkerNumbers);
             Bind(supplyTypeInput, ApplySupplyType);
             Bind(refreshIntervalInput, ApplyMarkerNumbers);
-            Bind(massInput, ApplyObjectCapabilities);
 
             if (hasColliderToggle != null)
             {
                 hasColliderToggle.onValueChanged.AddListener(ApplyHasCollider);
             }
-
-            if (objectTypeDropdown != null)
-            {
-                objectTypeDropdown.onValueChanged.AddListener(ApplyObjectType);
-            }
-
-            if (interactionTypeDropdown != null)
-            {
-                interactionTypeDropdown.onValueChanged.AddListener(ApplyInteractionType);
-            }
-
-            BindToggle(movableToggle);
-            BindToggle(grabbableToggle);
-            BindToggle(openableToggle);
-            BindToggle(shootableToggle);
-            BindToggle(blocksBulletToggle);
-            BindToggle(decalEnabledToggle);
 
             if (teamDropdown != null)
             {
@@ -185,21 +146,6 @@ namespace TreasureArenaMR.MapEditor
             if (treasureTypeDropdown != null)
             {
                 treasureTypeDropdown.onValueChanged.AddListener(ApplyTreasureType);
-            }
-
-            if (duplicateButton != null)
-            {
-                duplicateButton.onClick.AddListener(() => controller?.DuplicateSelected());
-            }
-
-            if (deleteButton != null)
-            {
-                deleteButton.onClick.AddListener(() => controller?.DeleteSelected());
-            }
-
-            if (resetTransformButton != null)
-            {
-                resetTransformButton.onClick.AddListener(() => controller?.ResetSelectedTransform());
             }
         }
 
@@ -213,16 +159,6 @@ namespace TreasureArenaMR.MapEditor
             if (treasureTypeDropdown != null && treasureTypeDropdown.options.Count == 0)
             {
                 treasureTypeDropdown.AddOptions(new System.Collections.Generic.List<string> { "Normal", "Rare", "Final" });
-            }
-
-            if (objectTypeDropdown != null && objectTypeDropdown.options.Count == 0)
-            {
-                objectTypeDropdown.AddOptions(new System.Collections.Generic.List<string> { "StaticFloor", "StaticObstacle", "PhysicsProp", "OpenableObject" });
-            }
-
-            if (interactionTypeDropdown != null && interactionTypeDropdown.options.Count == 0)
-            {
-                interactionTypeDropdown.AddOptions(new System.Collections.Generic.List<string> { "None", "Grab", "Openable" });
             }
         }
 
@@ -271,22 +207,6 @@ namespace TreasureArenaMR.MapEditor
             }
         }
 
-        private void ApplyObjectType(int value)
-        {
-            if (!suppressEvents && selectedMarker != null)
-            {
-                selectedMarker.object_type = (MapObjectType)Mathf.Clamp(value, 0, 3);
-            }
-        }
-
-        private void ApplyInteractionType(int value)
-        {
-            if (!suppressEvents && selectedMarker != null)
-            {
-                selectedMarker.interaction_type = (MapInteractionType)Mathf.Clamp(value, 0, 2);
-            }
-        }
-
         private void ApplyTeam(int value)
         {
             if (!suppressEvents && selectedMarker != null)
@@ -322,45 +242,11 @@ namespace TreasureArenaMR.MapEditor
             selectedMarker.refresh_interval = Mathf.Max(0.01f, Parse(refreshIntervalInput, selectedMarker.refresh_interval));
         }
 
-        private void ApplyObjectCapabilities(string _)
-        {
-            ApplyObjectCapabilities();
-        }
-
-        private void ApplyObjectCapabilities(bool _)
-        {
-            ApplyObjectCapabilities();
-        }
-
-        private void ApplyObjectCapabilities()
-        {
-            if (suppressEvents || selectedMarker == null)
-            {
-                return;
-            }
-
-            selectedMarker.is_movable = movableToggle != null && movableToggle.isOn;
-            selectedMarker.is_grabbable = grabbableToggle != null && grabbableToggle.isOn;
-            selectedMarker.is_openable = openableToggle != null && openableToggle.isOn;
-            selectedMarker.is_shootable = shootableToggle == null || shootableToggle.isOn;
-            selectedMarker.blocks_bullet = blocksBulletToggle == null || blocksBulletToggle.isOn;
-            selectedMarker.decal_enabled = decalEnabledToggle == null || decalEnabledToggle.isOn;
-            selectedMarker.mass = Mathf.Max(0f, Parse(massInput, selectedMarker.mass));
-        }
-
         private static void Bind(InputField input, UnityEngine.Events.UnityAction<string> action)
         {
             if (input != null)
             {
                 input.onEndEdit.AddListener(action);
-            }
-        }
-
-        private void BindToggle(Toggle toggle)
-        {
-            if (toggle != null)
-            {
-                toggle.onValueChanged.AddListener(ApplyObjectCapabilities);
             }
         }
 
@@ -398,23 +284,14 @@ namespace TreasureArenaMR.MapEditor
             SetInteractable(positionXInput, selectedObject != null);
             SetInteractable(positionYInput, selectedObject != null);
             SetInteractable(positionZInput, selectedObject != null);
-            SetInteractable(rotationXInput, selectedObject != null);
-            SetInteractable(rotationYInput, selectedObject != null);
-            SetInteractable(rotationZInput, selectedObject != null);
+            SetInteractable(rotationXInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
+            SetInteractable(rotationYInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
+            SetInteractable(rotationZInput, selectedObject != null && markerType != MapExportMarkerType.Bounds);
             SetInteractable(scaleXInput, selectedObject != null);
             SetInteractable(scaleYInput, selectedObject != null);
             SetInteractable(scaleZInput, selectedObject != null);
 
             SetInteractable(hasColliderToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(objectTypeDropdown, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(interactionTypeDropdown, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(movableToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(grabbableToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(openableToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(shootableToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(blocksBulletToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(decalEnabledToggle, hasMarker && markerType == MapExportMarkerType.MapObject);
-            SetInteractable(massInput, hasMarker && markerType == MapExportMarkerType.MapObject);
             SetInteractable(teamDropdown, hasMarker && markerType == MapExportMarkerType.TeamBase);
             SetInteractable(treasureTypeDropdown, hasMarker && markerType == MapExportMarkerType.TreasureSpawnPoint);
             SetInteractable(radiusInput, hasMarker && (markerType == MapExportMarkerType.TeamBase || markerType == MapExportMarkerType.TreasureSpawnPoint));

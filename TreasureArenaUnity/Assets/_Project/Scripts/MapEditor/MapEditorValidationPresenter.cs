@@ -61,19 +61,7 @@ namespace TreasureArenaMR.MapEditor
                 return;
             }
 
-            if (!result.ok)
-            {
-                AddLog("Map export failed: " + result.error);
-                return;
-            }
-
-            string message = "Map exported: " + result.path;
-            if (!string.IsNullOrEmpty(result.publicPath))
-            {
-                message += "\nPublic copy: " + result.publicPath;
-            }
-
-            AddLog(message);
+            AddLog(result.ok ? "Map exported: " + result.path : "Map export failed: " + result.error);
         }
 
         private void RefreshLogs()

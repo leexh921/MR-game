@@ -1,23 +1,17 @@
+using System;
 using System.Collections.Generic;
-using TreasureArenaMR.Network;
-using TreasureArenaMR.Server;
-using TreasureArenaMR.Shared;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace TreasureArenaMR.UI
 {
     /// <summary>
-    /// Home scene manager UI backed by the local Netick server runtime.
+    /// Local-only manager home UI prototype for Stage 1.5.
+    /// It demonstrates room selection and panel refresh without touching networking,
+    /// database, map loading, or authoritative gameplay logic.
     /// </summary>
     public sealed class ManagerHomeView : MonoBehaviour
     {
-        [Header("Runtime")]
-        [SerializeField] private ServerBootstrap serverBootstrap;
-        [SerializeField] private NetworkManager networkManager;
-        [SerializeField] private RoomManager roomManager;
-        [SerializeField] private int minPlayersToStart = 1;
-
         [Header("Header")]
         [SerializeField] private Text roleText;
         [SerializeField] private Text connectionText;
@@ -51,140 +45,109 @@ namespace TreasureArenaMR.UI
         [Header("Log")]
         [SerializeField] private Text logText;
 
-        private int selectedPlayerIndex;
-        private float nextRefreshTime;
-        private const float RefreshInterval = 0.25f;
-        private const int MaxLogLines = 50;
+        private readonly List<MockRoom> rooms = new List<MockRoom>();
+        private int selectedRoomIndex;
+        private int createdRoomCount = 3;
 
         private void Awake()
         {
             AutoBindMissingReferences();
-            EnsureRuntimeReferences();
+            SeedRooms();
             WireButtons();
-            AppendLog("Home manager ready.");
+            SelectRoom(0);
         }
 
-        private void OnEnable()
+        public void SelectRoom(int roomIndex)
         {
-            EnsureRuntimeReferences();
-            if (serverBootstrap != null)
-                serverBootstrap.OnStatusChanged += Refresh;
-        }
-
-        private void OnDisable()
-        {
-            if (serverBootstrap != null)
-                serverBootstrap.OnStatusChanged -= Refresh;
-        }
-
-        private void Update()
-        {
-            if (Time.time < nextRefreshTime)
-                return;
-
-            nextRefreshTime = Time.time + RefreshInterval;
-            EnsureRuntimeReferences();
-            Refresh();
-        }
-
-        public void CreateOrStartRoom()
-        {
-            EnsureRuntimeReferences();
-            if (serverBootstrap == null)
+            if (roomIndex < 0 || roomIndex >= rooms.Count)
             {
-                AppendLog("Missing ServerBootstrap.");
                 return;
             }
 
-            serverBootstrap.CreateOrStartRoom();
-            AppendLog("Create/start room requested.");
+            selectedRoomIndex = roomIndex;
             Refresh();
+            AppendLog("Selected " + rooms[selectedRoomIndex].Name + ".");
         }
 
-        public void SelectNextMap()
+        public void CreateMockRoom()
         {
-            EnsureRuntimeReferences();
-            if (serverBootstrap == null)
+            createdRoomCount++;
+            rooms.Add(new MockRoom(
+                "Room " + createdRoomCount,
+                "test_map_01",
+                "Waiting",
+                100,
+                25,
+                5,
+                300,
+                new[] { "RedTestPlayer" },
+                new[] { "BlueTestPlayer" }));
+
+            selectedRoomIndex = rooms.Count - 1;
+            Refresh();
+            AppendLog("Created local mock room. No server room was created.");
+        }
+
+        public void CycleSelectedRoomMap()
+        {
+            MockRoom room = GetSelectedRoom();
+            if (room == null)
             {
-                AppendLog("Missing ServerBootstrap.");
                 return;
             }
 
-            serverBootstrap.SelectNextMap();
-            AppendLog("Selected map: " + serverBootstrap.SelectedMapId);
+            room.MapId = room.MapId == "test_map_01" ? "test_map_02_placeholder" : "test_map_01";
             Refresh();
+            AppendLog("Changed displayed map for " + room.Name + " to " + room.MapId + ".");
         }
 
-        public void StartMatch()
+        public void StartSelectedRoom()
         {
-            EnsureRuntimeReferences();
-            if (serverBootstrap != null && serverBootstrap.StartMatch(minPlayersToStart))
-                AppendLog("Match started.");
-            else
-                AppendLog("Start match rejected.");
-
-            Refresh();
-        }
-
-        public void StopMatch()
-        {
-            EnsureRuntimeReferences();
-            if (serverBootstrap == null)
-                return;
-
-            serverBootstrap.StopMatch();
-            AppendLog("Match stopped.");
-            Refresh();
-        }
-
-        public void SelectNextPlayer()
-        {
-            List<PlayerInfo> players = GetPlayers();
-            if (players.Count == 0)
+            MockRoom room = GetSelectedRoom();
+            if (room == null)
             {
-                selectedPlayerIndex = 0;
-                AppendLog("No connected players.");
-                Refresh();
                 return;
             }
 
-            selectedPlayerIndex = (selectedPlayerIndex + 1) % players.Count;
-            AppendLog("Selected player: " + players[selectedPlayerIndex].nickname);
+            room.State = "Playing";
             Refresh();
+            AppendLog("Start clicked for " + room.Name + ". UI state only.");
         }
 
-        public void AssignSelectedPlayerRed()
+        public void StopSelectedRoom()
         {
-            AssignSelectedPlayer(TeamType.Red);
-        }
+            MockRoom room = GetSelectedRoom();
+            if (room == null)
+            {
+                return;
+            }
 
-        public void AssignSelectedPlayerBlue()
-        {
-            AssignSelectedPlayer(TeamType.Blue);
+            room.State = "Finished";
+            Refresh();
+            AppendLog("Stop clicked for " + room.Name + ". UI state only.");
         }
 
         public void Refresh()
         {
-            EnsureRuntimeReferences();
+            MockRoom room = GetSelectedRoom();
+            if (room == null)
+            {
+                return;
+            }
 
-            NetworkMatchState matchState = FindObjectOfType<NetworkMatchState>();
-            RoomConfig config = roomManager != null ? roomManager.CurrentRoomConfig : null;
-            List<PlayerInfo> players = GetPlayers();
-            ClampSelectedPlayer(players);
-
-            SetText(roleText, "Role: Home Manager + Server");
-            SetText(connectionText, BuildConnectionText(matchState));
-            SetText(roomNameText, config != null ? "Room: " + config.room_name : "Room: Not created");
-            SetText(roomStateText, roomManager != null ? "State: " + roomManager.CurrentRoomState : "State: No RoomManager");
-            SetText(hpText, config != null ? "HP: " + config.player_max_hp : "HP: -");
-            SetText(damageText, config?.weapon_config != null ? "Damage: " + config.weapon_config.damage : "Damage: -");
-            SetText(respawnText, config != null ? "Respawn Countdown: " + config.respawn_countdown.ToString("F1") : "Respawn Countdown: -");
-            SetText(matchTimeText, BuildMatchTimeText(config));
-            SetText(mapNameText, BuildMapText(config));
-            SetText(mapStatusText, BuildMapStatusText(matchState));
-            SetText(redTeamListText, BuildTeamText("Red Team", players, TeamType.Red));
-            SetText(blueTeamListText, BuildTeamText("Blue Team", players, TeamType.Blue));
-            RefreshTeamButtons(players);
+            SetText(roleText, "Role: Manager");
+            SetText(connectionText, "Connection: UI Mock");
+            SetText(roomNameText, "Room: " + room.Name);
+            SetText(roomStateText, "State: " + room.State);
+            SetText(hpText, "HP: " + room.Hp);
+            SetText(damageText, "Damage: " + room.Damage);
+            SetText(respawnText, "Respawn Countdown: " + room.RespawnCountdown);
+            SetText(matchTimeText, "Match Time: " + room.MatchTime);
+            SetText(mapNameText, "Map: " + room.MapId);
+            SetText(mapStatusText, "Preview: placeholder only");
+            SetText(redTeamListText, BuildTeamText("Red Team", room.RedPlayers));
+            SetText(blueTeamListText, BuildTeamText("Blue Team", room.BluePlayers));
+            RefreshRoomButtons();
         }
 
         public void Show()
@@ -198,177 +161,159 @@ namespace TreasureArenaMR.UI
             gameObject.SetActive(false);
         }
 
-        private void AssignSelectedPlayer(TeamType team)
+        private void SeedRooms()
         {
-            EnsureRuntimeReferences();
-            List<PlayerInfo> players = GetPlayers();
-            ClampSelectedPlayer(players);
-            if (players.Count == 0)
+            if (rooms.Count > 0)
             {
-                AppendLog("No player selected.");
-                Refresh();
                 return;
             }
 
-            PlayerInfo player = players[selectedPlayerIndex];
-            if (serverBootstrap != null && serverBootstrap.SwitchTeam(player.player_id, team))
-                AppendLog(player.nickname + " -> " + team);
-            else
-                AppendLog("Switch team failed for " + player.nickname);
+            rooms.Add(new MockRoom(
+                "Room A",
+                "test_map_01",
+                "Waiting",
+                100,
+                25,
+                5,
+                300,
+                new[] { "PicoClient_01" },
+                new[] { "EditorClient_01" }));
 
-            Refresh();
+            rooms.Add(new MockRoom(
+                "Room B",
+                "test_map_01",
+                "Playing",
+                120,
+                20,
+                6,
+                240,
+                new[] { "Red_01", "Red_02" },
+                new[] { "Blue_01", "Blue_02" }));
+
+            rooms.Add(new MockRoom(
+                "Room C",
+                "test_map_01",
+                "Waiting",
+                100,
+                30,
+                5,
+                180,
+                new[] { "Waiting_Red" },
+                new string[0]));
         }
 
         private void WireButtons()
         {
-            Bind(createRoomButton, CreateOrStartRoom);
-            Bind(selectMapButton, SelectNextMap);
-            Bind(startButton, StartMatch);
-            Bind(stopButton, StopMatch);
+            if (createRoomButton != null)
+            {
+                createRoomButton.onClick.RemoveListener(CreateMockRoom);
+                createRoomButton.onClick.AddListener(CreateMockRoom);
+            }
+
+            if (selectMapButton != null)
+            {
+                selectMapButton.onClick.RemoveListener(CycleSelectedRoomMap);
+                selectMapButton.onClick.AddListener(CycleSelectedRoomMap);
+            }
+
+            if (startButton != null)
+            {
+                startButton.onClick.RemoveListener(StartSelectedRoom);
+                startButton.onClick.AddListener(StartSelectedRoom);
+            }
+
+            if (stopButton != null)
+            {
+                stopButton.onClick.RemoveListener(StopSelectedRoom);
+                stopButton.onClick.AddListener(StopSelectedRoom);
+            }
 
             if (roomSelectButtons == null)
-                return;
-
-            if (roomSelectButtons.Length > 0)
-                Bind(roomSelectButtons[0], SelectNextPlayer);
-            if (roomSelectButtons.Length > 1)
-                Bind(roomSelectButtons[1], AssignSelectedPlayerRed);
-            if (roomSelectButtons.Length > 2)
-                Bind(roomSelectButtons[2], AssignSelectedPlayerBlue);
-        }
-
-        private void EnsureRuntimeReferences()
-        {
-            if (serverBootstrap == null)
-                serverBootstrap = FindObjectOfType<ServerBootstrap>();
-            if (serverBootstrap == null)
-                serverBootstrap = new GameObject("ServerBootstrap").AddComponent<ServerBootstrap>();
-
-            if (networkManager == null)
-                networkManager = serverBootstrap.NetworkManager != null
-                    ? serverBootstrap.NetworkManager
-                    : NetworkManager.Instance;
-            if (networkManager == null)
-                networkManager = FindObjectOfType<NetworkManager>();
-
-            if (roomManager == null)
-                roomManager = serverBootstrap.RoomManager != null
-                    ? serverBootstrap.RoomManager
-                    : FindObjectOfType<RoomManager>();
-        }
-
-        private List<PlayerInfo> GetPlayers()
-        {
-            if (roomManager == null || roomManager.Players == null)
-                return new List<PlayerInfo>();
-
-            return roomManager.Players;
-        }
-
-        private void ClampSelectedPlayer(List<PlayerInfo> players)
-        {
-            if (players == null || players.Count == 0)
             {
-                selectedPlayerIndex = 0;
                 return;
             }
 
-            if (selectedPlayerIndex < 0 || selectedPlayerIndex >= players.Count)
-                selectedPlayerIndex = 0;
-        }
-
-        private string BuildConnectionText(NetworkMatchState matchState)
-        {
-            if (networkManager == null)
-                return "Connection: Missing NetworkManager";
-
-            string state = networkManager.IsServer ? "Server Running" : "Server Stopped";
-            return "Connection: " + state
-                + " / UDP " + networkManager.ServerPort
-                + " / Players " + networkManager.ConnectedPlayerCount
-                + " / MatchState " + (matchState != null ? "Ready" : "Missing");
-        }
-
-        private string BuildMatchTimeText(RoomConfig config)
-        {
-            if (config == null)
-                return "Match Time: -";
-
-            float remaining = roomManager != null ? roomManager.RemainingTime : config.match_time;
-            return "Match Time: " + config.match_time.ToString("F0") + " / Remaining " + remaining.ToString("F1");
-        }
-
-        private string BuildMapText(RoomConfig config)
-        {
-            string selectedMap = serverBootstrap != null ? serverBootstrap.SelectedMapId : "";
-            if (config != null && !string.IsNullOrEmpty(config.map_id))
-                return "Map: " + config.map_id;
-
-            return string.IsNullOrEmpty(selectedMap) ? "Map: -" : "Map: " + selectedMap;
-        }
-
-        private string BuildMapStatusText(NetworkMatchState matchState)
-        {
-            if (matchState == null || !matchState.MapConfigured)
-                return "Map Sync: Waiting";
-
-            return "Map Sync: index " + matchState.MapIndex + " / rev " + matchState.MapRevision;
-        }
-
-        private string BuildTeamText(string title, List<PlayerInfo> players, TeamType team)
-        {
-            string text = title;
-            bool hasPlayer = false;
-            for (int i = 0; i < players.Count; i++)
+            for (int i = 0; i < roomSelectButtons.Length; i++)
             {
-                PlayerInfo player = players[i];
-                if (player.team != team)
+                Button button = roomSelectButtons[i];
+                if (button == null)
+                {
                     continue;
+                }
 
-                hasPlayer = true;
-                string selectedPrefix = i == selectedPlayerIndex ? "> " : "- ";
-                text += "\n" + selectedPrefix + player.nickname + " [" + player.player_id + "] HP " + player.hp;
+                int capturedIndex = i;
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => SelectRoom(capturedIndex));
             }
-
-            return hasPlayer ? text : text + "\n- Empty";
         }
 
-        private void RefreshTeamButtons(List<PlayerInfo> players)
+        private void RefreshRoomButtons()
         {
             if (roomSelectButtons == null || roomSelectLabels == null)
+            {
                 return;
+            }
 
             int slotCount = Mathf.Min(roomSelectButtons.Length, roomSelectLabels.Length);
             for (int i = 0; i < slotCount; i++)
             {
+                bool hasRoom = i < rooms.Count;
                 if (roomSelectButtons[i] != null)
-                    roomSelectButtons[i].gameObject.SetActive(true);
+                {
+                    roomSelectButtons[i].gameObject.SetActive(hasRoom);
+                    roomSelectButtons[i].interactable = hasRoom && i != selectedRoomIndex;
+                }
+
+                if (roomSelectLabels[i] != null)
+                {
+                    roomSelectLabels[i].text = hasRoom
+                        ? rooms[i].Name + " / " + rooms[i].State
+                        : "Empty";
+                }
+            }
+        }
+
+        private MockRoom GetSelectedRoom()
+        {
+            if (selectedRoomIndex < 0 || selectedRoomIndex >= rooms.Count)
+            {
+                return null;
             }
 
-            string selected = players.Count > 0 ? players[selectedPlayerIndex].nickname : "None";
-            if (slotCount > 0 && roomSelectLabels[0] != null)
-                roomSelectLabels[0].text = "Select: " + selected;
-            if (slotCount > 1 && roomSelectLabels[1] != null)
-                roomSelectLabels[1].text = "Set Red";
-            if (slotCount > 2 && roomSelectLabels[2] != null)
-                roomSelectLabels[2].text = "Set Blue";
+            return rooms[selectedRoomIndex];
         }
 
         private void AppendLog(string message)
         {
             if (logText == null)
+            {
                 return;
-
-            string[] lines = logText.text.Split('\n');
-            if (lines.Length >= MaxLogLines)
-            {
-                var truncated = new string[MaxLogLines - 1];
-                System.Array.Copy(lines, 0, truncated, 0, truncated.Length);
-                logText.text = "[Home] " + message + "\n" + string.Join("\n", truncated);
             }
-            else
+
+            logText.text = "[UI Mock] " + message + "\n" + logText.text;
+        }
+
+        private static string BuildTeamText(string title, IReadOnlyList<string> players)
+        {
+            string text = title;
+            if (players == null || players.Count == 0)
             {
-                logText.text = "[Home] " + message + "\n" + logText.text;
+                return text + "\n- Empty";
+            }
+
+            for (int i = 0; i < players.Count; i++)
+            {
+                text += "\n- " + players[i];
+            }
+
+            return text;
+        }
+
+        private static void SetText(Text target, string value)
+        {
+            if (target != null)
+            {
+                target.text = value;
             }
         }
 
@@ -397,13 +342,17 @@ namespace TreasureArenaMR.UI
         {
             Transform child = transform.Find(objectName);
             if (child != null)
+            {
                 return child.GetComponent<Text>();
+            }
 
             Text[] texts = GetComponentsInChildren<Text>(true);
             for (int i = 0; i < texts.Length; i++)
             {
                 if (texts[i].name == objectName)
+                {
                     return texts[i];
+                }
             }
 
             return null;
@@ -415,25 +364,48 @@ namespace TreasureArenaMR.UI
             for (int i = 0; i < buttons.Length; i++)
             {
                 if (buttons[i].name == objectName)
+                {
                     return buttons[i];
+                }
             }
 
             return null;
         }
 
-        private static void SetText(Text target, string value)
+        [Serializable]
+        private sealed class MockRoom
         {
-            if (target != null)
-                target.text = value;
-        }
+            public readonly string Name;
+            public string MapId;
+            public string State;
+            public readonly int Hp;
+            public readonly int Damage;
+            public readonly int RespawnCountdown;
+            public readonly int MatchTime;
+            public readonly string[] RedPlayers;
+            public readonly string[] BluePlayers;
 
-        private static void Bind(Button button, UnityEngine.Events.UnityAction action)
-        {
-            if (button == null)
-                return;
-
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(action);
+            public MockRoom(
+                string name,
+                string mapId,
+                string state,
+                int hp,
+                int damage,
+                int respawnCountdown,
+                int matchTime,
+                string[] redPlayers,
+                string[] bluePlayers)
+            {
+                Name = name;
+                MapId = mapId;
+                State = state;
+                Hp = hp;
+                Damage = damage;
+                RespawnCountdown = respawnCountdown;
+                MatchTime = matchTime;
+                RedPlayers = redPlayers;
+                BluePlayers = bluePlayers;
+            }
         }
     }
 }

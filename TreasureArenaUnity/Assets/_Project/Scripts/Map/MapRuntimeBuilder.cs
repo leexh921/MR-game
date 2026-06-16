@@ -1,5 +1,4 @@
 using UnityEngine;
-using TreasureArenaMR.Gameplay;
 
 namespace TreasureArenaMR.Map
 {
@@ -20,22 +19,7 @@ namespace TreasureArenaMR.Map
             BuildTeamBases(root.transform, map);
             BuildTreasurePoints(root.transform, map);
             BuildSupplyBoxes(root.transform, map);
-            BuildBoundary(root.transform, map);
-            return root;
-        }
-
-        public GameObject BuildGameplayOverlay(MapJsonModels.MapJson map)
-        {
-            GameObject root = new GameObject("MapGameplayOverlay");
-            if (map == null)
-            {
-                return root;
-            }
-
-            BuildTeamBases(root.transform, map);
-            BuildTreasurePoints(root.transform, map);
-            BuildSupplyBoxes(root.transform, map);
-            BuildBoundary(root.transform, map);
+            BuildBounds(root.transform, map);
             return root;
         }
 
@@ -60,15 +44,13 @@ namespace TreasureArenaMR.Map
                 go.transform.position = ToVector3(item.position);
                 go.transform.eulerAngles = ToVector3(item.rotation);
                 go.transform.localScale = ToVector3(item.scale, Vector3.one);
-                SetColor(go, ObjectColor(item.object_type));
+                SetColor(go, new Color(0.28f, 0.3f, 0.32f, 1f));
 
                 Collider collider = go.GetComponent<Collider>();
                 if (collider != null)
                 {
                     collider.enabled = item.has_collider;
                 }
-
-                ConfigureRuntimeObject(go, item);
             }
         }
 
@@ -147,37 +129,17 @@ namespace TreasureArenaMR.Map
             }
         }
 
-        private static void BuildBoundary(Transform root, MapJsonModels.MapJson map)
+        private static void BuildBounds(Transform root, MapJsonModels.MapJson map)
         {
-            if (map.map_boundary == null || map.map_boundary.points == null || map.map_boundary.points.Count < 3)
-                return;
-
-            Transform parent = CreateGroup(root, "MapBoundary");
-            int pointCount = map.map_boundary.points.Count;
-            for (int i = 0; i < pointCount; i++)
+            if (map.bounds == null)
             {
-                Vector3 start = ToVector3(map.map_boundary.points[i]);
-                Vector3 end = ToVector3(map.map_boundary.points[(i + 1) % pointCount]);
-                CreateBoundarySegment("Boundary_" + i, start, end, parent);
-            }
-        }
-
-        private static void CreateBoundarySegment(string name, Vector3 start, Vector3 end, Transform parent)
-        {
-            Vector3 delta = end - start;
-            float length = delta.magnitude;
-            if (length <= 0.001f)
                 return;
+            }
 
-            GameObject go = CreatePrimitive(name, PrimitiveType.Cube, parent);
-            go.transform.position = (start + end) * 0.5f + Vector3.up * 0.05f;
-            go.transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
-            go.transform.localScale = new Vector3(0.04f, 0.1f, length);
-            SetColor(go, new Color(0.9f, 0.9f, 0.15f, 0.9f));
-
-            Collider collider = go.GetComponent<Collider>();
-            if (collider != null)
-                collider.isTrigger = true;
+            GameObject go = new GameObject("bounds");
+            go.transform.SetParent(root, false);
+            go.transform.position = ToVector3(map.bounds.center);
+            go.transform.localScale = ToVector3(map.bounds.size, Vector3.one);
         }
 
         private static Transform CreateGroup(Transform root, string name)
@@ -215,81 +177,6 @@ namespace TreasureArenaMR.Map
             return new Color(1f, 0.72f, 0.08f, 1f);
         }
 
-        private static Color ObjectColor(string objectType)
-        {
-            if (objectType == MapObjectType.StaticFloor.ToString())
-            {
-                return new Color(0.22f, 0.45f, 0.35f, 1f);
-            }
-
-            if (objectType == MapObjectType.PhysicsProp.ToString())
-            {
-                return new Color(0.75f, 0.45f, 0.18f, 1f);
-            }
-
-            if (objectType == MapObjectType.OpenableObject.ToString())
-            {
-                return new Color(0.65f, 0.35f, 0.8f, 1f);
-            }
-
-            return new Color(0.28f, 0.3f, 0.32f, 1f);
-        }
-
-        private static void ConfigureRuntimeObject(GameObject go, MapJsonModels.MapObjectJson item)
-        {
-            MapRuntimeObject runtimeObject = go.AddComponent<MapRuntimeObject>();
-            runtimeObject.object_id = item.object_id;
-            runtimeObject.prefab_id = item.prefab_id;
-            runtimeObject.object_type = ParseObjectType(item.object_type);
-            runtimeObject.interaction_type = ParseInteractionType(item.interaction_type);
-            runtimeObject.is_movable = item.is_movable;
-            runtimeObject.is_grabbable = item.is_grabbable;
-            runtimeObject.is_openable = item.is_openable;
-            runtimeObject.is_shootable = item.is_shootable;
-            runtimeObject.blocks_bullet = item.blocks_bullet;
-            runtimeObject.decal_enabled = item.decal_enabled;
-            runtimeObject.mass = item.mass;
-
-            if (item.is_shootable)
-            {
-                BulletSurface surface = go.AddComponent<BulletSurface>();
-                surface.blocks_bullet = item.blocks_bullet;
-                surface.decal_enabled = item.decal_enabled;
-            }
-
-            if (item.is_movable || item.is_grabbable)
-            {
-                Rigidbody body = go.AddComponent<Rigidbody>();
-                body.mass = Mathf.Max(0.01f, item.mass);
-            }
-
-            if (item.is_openable || item.object_type == MapObjectType.OpenableObject.ToString())
-            {
-                OpenableBox openable = go.AddComponent<OpenableBox>();
-                openable.object_id = item.object_id;
-            }
-        }
-
-        private static MapObjectType ParseObjectType(string value)
-        {
-            if (System.Enum.TryParse(value, true, out MapObjectType parsed))
-            {
-                return parsed;
-            }
-
-            return MapObjectType.StaticObstacle;
-        }
-
-        private static MapInteractionType ParseInteractionType(string value)
-        {
-            if (System.Enum.TryParse(value, true, out MapInteractionType parsed))
-            {
-                return parsed;
-            }
-
-            return MapInteractionType.None;
-        }
-
         private static void SetColor(GameObject go, Color color)
         {
             Renderer renderer = go.GetComponent<Renderer>();
@@ -298,10 +185,7 @@ namespace TreasureArenaMR.Map
                 return;
             }
 
-            // Clone the primitive's existing material (which already uses the correct
-            // RP shader for the current platform) instead of hardcoding Shader.Find("Standard")
-            // which breaks on URP and Android builds.
-            Material material = new Material(renderer.sharedMaterial);
+            Material material = new Material(Shader.Find("Standard"));
             material.color = color;
             renderer.sharedMaterial = material;
         }

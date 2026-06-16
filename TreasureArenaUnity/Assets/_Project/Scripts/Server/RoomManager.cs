@@ -48,7 +48,6 @@ namespace TreasureArenaMR.Server
         public event Action<PlayerInfo> OnPlayerJoined;
         public event Action<PlayerInfo> OnPlayerLeft;
         public event Action<PlayerInfo, TeamType> OnTeamChanged;
-        public event Action<string> OnMapChanged;
 
         private float _matchTimer;
         private bool _timerRunning;
@@ -94,10 +93,8 @@ namespace TreasureArenaMR.Server
                 player_id = playerId,
                 nickname = nickname,
                 team = TeamType.None,
-                state = PlayerState.Alive,
                 hp = CurrentRoomConfig.player_max_hp,
                 max_hp = CurrentRoomConfig.player_max_hp,
-                is_connected = true,
                 carried_treasure_id = ""
             };
 
@@ -133,18 +130,6 @@ namespace TreasureArenaMR.Server
         {
             _netickPlayers.TryGetValue(playerId, out var netPlayer);
             return netPlayer;
-        }
-
-        public GameObject GetPlayerObject(string playerId)
-        {
-            var netPlayer = GetNetickPlayer(playerId);
-            return netPlayer?.PlayerObject as GameObject;
-        }
-
-        public TreasureArenaMR.Network.NetworkPlayer GetNetworkPlayerComponent(string playerId)
-        {
-            GameObject playerObj = GetPlayerObject(playerId);
-            return playerObj != null ? playerObj.GetComponent<TreasureArenaMR.Network.NetworkPlayer>() : null;
         }
 
         // ---- Room management ----
@@ -194,20 +179,6 @@ namespace TreasureArenaMR.Server
             Debug.Log($"[RoomManager] MapData loaded");
         }
 
-        public void ChangeMap(string mapId, MapData mapData)
-        {
-            if (CurrentRoomConfig == null)
-            {
-                CreateRoom("room_default", "默认房间", mapId);
-            }
-
-            CurrentRoomConfig.map_id = mapId;
-            MapData = mapData;
-            ResetCurrentMatch();
-            OnMapChanged?.Invoke(mapId);
-            Debug.Log("[RoomManager] Map changed to " + mapId);
-        }
-
         public bool SwitchTeam(string playerId, TeamType targetTeam)
         {
             if (targetTeam == TeamType.None) return false;
@@ -216,10 +187,6 @@ namespace TreasureArenaMR.Server
             if (player == null) return false;
 
             player.team = targetTeam;
-            var networkPlayer = GetNetworkPlayerComponent(playerId);
-            if (networkPlayer != null)
-                networkPlayer.SetTeam(targetTeam);
-
             OnTeamChanged?.Invoke(player, targetTeam);
             Debug.Log($"[RoomManager] Player {playerId} switched to {targetTeam}");
             return true;
@@ -290,58 +257,6 @@ namespace TreasureArenaMR.Server
             _timerRunning = false;
         }
 
-        private void ResetCurrentMatch()
-        {
-            StopTimer();
-            CurrentRoomState = RoomState.Waiting;
-            RedScore = 0;
-            BlueScore = 0;
-            RemainingTime = CurrentRoomConfig != null ? CurrentRoomConfig.match_time : 0f;
-            _matchTimer = RemainingTime;
-            _respawnTimers.Clear();
-
-            if (Players != null && CurrentRoomConfig != null)
-            {
-                for (int i = 0; i < Players.Count; i++)
-                {
-                    PlayerInfo player = Players[i];
-                    player.state = PlayerState.Alive;
-                    player.hp = CurrentRoomConfig.player_max_hp;
-                    player.max_hp = CurrentRoomConfig.player_max_hp;
-                    player.carried_treasure_id = "";
-
-                    var networkPlayer = GetNetworkPlayerComponent(player.player_id);
-                    if (networkPlayer != null)
-                    {
-                        MovePlayerToSpawn(player, networkPlayer.gameObject);
-                        networkPlayer.SetState(PlayerState.Alive);
-                        networkPlayer.SetHp(CurrentRoomConfig.player_max_hp);
-                        networkPlayer.SetRespawnRemaining(0f);
-                        networkPlayer.ClearCarriedTreasure();
-                    }
-                }
-            }
-
-            OnRoomStateChanged?.Invoke(CurrentRoomState);
-        }
-
-        private void MovePlayerToSpawn(PlayerInfo player, GameObject playerObject)
-        {
-            if (MapData == null || playerObject == null || player == null || player.team == TeamType.None)
-                return;
-
-            List<Vector3> spawnZones = MapData.GetSpawnZones(player.team);
-            if (spawnZones == null || spawnZones.Count == 0)
-                return;
-
-            Vector3 target = spawnZones[0];
-            Rigidbody body = playerObject.GetComponent<Rigidbody>();
-            if (body != null)
-                body.MovePosition(target);
-            else
-                playerObject.transform.position = target;
-        }
-
         private void Update()
         {
             ProcessRespawn();
@@ -364,7 +279,6 @@ namespace TreasureArenaMR.Server
 
                 var playerObj = netPlayer.PlayerObject as GameObject;
                 if (playerObj == null) continue;
-                var networkPlayer = playerObj.GetComponent<TreasureArenaMR.Network.NetworkPlayer>();
 
                 var respawnZone = MapData.GetRespawnZone(player.team);
                 if (respawnZone == null) continue;
@@ -378,29 +292,15 @@ namespace TreasureArenaMR.Server
                         // Entered respawn zone: start countdown
                         _respawnTimers[player.player_id] = CurrentRoomConfig.respawn_countdown;
                         player.state = PlayerState.Respawning;
-                        if (networkPlayer != null)
-                        {
-                            networkPlayer.SetState(PlayerState.Respawning);
-                            networkPlayer.SetRespawnRemaining(CurrentRoomConfig.respawn_countdown);
-                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} entered respawn zone, countdown {CurrentRoomConfig.respawn_countdown}s");
                     }
 
                     _respawnTimers[player.player_id] -= Time.deltaTime;
-                    if (networkPlayer != null)
-                        networkPlayer.SetRespawnRemaining(_respawnTimers[player.player_id]);
-
                     if (_respawnTimers[player.player_id] <= 0f)
                     {
                         player.hp = CurrentRoomConfig.player_max_hp;
                         player.state = PlayerState.Alive;
                         _respawnTimers.Remove(player.player_id);
-                        if (networkPlayer != null)
-                        {
-                            networkPlayer.SetHp(CurrentRoomConfig.player_max_hp);
-                            networkPlayer.SetState(PlayerState.Alive);
-                            networkPlayer.SetRespawnRemaining(0f);
-                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} respawned");
                     }
                 }
@@ -410,11 +310,6 @@ namespace TreasureArenaMR.Server
                     {
                         _respawnTimers.Remove(player.player_id);
                         player.state = PlayerState.GhostRetreat;
-                        if (networkPlayer != null)
-                        {
-                            networkPlayer.SetState(PlayerState.GhostRetreat);
-                            networkPlayer.SetRespawnRemaining(0f);
-                        }
                         Debug.Log($"[RoomManager] Player {player.player_id} left respawn zone, countdown reset");
                     }
                 }

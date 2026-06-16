@@ -9,7 +9,6 @@ namespace TreasureArenaMR.Map
         TeamBase,
         TreasureSpawnPoint,
         SupplyBox,
-        [System.Obsolete("Retained for serialization compatibility; not used in active editor workflows.")]
         Bounds
     }
 
@@ -27,7 +26,7 @@ namespace TreasureArenaMR.Map
     /// obj_wall_001 / wall_01, obj_cover_001 / cover_01, etc.
     ///
     /// Both modes coexist in the same objects array without protocol changes.
-    /// Gameplay markers (TeamBase, TreasureSpawnPoint, SupplyBox) are always exported
+    /// Gameplay markers (TeamBase, TreasureSpawnPoint, SupplyBox, Bounds) are always exported
     /// separately into their respective arrays regardless of which objects mode is used.
     /// </summary>
     public sealed class MapExportMarker : MonoBehaviour
@@ -45,15 +44,6 @@ namespace TreasureArenaMR.Map
         public float refresh_interval = 20f;
         public float radius = 1f;
         public bool has_collider = true;
-        public MapObjectType object_type = MapObjectType.StaticObstacle;
-        public MapInteractionType interaction_type = MapInteractionType.None;
-        public bool is_movable;
-        public bool is_grabbable;
-        public bool is_openable;
-        public bool is_shootable = true;
-        public bool blocks_bullet = true;
-        public bool decal_enabled = true;
-        public float mass;
 
         public string GetDefaultId()
         {

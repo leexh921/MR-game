@@ -14,7 +14,8 @@ namespace TreasureArenaMR.MapEditor
         Geometry,
         TeamBase,
         TreasureSpawn,
-        SupplyBox
+        SupplyBox,
+        Bounds
     }
 
     [Serializable]
@@ -42,6 +43,7 @@ namespace TreasureArenaMR.MapEditor
         private bool showTeamBases = true;
         private bool showTreasure = true;
         private bool showSupply = true;
+        private bool showBounds = true;
         private Vector2 paletteScroll;
         private Vector2 objectListScroll;
 
@@ -122,6 +124,7 @@ namespace TreasureArenaMR.MapEditor
             prefabEntries.Add(new MapEditorPrefabEntry { label = "稀有宝物点",    prefabName = "Treasure_Rare",   category = MapEditorCategory.TreasureSpawn,  markerType = MapExportMarkerType.TreasureSpawnPoint,  treasureType = TreasureType.Rare });
             prefabEntries.Add(new MapEditorPrefabEntry { label = "最终宝物点",   prefabName = "Treasure_Final",  category = MapEditorCategory.TreasureSpawn,  markerType = MapExportMarkerType.TreasureSpawnPoint,  treasureType = TreasureType.Final });
             prefabEntries.Add(new MapEditorPrefabEntry { label = "物资箱",         prefabName = "SupplyBox",       category = MapEditorCategory.SupplyBox,      markerType = MapExportMarkerType.SupplyBox,           supplyType = "WeaponRandom" });
+            prefabEntries.Add(new MapEditorPrefabEntry { label = "地图边界",             prefabName = "Bounds",          category = MapEditorCategory.Bounds,         markerType = MapExportMarkerType.Bounds });
         }
 
         private void OnGUI()
@@ -243,6 +246,7 @@ namespace TreasureArenaMR.MapEditor
             showTeamBases  = DrawCategory("玩法点 - 红蓝基地",         showTeamBases,  MapEditorCategory.TeamBase);
             showTreasure   = DrawCategory("玩法点 - 宝物刷新点",    showTreasure,   MapEditorCategory.TreasureSpawn);
             showSupply     = DrawCategory("玩法点 - 物资箱",       showSupply,     MapEditorCategory.SupplyBox);
+            showBounds     = DrawCategory("玩法点 - 地图边界",             showBounds,     MapEditorCategory.Bounds);
 
             EditorGUILayout.EndScrollView();
         }
@@ -362,9 +366,7 @@ namespace TreasureArenaMR.MapEditor
         {
             foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
             {
-                // Clone the object's existing material (which already uses the correct
-                // RP shader for the current platform) instead of hardcoding Shader.Find("Standard").
-                Material mat = new Material(r.sharedMaterial);
+                Material mat = new Material(Shader.Find("Standard"));
                 mat.color = color;
                 mat.SetFloat("_Mode", 3);
                 mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
@@ -475,8 +477,7 @@ namespace TreasureArenaMR.MapEditor
 
         private MapJsonModels.MapJson BuildMapFromScene()
         {
-            MapJsonModels.MapJson map = MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
-            return map;
+            return MapSceneJsonBuilder.BuildFromMarkers(mapName, mapDescription, FindObjectsOfType<MapExportMarker>(true));
         }
 
         private void RefreshMapList()
@@ -552,6 +553,8 @@ namespace TreasureArenaMR.MapEditor
                     var m = t.GetChild(i).gameObject.AddComponent<MapExportMarker>();
                     m.marker_type = MapExportMarkerType.SupplyBox; m.id = d.box_id; m.supply_type = d.supply_type; m.refresh_interval = d.refresh_interval;
                 }
+            t = root.transform.Find("Bounds");
+            if (t != null && map.bounds != null) { var m = t.gameObject.AddComponent<MapExportMarker>(); m.marker_type = MapExportMarkerType.Bounds; m.id = "bounds"; }
         }
 
         private void ClearAllMarkersSilent()
@@ -604,6 +607,7 @@ namespace TreasureArenaMR.MapEditor
                 case MapExportMarkerType.TeamBase:           return new Color(0.9f, 0.3f, 0.3f);
                 case MapExportMarkerType.TreasureSpawnPoint: return new Color(1f, 0.75f, 0.1f);
                 case MapExportMarkerType.SupplyBox:          return new Color(0.2f, 0.8f, 0.3f);
+                case MapExportMarkerType.Bounds:             return new Color(0.3f, 0.5f, 0.9f);
                 default: return Color.white;
             }
         }
