@@ -22,10 +22,10 @@ namespace TreasureArenaMR.Map
             }
 
             BuildObjects(root.transform, map, prefabRegistry);
-            BuildTeamBases(root.transform, map);
-            BuildTreasurePoints(root.transform, map);
-            BuildSupplyBoxes(root.transform, map);
-            BuildBounds(root.transform, map);
+            BuildTeamBases(root.transform, map, prefabRegistry);
+            BuildTreasurePoints(root.transform, map, prefabRegistry);
+            BuildSupplyBoxes(root.transform, map, prefabRegistry);
+            BuildBounds(root.transform, map, prefabRegistry);
             return root;
         }
 
@@ -90,7 +90,7 @@ namespace TreasureArenaMR.Map
             return go;
         }
 
-        private static void BuildTeamBases(Transform root, MapJsonModels.MapJson map)
+        private static void BuildTeamBases(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (map.team_bases == null)
             {
@@ -106,10 +106,17 @@ namespace TreasureArenaMR.Map
                     continue;
                 }
 
-                GameObject go = CreatePrimitive(item.base_id, PrimitiveType.Cylinder, parent);
+                string prefabId = item.team == "Red" ? "TeamBase_Red" : "TeamBase_Blue";
+                GameObject go = TryCreateFromPrefab(prefabRegistry, prefabId, item.base_id, parent)
+                    ?? CreatePrimitive(item.base_id, PrimitiveType.Cylinder, parent);
                 go.transform.position = ToVector3(item.position) + Vector3.up * 0.03f;
                 go.transform.localScale = new Vector3(item.radius * 2f, 0.06f, item.radius * 2f);
-                SetColor(go, item.team == "Red" ? new Color(0.9f, 0.15f, 0.12f, 0.85f) : new Color(0.1f, 0.3f, 0.95f, 0.85f));
+
+                // Only apply runtime color/material to primitives (prefabs already have their own materials).
+                if (go.GetComponent<MapRuntimeObject>() == null)
+                {
+                    SetColor(go, item.team == "Red" ? new Color(0.9f, 0.15f, 0.12f, 0.85f) : new Color(0.1f, 0.3f, 0.95f, 0.85f));
+                }
 
                 Collider collider = go.GetComponent<Collider>();
                 if (collider != null)
@@ -119,7 +126,7 @@ namespace TreasureArenaMR.Map
             }
         }
 
-        private static void BuildTreasurePoints(Transform root, MapJsonModels.MapJson map)
+        private static void BuildTreasurePoints(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (map.treasure_spawn_points == null)
             {
@@ -135,14 +142,25 @@ namespace TreasureArenaMR.Map
                     continue;
                 }
 
-                GameObject go = CreatePrimitive(item.point_id, PrimitiveType.Sphere, parent);
+                string prefabId = item.treasure_type switch
+                {
+                    "Rare" => "Treasure_Rare",
+                    "Final" => "Treasure_Final",
+                    _ => "Treasure_Normal"
+                };
+                GameObject go = TryCreateFromPrefab(prefabRegistry, prefabId, item.point_id, parent)
+                    ?? CreatePrimitive(item.point_id, PrimitiveType.Sphere, parent);
                 go.transform.position = ToVector3(item.position);
                 go.transform.localScale = Vector3.one * item.radius * 2f;
-                SetColor(go, TreasureColor(item.treasure_type));
+
+                if (go.GetComponent<MapRuntimeObject>() == null)
+                {
+                    SetColor(go, TreasureColor(item.treasure_type));
+                }
             }
         }
 
-        private static void BuildSupplyBoxes(Transform root, MapJsonModels.MapJson map)
+        private static void BuildSupplyBoxes(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (map.supply_boxes == null)
             {
@@ -158,21 +176,27 @@ namespace TreasureArenaMR.Map
                     continue;
                 }
 
-                GameObject go = CreatePrimitive(item.box_id, PrimitiveType.Cube, parent);
+                GameObject go = TryCreateFromPrefab(prefabRegistry, "SupplyBox", item.box_id, parent)
+                    ?? CreatePrimitive(item.box_id, PrimitiveType.Cube, parent);
                 go.transform.position = ToVector3(item.position);
                 go.transform.localScale = Vector3.one * 0.7f;
-                SetColor(go, new Color(0.15f, 0.8f, 0.25f, 1f));
+
+                if (go.GetComponent<MapRuntimeObject>() == null)
+                {
+                    SetColor(go, new Color(0.15f, 0.8f, 0.25f, 1f));
+                }
             }
         }
 
-        private static void BuildBounds(Transform root, MapJsonModels.MapJson map)
+        private static void BuildBounds(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (map.bounds == null)
             {
                 return;
             }
 
-            GameObject go = new GameObject("bounds");
+            GameObject go = TryCreateFromPrefab(prefabRegistry, "Bounds", "bounds", root)
+                ?? new GameObject("bounds");
             go.transform.SetParent(root, false);
             go.transform.position = ToVector3(map.bounds.center);
             go.transform.localScale = ToVector3(map.bounds.size, Vector3.one);
@@ -191,6 +215,34 @@ namespace TreasureArenaMR.Map
             go.name = string.IsNullOrEmpty(name) ? type.ToString() : name;
             go.transform.SetParent(parent, false);
             return go;
+        }
+
+        /// <summary>
+        /// Tries to instantiate a gameplay marker from PrefabRegistry.
+        /// Returns null if the prefab_id is not registered, so callers can fall back to CreatePrimitive.
+        /// </summary>
+        private static GameObject TryCreateFromPrefab(PrefabRegistry registry, string prefabId, string fallbackName, Transform parent)
+        {
+            if (registry != null && registry.TryGetPrefab(prefabId, out GameObject prefab) && prefab != null)
+            {
+                GameObject go = UnityEngine.Object.Instantiate(prefab, parent);
+                go.name = string.IsNullOrEmpty(fallbackName) ? prefab.name : fallbackName;
+
+                MapRuntimeObject runtimeObject = go.GetComponent<MapRuntimeObject>();
+                if (runtimeObject == null)
+                {
+                    runtimeObject = go.AddComponent<MapRuntimeObject>();
+                }
+
+                runtimeObject.object_id = fallbackName;
+                runtimeObject.prefab_id = prefabId;
+                runtimeObject.is_shootable = true;
+                runtimeObject.blocks_bullet = true;
+                runtimeObject.decal_enabled = true;
+                return go;
+            }
+
+            return null;
         }
 
         private static Color TreasureColor(string treasureType)
