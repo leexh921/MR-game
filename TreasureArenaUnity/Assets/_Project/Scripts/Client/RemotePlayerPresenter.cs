@@ -12,6 +12,7 @@ namespace TreasureArenaMR.Client
 
         [SerializeField] private GameObject _playerPrefab;
         [SerializeField] private string _resourcesPrefabPath = "PlayerPrefab";
+        [SerializeField] private float _heightOffset = -2f;
 
         private readonly Dictionary<string, RemotePlayer> _players = new Dictionary<string, RemotePlayer>();
         private ClientMatchStateStore _store;
@@ -44,9 +45,6 @@ namespace TreasureArenaMR.Client
                 PlayerPoseSnapshot pose = snapshot.players[i];
                 if (pose == null || string.IsNullOrEmpty(pose.player_id))
                     continue;
-                if (pose.player_id == _store.LocalPlayerId)
-                    continue;
-
                 RemotePlayer remote = GetOrCreateRemote(pose.player_id);
                 if (remote == null)
                     continue;
@@ -69,7 +67,7 @@ namespace TreasureArenaMR.Client
 
             GameObject instance = Instantiate(_playerPrefab, _root);
             instance.name = "RemotePlayer_" + playerId;
-            remote = new RemotePlayer(playerId, instance.transform);
+            remote = new RemotePlayer(playerId, instance.transform, _heightOffset);
             _players[playerId] = remote;
             Debug.Log($"{LogPrefix} spawned player={playerId} prefab={_playerPrefab.name}");
             return remote;
@@ -79,13 +77,15 @@ namespace TreasureArenaMR.Client
         {
             private readonly string _playerId;
             private readonly Transform _transform;
+            private readonly float _heightOffset;
             private readonly List<Sample> _samples = new List<Sample>();
             private bool _loggedStale;
 
-            public RemotePlayer(string playerId, Transform transform)
+            public RemotePlayer(string playerId, Transform transform, float heightOffset)
             {
                 _playerId = playerId;
                 _transform = transform;
+                _heightOffset = heightOffset;
             }
 
             public void AddSample(PlayerPoseSnapshot pose)
@@ -140,13 +140,13 @@ namespace TreasureArenaMR.Client
 
                 float range = after.receivedTime - before.receivedTime;
                 float t = range > 0.0001f ? Mathf.Clamp01((renderTime - before.receivedTime) / range) : 1f;
-                _transform.position = Vector3.Lerp(before.position, after.position, t);
+                _transform.position = Vector3.Lerp(before.position, after.position, t) + Vector3.up * _heightOffset;
                 _transform.rotation = Quaternion.Euler(0f, Mathf.LerpAngle(before.rotationY, after.rotationY, t), 0f);
             }
 
             private void Apply(Sample sample)
             {
-                _transform.position = sample.position;
+                _transform.position = sample.position + Vector3.up * _heightOffset;
                 _transform.rotation = Quaternion.Euler(0f, sample.rotationY, 0f);
             }
         }

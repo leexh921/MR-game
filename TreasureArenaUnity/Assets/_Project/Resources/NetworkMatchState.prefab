@@ -50,7 +50,7 @@ MonoBehaviour:
   _NarrowPhaseFilter: 0
   _PredictionMode: 0
   _AddToNetworkLoop: 1
-  _IsPersistent: 0
+  _IsPersistent: 1
   _ResetInterpOnInterest: 0
   PrefabRoot: {fileID: 0}
   Children: []

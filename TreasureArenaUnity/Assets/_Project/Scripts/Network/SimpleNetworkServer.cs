@@ -20,6 +20,7 @@ namespace TreasureArenaMR.Network
 
         [SerializeField] private int _tcpPort = SimpleNetworkProtocol.TcpPort;
         [SerializeField] private int _udpPort = SimpleNetworkProtocol.UdpPort;
+        [SerializeField] private GameObject _playerPrefab;
 
         public bool IsRunning { get; private set; }
         public int TcpPort => _tcpPort;
@@ -281,6 +282,7 @@ namespace TreasureArenaMR.Network
                 session.playerId = playerId;
                 session.roomId = envelope.room_id;
                 SendJoinResult(session, true, "", "Joined.", playerId);
+                SpawnPlayerForSession(playerId);
                 Debug.Log($"{LogPrefix} join_room_request accepted player={playerId} nickname={nickname} clientType={payload.client_type}");
                 return;
             }
@@ -381,6 +383,43 @@ namespace TreasureArenaMR.Network
 
             result.target_hp_after = _combatAuthority.ApplyDamage(result.target_player_id, result.damage, _roomManager);
             return result.target_hp_after >= 0;
+        }
+
+        private void SpawnPlayerForSession(string playerId)
+        {
+            GameObject prefab = _playerPrefab;
+            if (prefab == null)
+                prefab = Resources.Load<GameObject>("SM_Ranger_Male_Shirt_01");
+
+            if (prefab == null)
+            {
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: player prefab not found playerId={playerId}");
+                return;
+            }
+
+            if (_roomManager?.MapData == null)
+            {
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: MapData is null playerId={playerId}");
+                return;
+            }
+
+            var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
+            if (playerInfo == null || playerInfo.team == TeamType.None)
+            {
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: playerInfo not found or team None playerId={playerId}");
+                return;
+            }
+
+            var spawnZones = _roomManager.MapData.GetSpawnZones(playerInfo.team);
+            if (spawnZones == null || spawnZones.Count == 0)
+            {
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: no spawn zones team={playerInfo.team}");
+                return;
+            }
+
+            Vector3 spawnPos = spawnZones[0];
+            Instantiate(prefab, spawnPos, Quaternion.identity);
+            Debug.Log($"{LogPrefix} Player spawned playerId={playerId} team={playerInfo.team} pos={spawnPos}");
         }
 
         private void BroadcastTicks()

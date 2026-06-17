@@ -1,4 +1,5 @@
 using Netick;
+using Netick.Unity;
 using TreasureArenaMR.Shared;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace TreasureArenaMR.Network
     /// TODO Phase 5: Convert to Netick.NetworkBehaviour with [Networked] properties
     /// for automatic state replication instead of manual sync.
     /// </summary>
-    public sealed class NetworkPlayer : MonoBehaviour
+    public sealed class NetworkPlayer : NetworkBehaviour
     {
         [Header("Player Identity")]
         [SerializeField] private string _playerId = "";
@@ -22,6 +23,11 @@ namespace TreasureArenaMR.Network
         [SerializeField] private PlayerState _state = PlayerState.Alive;
         [SerializeField] private int _hp = 100;
         [SerializeField] private string _carriedTreasureId = "";
+
+        /// <summary>
+        /// Replicated map index from server — used by clients to load the correct map.
+        /// </summary>
+        [Networked] public int MapIndex { get; set; }
 
         /// <summary>
         /// Netick's player ID assigned to this player object.
