@@ -14,9 +14,10 @@ namespace TreasureArenaMR.UI
 
         [SerializeField] private Text _debugText;
         [SerializeField] private Text _timeText;
+        [SerializeField] private Text _hpText;
+        [SerializeField] private Text _treasureText;
 
-        private NetworkManager _networkManager;
-        private NetworkMatchState _networkMatchState;
+        private ClientMatchStateStore _clientStore;
         private RoomManager _roomManager;
 
         private float _refreshTimer;
@@ -37,40 +38,43 @@ namespace TreasureArenaMR.UI
         {
             CacheReferences();
 
-            var nm = _networkManager;
-            var ns = _networkMatchState;
+            var store = _clientStore;
             var rm = _roomManager;
 
             LogInitialState();
 
-            string conn;
-            if (nm == null) conn = "Net: MISSING";
-            else if (!nm.IsRunning) conn = "Net: Not Running";
-            else if (nm.IsServer) conn = nm.IsConnected ? "Net: Server OK" : "Net: Server Starting";
-            else if (nm.IsClient) conn = nm.IsConnected ? "Net: Client OK" : "Net: Client Connecting";
-            else conn = "Net: Host";
-
-            string addr = nm != null ? $"{nm.ServerAddress}:{nm.ServerPort}" : "";
+            string conn = store != null && store.IsConnected ? "Net: Client OK" : "Net: Waiting";
+            string addr = store != null ? store.ConnectionStatus : "";
             string room = "-";
             string scores = "";
             string map = "";
             float remainingTime = -1f;
+            string hpText = "HP: --";
+            string treasureText = "Treasure: -";
             string source = "None";
 
-            if (ns != null)
+            if (store != null && store.HasMatchSnapshot)
             {
-                LogMatchStateFound(ns);
+                LogMatchStateFound(store);
 
-                room = ns.RoomState.ToString();
-                scores = $"R{ns.RedScore}:B{ns.BlueScore}";
-                remainingTime = ns.RemainingTime;
-                map = ns.MapConfigured ? $"Map #{ns.MapIndex}" : "Map: -";
-                source = "NetworkMatchState";
+                MatchSnapshotPayload snapshot = store.MatchSnapshot;
+                room = snapshot.room_state;
+                scores = $"R{snapshot.red_score}:B{snapshot.blue_score}";
+                remainingTime = snapshot.remaining_time;
+                map = snapshot.map_id + " rev " + snapshot.map_revision;
+                source = "ClientMatchStateStore";
+                if (store.TryGetLocalPlayer(out PlayerSnapshot localPlayer))
+                {
+                    hpText = $"HP: {localPlayer.hp}/{localPlayer.max_hp}";
+                    treasureText = string.IsNullOrEmpty(localPlayer.carried_treasure_id)
+                        ? "Treasure: -"
+                        : "Treasure: " + localPlayer.carried_treasure_id;
+                }
             }
 
             if (rm != null)
             {
-                if (ns == null)
+                if (store == null || !store.HasMatchSnapshot)
                 {
                     room = rm.CurrentRoomState.ToString();
                     scores = $"R{rm.RedScore}:B{rm.BlueScore}";
@@ -88,25 +92,31 @@ namespace TreasureArenaMR.UI
 
             if (_timeText != null)
                 _timeText.text = timeText;
+            if (_hpText != null)
+                _hpText.text = hpText;
+            if (_treasureText != null)
+                _treasureText.text = treasureText;
 
             if (_debugText != null)
                 _debugText.text = $"{conn}  {addr}\nRoom: {room}  {scores}  {timeText}\n{map}";
 
-            LogHeartbeat(source, conn, room, remainingTime, timeText, ns, rm);
+            LogHeartbeat(source, conn, room, remainingTime, timeText, hpText, treasureText, store, rm);
         }
 
         private void CacheReferences()
         {
-            if (_networkManager == null)
-                _networkManager = NetworkManager.Instance;
-            if (_networkMatchState == null)
-                _networkMatchState = FindObjectOfType<NetworkMatchState>();
+            if (_clientStore == null)
+                _clientStore = ClientMatchStateStore.Instance;
             if (_roomManager == null)
                 _roomManager = FindObjectOfType<RoomManager>();
             if (_debugText == null)
                 _debugText = FindText("DebugText");
             if (_timeText == null)
                 _timeText = FindText("TimeText");
+            if (_hpText == null)
+                _hpText = FindText("HpText");
+            if (_treasureText == null)
+                _treasureText = FindText("TreasureText");
         }
 
         private static string FormatRemainingTime(float remainingTime)
@@ -140,21 +150,23 @@ namespace TreasureArenaMR.UI
             _loggedInitialState = true;
             Debug.Log($"{LogPrefix} Start scene={SceneManager.GetActiveScene().name} " +
                 $"platform={Application.platform} active={isActiveAndEnabled} " +
-                $"debugText={_debugText != null} timeTextBound={_timeText != null}");
+                $"debugText={_debugText != null} timeTextBound={_timeText != null} " +
+                $"hpTextBound={_hpText != null} treasureTextBound={_treasureText != null}");
             if (_timeText == null)
                 Debug.LogWarning($"{LogPrefix} timeText missing: expected GameHudCanvas/TopHud/TimeText");
         }
 
-        private void LogMatchStateFound(NetworkMatchState matchState)
+        private void LogMatchStateFound(ClientMatchStateStore store)
         {
             if (_loggedMatchStateFound)
                 return;
 
             _loggedMatchStateFound = true;
-            Debug.Log($"{LogPrefix} NetworkMatchState found " +
-                $"roomState={matchState.RoomState} remaining={matchState.RemainingTime:F1} " +
-                $"mapConfigured={matchState.MapConfigured} mapIndex={matchState.MapIndex} " +
-                $"mapRevision={matchState.MapRevision}");
+            MatchSnapshotPayload snapshot = store.MatchSnapshot;
+            Debug.Log($"{LogPrefix} ClientMatchStateStore snapshot found " +
+                $"roomState={snapshot.room_state} remaining={snapshot.remaining_time:F1} " +
+                $"mapId={snapshot.map_id} mapRevision={snapshot.map_revision} " +
+                $"players={snapshot.players.Count} treasures={snapshot.treasures.Count}");
         }
 
         private void LogHeartbeat(
@@ -163,7 +175,9 @@ namespace TreasureArenaMR.UI
             string room,
             float remainingTime,
             string timeText,
-            NetworkMatchState matchState,
+            string hpText,
+            string treasureText,
+            ClientMatchStateStore store,
             RoomManager roomManager)
         {
             _logTimer -= RefreshInterval;
@@ -173,8 +187,11 @@ namespace TreasureArenaMR.UI
             _logTimer = LogInterval;
             Debug.Log($"{LogPrefix} heartbeat source={source} connection=\"{connection}\" " +
                 $"room={room} remaining={remainingTime:F1} timeText={timeText} " +
+                $"hpText=\"{hpText}\" treasureText=\"{treasureText}\" " +
                 $"debugTextBound={_debugText != null} timeTextBound={_timeText != null} " +
-                $"hasNetworkMatchState={matchState != null} hasRoomManager={roomManager != null}");
+                $"hpTextBound={_hpText != null} treasureTextBound={_treasureText != null} " +
+                $"hasClientStore={store != null} hasMatchSnapshot={(store != null && store.HasMatchSnapshot)} " +
+                $"hasRoomManager={roomManager != null}");
         }
     }
 }

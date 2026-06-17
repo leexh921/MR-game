@@ -6,15 +6,19 @@ using UnityEngine.UI;
 namespace TreasureArenaMR.Client
 {
     /// <summary>
-    /// Minimal Pico-side Netick client launcher for real-device connection tests.
+    /// Pico-side TCP/UDP client launcher for real-device connection tests.
     /// </summary>
     public sealed class PicoClientNetickBootstrap : MonoBehaviour
     {
         [Header("Connection")]
-        [SerializeField] private NetworkManager networkManager;
+        [SerializeField] private SimpleNetworkClient simpleNetworkClient;
+        [SerializeField] private LocalPlayerPoseSender poseSender;
+        [SerializeField] private RemotePlayerPresenter remotePlayerPresenter;
         [SerializeField] private string serverAddress = "192.168.61.128";
-        [SerializeField] private int serverPort = 7777;
+        [SerializeField] private int tcpPort = SimpleNetworkProtocol.TcpPort;
+        [SerializeField] private int udpPort = SimpleNetworkProtocol.UdpPort;
         [SerializeField] private string playerId = "pico_client_01";
+        [SerializeField] private string nickname = "Pico Client";
         [SerializeField] private bool connectOnStart = true;
 
         [Header("Debug UI")]
@@ -27,12 +31,21 @@ namespace TreasureArenaMR.Client
 
         private void Awake()
         {
-            if (networkManager == null)
-                networkManager = FindObjectOfType<NetworkManager>();
+            if (simpleNetworkClient == null)
+                simpleNetworkClient = FindObjectOfType<SimpleNetworkClient>();
+            if (simpleNetworkClient == null)
+                simpleNetworkClient = gameObject.AddComponent<SimpleNetworkClient>();
+            if (poseSender == null)
+                poseSender = FindObjectOfType<LocalPlayerPoseSender>();
+            if (poseSender == null)
+                poseSender = gameObject.AddComponent<LocalPlayerPoseSender>();
+            if (remotePlayerPresenter == null)
+                remotePlayerPresenter = FindObjectOfType<RemotePlayerPresenter>();
+            if (remotePlayerPresenter == null)
+                remotePlayerPresenter = gameObject.AddComponent<RemotePlayerPresenter>();
 
             BindButton(connectButton, Connect);
             BindButton(disconnectButton, Disconnect);
-            SubscribeNetworkEvents();
             RefreshStatus("Ready");
         }
 
@@ -44,42 +57,35 @@ namespace TreasureArenaMR.Client
 
         private void Update()
         {
-            if (networkManager == null)
+            if (simpleNetworkClient == null)
                 return;
 
-            if (lastRunning == networkManager.IsRunning && lastConnected == networkManager.IsConnected)
+            bool running = simpleNetworkClient.IsConnected;
+            bool connected = simpleNetworkClient.IsConnected;
+            if (lastRunning == running && lastConnected == connected)
                 return;
 
-            lastRunning = networkManager.IsRunning;
-            lastConnected = networkManager.IsConnected;
-            RefreshStatus(lastConnected ? "Connected" : lastRunning ? "Client running, waiting for server" : "Not running");
-        }
-
-        private void OnDestroy()
-        {
-            if (networkManager == null)
-                return;
-
-            networkManager.OnClientConnected -= HandleClientConnected;
-            networkManager.OnDisconnected -= HandleDisconnected;
+            lastRunning = running;
+            lastConnected = connected;
+            RefreshStatus(connected ? "Connected" : "Not running");
         }
 
         public void Connect()
         {
-            if (networkManager == null)
+            if (simpleNetworkClient == null)
             {
-                RefreshStatus("Missing NetworkManager");
-                Debug.LogError("[PicoClientNetickBootstrap] Missing NetworkManager.");
+                RefreshStatus("Missing SimpleNetworkClient");
+                Debug.LogError("[PicoClientNetickBootstrap] Missing SimpleNetworkClient.");
                 return;
             }
 
-            networkManager.ConfigureEndpoint(serverAddress, serverPort);
-            RefreshStatus("Connecting " + serverAddress + ":" + serverPort);
-            Debug.Log("[PicoClientNetickBootstrap] Connecting to " + serverAddress + ":" + serverPort);
+            simpleNetworkClient.Configure(serverAddress, tcpPort, udpPort, playerId, nickname);
+            RefreshStatus("Connecting " + serverAddress + ":" + tcpPort);
+            Debug.Log("[PicoClientNetickBootstrap] Connecting to " + serverAddress + ":" + tcpPort + " udp=" + udpPort);
 
             try
             {
-                networkManager.StartAsClient(playerId);
+                simpleNetworkClient.Connect();
             }
             catch (Exception ex)
             {
@@ -90,43 +96,23 @@ namespace TreasureArenaMR.Client
 
         public void Disconnect()
         {
-            if (networkManager == null)
+            if (simpleNetworkClient == null)
                 return;
 
-            networkManager.DisconnectFromServer();
-            RefreshStatus("Disconnected");
-        }
-
-        private void SubscribeNetworkEvents()
-        {
-            if (networkManager == null)
-                return;
-
-            networkManager.OnClientConnected += HandleClientConnected;
-            networkManager.OnDisconnected += HandleDisconnected;
-        }
-
-        private void HandleClientConnected()
-        {
-            RefreshStatus("Client started");
-        }
-
-        private void HandleDisconnected()
-        {
+            simpleNetworkClient.Disconnect();
             RefreshStatus("Disconnected");
         }
 
         private void RefreshStatus(string state)
         {
-            string text = "Pico Netick Client\n"
-                + "Server: " + serverAddress + ":" + serverPort + "\n"
+            string text = "Pico TCP/UDP Client\n"
+                + "Server: " + serverAddress + ":" + tcpPort + " UDP " + udpPort + "\n"
                 + "Player: " + playerId + "\n"
                 + "State: " + state;
 
-            if (networkManager != null)
+            if (simpleNetworkClient != null)
             {
-                text += "\nRunning: " + networkManager.IsRunning
-                    + "\nConnected: " + networkManager.IsConnected;
+                text += "\nConnected: " + simpleNetworkClient.IsConnected;
             }
 
             if (statusText != null)

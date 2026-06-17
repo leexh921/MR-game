@@ -3,20 +3,18 @@ using UnityEngine;
 
 public class ClientTest : MonoBehaviour
 {
-    private NetworkManager _nm;
+    private SimpleNetworkClient _client;
 
     void Start()
     {
-        _nm = GetComponent<NetworkManager>();
-        if (_nm == null)
-        {
-            Debug.LogError("[ClientTest] No NetworkManager on this GameObject!");
-            return;
-        }
+        _client = GetComponent<SimpleNetworkClient>();
+        if (_client == null)
+            _client = gameObject.AddComponent<SimpleNetworkClient>();
 
         Debug.Log("[ClientTest] Connecting to server...");
-        _nm.StartAsClient("test_client_01");
-        Debug.Log("[ClientTest] StartAsClient returned — IsRunning=" + _nm.IsRunning + " IsConnected=" + _nm.IsConnected);
+        _client.Configure("127.0.0.1", SimpleNetworkProtocol.TcpPort, SimpleNetworkProtocol.UdpPort, "test_client_01", "PC Test Client");
+        _client.Connect();
+        Debug.Log("[ClientTest] Simple client connect returned — IsConnected=" + _client.IsConnected);
 
         InvokeRepeating(nameof(LogState), 2f, 3f);
         Debug.Log("[ClientTest] InvokeRepeating set");
@@ -24,6 +22,6 @@ public class ClientTest : MonoBehaviour
 
     void LogState()
     {
-        Debug.Log($"[ClientTest] State — IsRunning={_nm.IsRunning}, IsConnected={_nm.IsConnected}");
+        Debug.Log($"[ClientTest] State — IsConnected={_client.IsConnected}");
     }
 }

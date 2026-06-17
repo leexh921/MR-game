@@ -8,24 +8,24 @@ using UnityEngine;
 namespace TreasureArenaMR.Server
 {
     /// <summary>
-    /// PC Home scene entry point for the combined Manager + Netick Server MVP.
+    /// PC Home scene entry point for the combined Manager + TCP/UDP Server MVP.
     /// </summary>
     public sealed class ServerBootstrap : MonoBehaviour
     {
         [Header("Server")]
-        [SerializeField] private NetworkManager _networkManager;
+        [SerializeField] private SimpleNetworkServer _simpleNetworkServer;
         [SerializeField] private ServerApp _serverApp;
         [SerializeField] private RoomManager _roomManager;
         [SerializeField] private ServerTreasureAuthority _treasureAuthority;
         [SerializeField] private ServerCombatAuthority _combatAuthority;
-        [SerializeField] private RoomStateSynchronizer _roomStateSynchronizer;
         [SerializeField] private int _serverPort = 7777;
+        [SerializeField] private int _udpPort = 7778;
         [SerializeField] private string _defaultMapId = "pico_map";
         [SerializeField] private bool _startServerOnAwake;
 
         public event Action OnStatusChanged;
 
-        public NetworkManager NetworkManager => _networkManager;
+        public SimpleNetworkServer SimpleNetworkServer => _simpleNetworkServer;
         public ServerApp ServerApp => _serverApp;
         public RoomManager RoomManager => _roomManager;
         public string SelectedMapId { get; private set; }
@@ -40,6 +40,7 @@ namespace TreasureArenaMR.Server
             {
                 _serverApp.SetAutoStart(false);
                 _serverApp.ConfigureRuntimeMap(SelectedMapId);
+                _serverApp.ConfigurePorts(_serverPort, _udpPort);
             }
 
             if (_startServerOnAwake)
@@ -54,8 +55,6 @@ namespace TreasureArenaMR.Server
         public void CreateOrStartRoom()
         {
             EnsureReferences();
-            if (_networkManager != null)
-                _networkManager.ConfigureEndpoint(null, _serverPort);
 
             if (_serverApp == null)
             {
@@ -64,6 +63,7 @@ namespace TreasureArenaMR.Server
             }
 
             _serverApp.ConfigureRuntimeMap(SelectedMapId);
+            _serverApp.ConfigurePorts(_serverPort, _udpPort);
             if (!_serverApp.IsRunning)
             {
                 Debug.Log("[ServerBootstrap] Starting room with map " + SelectedMapId);
@@ -111,7 +111,7 @@ namespace TreasureArenaMR.Server
         public bool StartMatch(int minPlayersToStart)
         {
             EnsureReferences();
-            if (_networkManager == null || !_networkManager.IsServer || _roomManager == null)
+            if (_serverApp == null || !_serverApp.IsRunning || _roomManager == null)
             {
                 Debug.LogWarning("[ServerBootstrap] Cannot start match before server is running.");
                 return false;
@@ -162,13 +162,10 @@ namespace TreasureArenaMR.Server
 
         private void EnsureReferences()
         {
-            if (_networkManager == null)
-                _networkManager = NetworkManager.Instance != null
-                    ? NetworkManager.Instance
-                    : FindObjectOfType<NetworkManager>();
-
-            if (_networkManager == null)
-                _networkManager = new GameObject("NetworkManager").AddComponent<NetworkManager>();
+            if (_simpleNetworkServer == null)
+                _simpleNetworkServer = FindObjectOfType<SimpleNetworkServer>();
+            if (_simpleNetworkServer == null)
+                _simpleNetworkServer = new GameObject("SimpleNetworkServer").AddComponent<SimpleNetworkServer>();
 
             if (_roomManager == null)
                 _roomManager = FindObjectOfType<RoomManager>();
@@ -192,10 +189,6 @@ namespace TreasureArenaMR.Server
             if (_combatAuthority == null)
                 _combatAuthority = new GameObject("ServerCombatAuthority").AddComponent<ServerCombatAuthority>();
 
-            if (_roomStateSynchronizer == null)
-                _roomStateSynchronizer = FindObjectOfType<RoomStateSynchronizer>();
-            if (_roomStateSynchronizer == null)
-                _roomStateSynchronizer = new GameObject("RoomStateSynchronizer").AddComponent<RoomStateSynchronizer>();
         }
     }
 }

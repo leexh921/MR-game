@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
-using NetworkPlayer = TreasureArenaMR.Network.NetworkPlayer;
 
 namespace TreasureArenaMR.Server
 {
@@ -24,6 +22,12 @@ namespace TreasureArenaMR.Server
         public AttackResult ProcessAttack(string attackerId, string weaponId,
             Vector3 origin, Vector3 direction, int weaponDamage, float weaponRange)
         {
+            return ProcessAttack(attackerId, weaponId, origin, direction, weaponDamage, weaponRange, null);
+        }
+
+        public AttackResult ProcessAttack(string attackerId, string weaponId,
+            Vector3 origin, Vector3 direction, int weaponDamage, float weaponRange, RoomManager roomManager)
+        {
             var result = new AttackResult
             {
                 attacker_player_id = attackerId,
@@ -31,7 +35,7 @@ namespace TreasureArenaMR.Server
             };
 
             // Find targets within range and hit radius
-            var hitPlayerId = RaycastHit(attackerId, origin, direction, weaponRange);
+            var hitPlayerId = RaycastHit(attackerId, origin, direction, weaponRange, roomManager);
 
             if (!string.IsNullOrEmpty(hitPlayerId))
             {
@@ -74,20 +78,20 @@ namespace TreasureArenaMR.Server
             return player.hp;
         }
 
-        private string RaycastHit(string attackerId, Vector3 origin, Vector3 direction, float range)
+        private string RaycastHit(string attackerId, Vector3 origin, Vector3 direction, float range, RoomManager roomManager)
         {
-            // TODO: Use Netick player positions for authoritative raycast
-            // For now, placeholder: iterate over all non-attacker Alive players
-            var networkManager = NetworkManager.Instance;
-            if (networkManager == null) return null;
+            if (roomManager == null)
+                return null;
 
-            foreach (var kvp in system_GetPlayers(networkManager))
+            IReadOnlyList<ServerPlayerRuntimeState> players = roomManager.GetRuntimePlayersSnapshot();
+            for (int i = 0; i < players.Count; i++)
             {
-                var netPlayer = kvp.Value;
-                if (netPlayer.PlayerId == attackerId) continue;
-                if (netPlayer.State != PlayerState.Alive) continue;
+                ServerPlayerRuntimeState player = players[i];
+                if (player == null) continue;
+                if (player.playerId == attackerId) continue;
+                if (player.state != PlayerState.Alive) continue;
 
-                Vector3 targetPos = netPlayer.transform.position;
+                Vector3 targetPos = player.position;
                 Vector3 toTarget = targetPos - origin;
                 float dist = toTarget.magnitude;
 
@@ -100,25 +104,11 @@ namespace TreasureArenaMR.Server
 
                 if (closestDist <= _hitRadius)
                 {
-                    return netPlayer.PlayerId;
+                    return player.playerId;
                 }
             }
 
             return null;
-        }
-
-        private Dictionary<string, NetworkPlayer> system_GetPlayers(NetworkManager nm)
-        {
-            // Reflection-free access: NetworkManager tracks players internally
-            // This is a workaround for the private _players dictionary
-            var players = new Dictionary<string, NetworkPlayer>();
-            var allNetPlayers = FindObjectsOfType<NetworkPlayer>();
-            foreach (var np in allNetPlayers)
-            {
-                if (!string.IsNullOrEmpty(np.PlayerId))
-                    players[np.PlayerId] = np;
-            }
-            return players;
         }
     }
 

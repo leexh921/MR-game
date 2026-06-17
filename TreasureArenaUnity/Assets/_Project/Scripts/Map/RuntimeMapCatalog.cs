@@ -70,8 +70,8 @@ namespace TreasureArenaMR.Map
             // Secondary: scan StreamingAssets directories (Editor / PC standalone)
             if (mapIds.Count == 0)
             {
-                AddMapIds(Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps"), mapIds);
-                AddMapIds(Path.Combine(Application.streamingAssetsPath, "Maps"), mapIds);
+                AddMapIds(MapPathUtility.EditorMapsDirectory, mapIds);
+                AddMapIds(MapPathUtility.PackagedMapsDirectory, mapIds);
             }
 
             _cachedMapIds = mapIds.Count > 0 ? mapIds.ToArray() : FallbackMapIds;

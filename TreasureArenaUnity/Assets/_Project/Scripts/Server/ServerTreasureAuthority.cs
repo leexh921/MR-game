@@ -1,5 +1,4 @@
 using TreasureArenaMR.Map;
-using TreasureArenaMR.Network;
 using TreasureArenaMR.Shared;
 using UnityEngine;
 
@@ -43,20 +42,17 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            // Validate distance between player and treasure
-            var netPlayer = roomManager.GetNetickPlayer(playerId);
-            if (netPlayer != null)
+            if (!roomManager.TryGetPlayerPosition(playerId, out Vector3 playerPosition))
             {
-                var playerObj = netPlayer.PlayerObject as GameObject;
-                if (playerObj != null)
-                {
-                    float dist = Vector3.Distance(playerObj.transform.position, treasurePosition);
-                    if (dist > _pickupDistance)
-                    {
-                        Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from treasure ({dist:F1} > {_pickupDistance})");
-                        return false;
-                    }
-                }
+                Debug.LogWarning($"[ServerTreasureAuthority] Missing authoritative pose for player: {playerId}");
+                return false;
+            }
+
+            float dist = Vector3.Distance(playerPosition, treasurePosition);
+            if (dist > _pickupDistance)
+            {
+                Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from treasure ({dist:F1} > {_pickupDistance})");
+                return false;
             }
 
             player.carried_treasure_id = treasureId;
@@ -71,9 +67,7 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            var netPlayer = roomManager.GetNetickPlayer(playerId);
-            var playerObject = netPlayer != null ? netPlayer.PlayerObject as GameObject : null;
-            if (playerObject == null)
+            if (!roomManager.TryGetPlayerPosition(playerId, out Vector3 playerPosition))
             {
                 return false;
             }
@@ -81,8 +75,6 @@ namespace TreasureArenaMR.Server
             var points = roomManager.MapData.GetTreasureSpawnPoints();
             MapTreasureSpawnPoint nearest = null;
             float nearestDistance = float.MaxValue;
-            Vector3 playerPosition = playerObject.transform.position;
-
             for (int i = 0; i < points.Count; i++)
             {
                 MapTreasureSpawnPoint point = points[i];
@@ -133,19 +125,17 @@ namespace TreasureArenaMR.Server
                 var teamBase = mapData.GetTeamBase(playerTeam);
                 if (teamBase != null)
                 {
-                    var netPlayer = roomManager.GetNetickPlayer(playerId);
-                    if (netPlayer != null)
+                    if (!roomManager.TryGetPlayerPosition(playerId, out Vector3 playerPosition))
                     {
-                        var playerObj = netPlayer.PlayerObject as GameObject;
-                        if (playerObj != null)
-                        {
-                            float dist = Vector3.Distance(playerObj.transform.position, teamBase.Position);
-                            if (dist > teamBase.Radius + _submitDistance)
-                            {
-                                Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.Radius + _submitDistance})");
-                                return false;
-                            }
-                        }
+                        Debug.LogWarning($"[ServerTreasureAuthority] Missing authoritative pose for submit: {playerId}");
+                        return false;
+                    }
+
+                    float dist = Vector3.Distance(playerPosition, teamBase.Position);
+                    if (dist > teamBase.Radius + _submitDistance)
+                    {
+                        Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from base ({dist:F1} > {teamBase.Radius + _submitDistance})");
+                        return false;
                     }
                 }
             }

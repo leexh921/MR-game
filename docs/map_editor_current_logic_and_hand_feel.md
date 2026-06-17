@@ -118,7 +118,7 @@ MapObject：普通地图物体，导出到 objects。
 TeamBase：红/蓝基地，导出到 team_bases。
 TreasureSpawnPoint：宝物点，导出到 treasure_spawn_points。
 SupplyBox：物资箱，导出到 supply_boxes。
-Map Boundary：地图级多边形边界，导出到 map_boundary。
+Bounds：地图边界盒，导出到 bounds。
 ```
 
 ## 3. 每帧输入主流程
@@ -220,8 +220,6 @@ Primary 2D Axis / 摇杆：
 当前按键风险：
 
 ```text
-Trigger 同时承担 UI 点击、放置、选择，容易误触。
-Grip 只要有 selectedObject 就能拖，不要求当前模式必须是 Move。
 Primary Button 直接删除，没有二次确认，Pico 上可能误删。
 Secondary/Menu fallback 逻辑容易和模式切换冲突。
 ```
@@ -608,10 +606,9 @@ SupplyBox：
   supply_boxes[].supply_type
   supply_boxes[].refresh_interval
 
-Map Boundary：
-  map_boundary.boundary_type = "Polygon"
-  map_boundary.height = boundary height
-  map_boundary.points = Draw Bounds / Draw Area 绘制出的地面点
+Bounds：
+  bounds.center = marker.transform.position
+  bounds.size = marker.transform.localScale
 
 MapObject：
   objects[].object_id
@@ -728,19 +725,22 @@ center = transform.position
 size = transform.localScale
 ```
 
-旧盒状 Bounds 方案已废弃，边界应由用户用手柄逐点绘制房间范围。
+这适合盒状边界，不适合用户用手柄画房间范围。
 
-当前推荐做成：
+如果不改 JSON 协议，推荐做成：
 
 ```text
-Draw Bounds / Draw Area：
-  Trigger 逐点添加边界点
-  所有点贴 editorFloorY / floorPlane
-  至少 3 个点后闭合
-  导出 map_boundary.boundary_type = "Polygon"
-  导出 map_boundary.height = 默认 2.5
-  导出 map_boundary.points = 绘制点列表
+两点画矩形：
+  第一点 = bounds 起点
+  第二点 = bounds 对角点
+  自动生成 center / size
+
+或四边拉伸：
+  先放一个 Bounds
+  手柄抓边/角调整 x/z size
 ```
+
+如果要多边形边界，需要先改 `docs/json_protocol.md`，这会影响 MapValidator、MapLoader、Server 边界判断。
 
 ## 13. 推荐的手柄手感优化路线
 
@@ -838,21 +838,27 @@ GripUp：
 
 ### 阶段 4：做空间/边界绘制
 
-推荐版本：
+不改协议的推荐版本：
 
 ```text
-Step 1：进入 Draw Bounds / Draw Area 模式。
-Step 2：Trigger 逐点添加 Polygon 顶点。
-Step 3：移动手柄显示当前边线预览。
-Step 4：至少 3 个点后靠近首点并 Trigger 闭合。
-Step 5：导出 map_boundary：
-        boundary_type = "Polygon"
-        height = 默认高度，例如 2.5m
-        points = 按绘制顺序保存，最后一点不重复首点
-Step 6：后续放置对象时检查目标点是否在 map_boundary 内。
+Step 1：进入 Draw Bounds 模式。
+Step 2：Trigger 第一次点地面，记录 cornerA。
+Step 3：移动手柄显示半透明矩形预览。
+Step 4：Trigger 第二次点地面，记录 cornerB。
+Step 5：自动生成 Bounds marker：
+        center = (cornerA + cornerB) / 2
+        size.x = abs(cornerA.x - cornerB.x)
+        size.y = 默认高度，例如 2.5m
+        size.z = abs(cornerA.z - cornerB.z)
+Step 6：后续放置对象时检查目标点是否在 bounds 内。
 ```
 
-这符合当前 JSON 的 `map_boundary` 字段。
+这符合当前 JSON：
+
+```text
+bounds.center
+bounds.size
+```
 
 ## 14. 建议优先修改的文件
 
@@ -901,7 +907,9 @@ MapSceneJsonBuilder.cs
 MapValidator.cs
 ```
 
-多边形边界已经要求改：
+如果只做矩形 bounds，不需要改 JSON 协议。
+
+如果做多边形 bounds，必须先改：
 
 ```text
 docs/json_protocol.md
@@ -923,8 +931,8 @@ Server 边界判断逻辑
 4. 拖动目标位置加 SmoothDamp。
 5. 增加拖动死区，降低手柄抖动。
 6. 增加 floorY 校准值，把地面 fallback 从 y=0 改为真实地面高度。
-7. Draw Bounds / Draw Area 导出 map_boundary Polygon。
-8. 拖动/放置时如果目标点在 map_boundary 外，显示红色预览并禁止放置。
+7. Bounds 改为“两点画矩形”，导出仍用现有 bounds.center/size。
+8. 拖动/放置时如果目标点在 bounds 外，显示红色预览并禁止放置。
 ```
 
 这版能解决最直接的体验问题，同时不修改冻结 JSON 协议。

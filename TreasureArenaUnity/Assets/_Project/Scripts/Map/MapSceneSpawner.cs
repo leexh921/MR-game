@@ -6,7 +6,7 @@ namespace TreasureArenaMR.Map
 {
     /// <summary>
     /// Loads and instantiates map visuals on both server and client.
-    /// Server reads mapId from RoomManager. Client waits for NetworkMatchState.
+    /// Server reads mapId from RoomManager. Client waits for ClientMatchStateStore.
     /// </summary>
     public sealed class MapSceneSpawner : MonoBehaviour
     {
@@ -22,9 +22,9 @@ namespace TreasureArenaMR.Map
         private float _statusLogTimer;
         private float _waitingLogTimer;
         private bool _loggedInitialState;
-        private int _lastConfiguredMapIndex = -1;
         private int _lastConfiguredMapRevision = -1;
         private string _lastRoomManagerMapLog = "";
+        private string _lastClientMapIdLog = "";
 
         private void Start()
         {
@@ -60,36 +60,21 @@ namespace TreasureArenaMR.Map
                 return new MapSpawnSource(roomManager.CurrentRoomConfig.map_id, 0);
             }
 
-            var matchState = FindObjectOfType<NetworkMatchState>();
-            if (matchState != null)
+            var store = ClientMatchStateStore.Instance;
+            if (store != null)
             {
-                if (!matchState.MapConfigured)
+                if (!store.HasMatchSnapshot || string.IsNullOrEmpty(store.MatchSnapshot.map_id))
                 {
-                    LogWaitingForNetworkMap();
+                    LogWaitingForNetworkMap(store);
                     return MapSpawnSource.Empty;
                 }
 
-                string mapId = RuntimeMapCatalog.GetMapId(matchState.MapIndex);
-                if (string.IsNullOrEmpty(mapId))
-                {
-                    Debug.LogWarning($"{LogPrefix} Network map index is invalid: " +
-                        $"mapIndex={matchState.MapIndex} mapRevision={matchState.MapRevision}");
-                    return MapSpawnSource.Empty;
-                }
-
-                LogNetworkMapConfigured(matchState, mapId);
-                return new MapSpawnSource(mapId, matchState.MapRevision);
+                LogNetworkMapConfigured(store.MatchSnapshot.map_id, store.MatchSnapshot.map_revision, store.MatchSnapshot.room_state, store.MatchSnapshot.remaining_time);
+                return new MapSpawnSource(store.MatchSnapshot.map_id, store.MatchSnapshot.map_revision);
             }
 
-            var networkManager = NetworkManager.Instance;
-            if (networkManager != null && !networkManager.IsServer)
-            {
-                LogWaitingForNetworkMap();
-                return MapSpawnSource.Empty;
-            }
-
-            Debug.Log($"{LogPrefix} No network source, using default mapId={_defaultMapId}");
-            return new MapSpawnSource(_defaultMapId, 0);
+            LogWaitingForNetworkMap(null);
+            return MapSpawnSource.Empty;
         }
 
         private bool SpawnMap(string mapId)
@@ -136,7 +121,7 @@ namespace TreasureArenaMR.Map
             }
         }
 
-        private void LogWaitingForNetworkMap()
+        private void LogWaitingForNetworkMap(ClientMatchStateStore store)
         {
             _waitingLogTimer -= Time.deltaTime;
             if (_waitingLogTimer > 0f)
@@ -144,16 +129,11 @@ namespace TreasureArenaMR.Map
 
             _waitingLogTimer = LogInterval;
 
-            var networkManager = NetworkManager.Instance;
-            var matchState = FindObjectOfType<NetworkMatchState>();
-            Debug.Log($"{LogPrefix} Waiting for NetworkMatchState map configuration. " +
-                $"networkManager={networkManager != null} " +
-                $"isServer={(networkManager != null && networkManager.IsServer)} " +
-                $"isClient={(networkManager != null && networkManager.IsClient)} " +
-                $"isRunning={(networkManager != null && networkManager.IsRunning)} " +
-                $"isConnected={(networkManager != null && networkManager.IsConnected)} " +
-                $"matchState={matchState != null} " +
-                $"mapConfigured={(matchState != null && matchState.MapConfigured)}");
+            Debug.Log($"{LogPrefix} Waiting for ClientMatchStateStore map configuration. " +
+                $"store={store != null} connected={(store != null && store.IsConnected)} " +
+                $"hasSnapshot={(store != null && store.HasMatchSnapshot)} " +
+                $"mapId={(store != null && store.MatchSnapshot != null ? store.MatchSnapshot.map_id : "-")} " +
+                $"revision={(store != null && store.MatchSnapshot != null ? store.MatchSnapshot.map_revision : -1)}");
         }
 
         private void LogInitialState()
@@ -173,31 +153,27 @@ namespace TreasureArenaMR.Map
                 return;
 
             _statusLogTimer = LogInterval;
-            var networkManager = NetworkManager.Instance;
-            var matchState = FindObjectOfType<NetworkMatchState>();
-            Debug.Log($"{LogPrefix} heartbeat networkManager={networkManager != null} " +
-                $"isServer={(networkManager != null && networkManager.IsServer)} " +
-                $"isClient={(networkManager != null && networkManager.IsClient)} " +
-                $"isRunning={(networkManager != null && networkManager.IsRunning)} " +
-                $"isConnected={(networkManager != null && networkManager.IsConnected)} " +
-                $"matchState={matchState != null} " +
-                $"mapConfigured={(matchState != null && matchState.MapConfigured)} " +
+            var store = ClientMatchStateStore.Instance;
+            Debug.Log($"{LogPrefix} heartbeat store={store != null} " +
+                $"connected={(store != null && store.IsConnected)} " +
+                $"hasMatchSnapshot={(store != null && store.HasMatchSnapshot)} " +
+                $"snapshotMap={(store != null && store.MatchSnapshot != null ? store.MatchSnapshot.map_id : "-")} " +
+                $"snapshotRevision={(store != null && store.MatchSnapshot != null ? store.MatchSnapshot.map_revision : -1)} " +
                 $"spawnedMapId={_spawnedMapId ?? "-"} spawnedRevision={_spawnedMapRevision}");
         }
 
-        private void LogNetworkMapConfigured(NetworkMatchState matchState, string mapId)
+        private void LogNetworkMapConfigured(string mapId, int mapRevision, string roomState, float remainingTime)
         {
-            if (_lastConfiguredMapIndex == matchState.MapIndex &&
-                _lastConfiguredMapRevision == matchState.MapRevision)
+            if (_lastClientMapIdLog == mapId &&
+                _lastConfiguredMapRevision == mapRevision)
             {
                 return;
             }
 
-            _lastConfiguredMapIndex = matchState.MapIndex;
-            _lastConfiguredMapRevision = matchState.MapRevision;
-            Debug.Log($"{LogPrefix} Network map configured mapIndex={matchState.MapIndex} " +
-                $"mapRevision={matchState.MapRevision} mapId={mapId} " +
-                $"roomState={matchState.RoomState} remaining={matchState.RemainingTime:F1}");
+            _lastClientMapIdLog = mapId;
+            _lastConfiguredMapRevision = mapRevision;
+            Debug.Log($"{LogPrefix} Network map configured mapId={mapId} " +
+                $"mapRevision={mapRevision} roomState={roomState} remaining={remainingTime:F1}");
         }
 
         private void LogRoomManagerMapSource(RoomManager roomManager)

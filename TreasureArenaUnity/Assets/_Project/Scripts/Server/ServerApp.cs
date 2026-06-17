@@ -7,16 +7,20 @@ namespace TreasureArenaMR.Server
 {
     /// <summary>
     /// Server runtime role entry point.
-    /// Bootstraps Netick server and server-side services.
+    /// Bootstraps the project TCP/UDP server and server-side services.
     /// No database persistence in MVP.
     /// </summary>
     public sealed class ServerApp : MonoBehaviour
     {
         [Header("Core References")]
-        [SerializeField] private NetworkManager _networkManager;
+        [SerializeField] private SimpleNetworkServer _simpleNetworkServer;
         [SerializeField] private RoomManager _roomManager;
+        [SerializeField] private ServerTreasureAuthority _treasureAuthority;
+        [SerializeField] private ServerCombatAuthority _combatAuthority;
         [SerializeField] private bool _autoStart = false;
         [SerializeField] private string _runtimeMapId = "test_map_01";
+        [SerializeField] private int _tcpPort = SimpleNetworkProtocol.TcpPort;
+        [SerializeField] private int _udpPort = SimpleNetworkProtocol.UdpPort;
 
         public static ServerApp Instance { get; private set; }
         public bool IsRunning { get; private set; }
@@ -53,6 +57,14 @@ namespace TreasureArenaMR.Server
             }
         }
 
+        public void ConfigurePorts(int tcpPort, int udpPort)
+        {
+            if (tcpPort > 0)
+                _tcpPort = tcpPort;
+            if (udpPort > 0)
+                _udpPort = udpPort;
+        }
+
         public bool ChangeMap(string mapId)
         {
             if (string.IsNullOrEmpty(mapId))
@@ -82,7 +94,7 @@ namespace TreasureArenaMR.Server
             Debug.Log("[ServerApp] Booting server...");
 
             EnsureRuntimeReferences();
-            _roomManager.Initialize(_networkManager);
+            _roomManager.Initialize(null);
 
             // 4. Create default room for MVP
             _roomManager.CreateRoom("room_default", "默认房间", _runtimeMapId);
@@ -90,8 +102,7 @@ namespace TreasureArenaMR.Server
             // 4b. Load map data
             LoadRuntimeMapData();
 
-            // 5. Start Netick server
-            _networkManager.StartAsServer();
+            _simpleNetworkServer.StartServer(_roomManager, _treasureAuthority, _combatAuthority, _tcpPort, _udpPort);
 
             IsRunning = true;
             Debug.Log("[ServerApp] Server booted successfully");
@@ -105,8 +116,8 @@ namespace TreasureArenaMR.Server
 
             if (_roomManager != null)
                 _roomManager.Shutdown();
-            if (_networkManager != null)
-                _networkManager.Shutdown();
+            if (_simpleNetworkServer != null)
+                _simpleNetworkServer.StopServer();
 
             IsRunning = false;
             Debug.Log("[ServerApp] Server shut down");
@@ -114,13 +125,10 @@ namespace TreasureArenaMR.Server
 
         private void EnsureRuntimeReferences()
         {
-            if (_networkManager == null)
-                _networkManager = FindObjectOfType<NetworkManager>();
-            if (_networkManager == null)
-            {
-                var go = new GameObject("NetworkManager");
-                _networkManager = go.AddComponent<NetworkManager>();
-            }
+            if (_simpleNetworkServer == null)
+                _simpleNetworkServer = FindObjectOfType<SimpleNetworkServer>();
+            if (_simpleNetworkServer == null)
+                _simpleNetworkServer = new GameObject("SimpleNetworkServer").AddComponent<SimpleNetworkServer>();
 
             if (_roomManager == null)
                 _roomManager = FindObjectOfType<RoomManager>();
@@ -129,6 +137,16 @@ namespace TreasureArenaMR.Server
                 var go = new GameObject("RoomManager");
                 _roomManager = go.AddComponent<RoomManager>();
             }
+
+            if (_treasureAuthority == null)
+                _treasureAuthority = FindObjectOfType<ServerTreasureAuthority>();
+            if (_treasureAuthority == null)
+                _treasureAuthority = new GameObject("ServerTreasureAuthority").AddComponent<ServerTreasureAuthority>();
+
+            if (_combatAuthority == null)
+                _combatAuthority = FindObjectOfType<ServerCombatAuthority>();
+            if (_combatAuthority == null)
+                _combatAuthority = new GameObject("ServerCombatAuthority").AddComponent<ServerCombatAuthority>();
         }
 
         private bool LoadRuntimeMapData()
@@ -137,6 +155,8 @@ namespace TreasureArenaMR.Server
             if (loadResult.ok)
             {
                 _roomManager.SetMapData(loadResult.mapData);
+                if (_simpleNetworkServer != null)
+                    _simpleNetworkServer.MarkMapRevisionChanged();
                 return true;
             }
 

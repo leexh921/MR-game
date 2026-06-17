@@ -12,8 +12,8 @@ namespace TreasureArenaMR.Core
         public const string SceneGame = "Game";
         public const string SceneMapPreview = "MapPreview";
 
-        public const string MapFolder = "StreamingAssets/Maps/";
-        public const string ConfigFolder = "StreamingAssets/Configs/";
+        public const string MapFolder = "Assets/_Project/StreamingAssets/Maps/";
+        public const string ConfigFolder = "Assets/_Project/StreamingAssets/Configs/";
 
         public const string DefaultMapId = "test_map_01";
         public const string DefaultWeaponId = "energy_gun";

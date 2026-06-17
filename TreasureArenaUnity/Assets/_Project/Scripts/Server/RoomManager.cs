@@ -43,6 +43,8 @@ namespace TreasureArenaMR.Server
         // GhostRetreat respawn countdown per player
         private readonly Dictionary<string, float> _respawnTimers =
             new Dictionary<string, float>();
+        private readonly Dictionary<string, ServerPlayerRuntimeState> _runtimePlayers =
+            new Dictionary<string, ServerPlayerRuntimeState>();
 
         public event Action<RoomState> OnRoomStateChanged;
         public event Action<PlayerInfo> OnPlayerJoined;
@@ -57,6 +59,7 @@ namespace TreasureArenaMR.Server
             _networkManager = networkManager;
             Players = new List<PlayerInfo>();
             _respawnTimers.Clear();
+            _runtimePlayers.Clear();
             CurrentRoomState = RoomState.Waiting;
             RedScore = 0;
             BlueScore = 0;
@@ -68,6 +71,7 @@ namespace TreasureArenaMR.Server
             Players?.Clear();
             _netickPlayers.Clear();
             _respawnTimers.Clear();
+            _runtimePlayers.Clear();
             CurrentRoomState = RoomState.Waiting;
             Debug.Log("[RoomManager] Shutdown");
         }
@@ -100,6 +104,7 @@ namespace TreasureArenaMR.Server
 
             Players.Add(playerInfo);
             _netickPlayers[playerId] = netPlayer;
+            UpsertRuntimePlayer(playerInfo, Vector3.zero, 0f, 0L);
             OnPlayerJoined?.Invoke(playerInfo);
 
             Debug.Log($"[RoomManager] Network player added: {playerId} ({nickname}), " +
@@ -121,6 +126,8 @@ namespace TreasureArenaMR.Server
             }
 
             _netickPlayers.Remove(playerId);
+            if (_runtimePlayers.TryGetValue(playerId, out var runtime))
+                runtime.isConnected = false;
             OnPlayerLeft?.Invoke(player);
             Debug.Log($"[RoomManager] Network player removed: {playerId}, " +
                 $"total={Players.Count}/{CurrentRoomConfig.max_players}");
@@ -130,6 +137,114 @@ namespace TreasureArenaMR.Server
         {
             _netickPlayers.TryGetValue(playerId, out var netPlayer);
             return netPlayer;
+        }
+
+        // ---- Simple TCP/UDP runtime bridge methods ----
+
+        public bool AddSimplePlayer(string playerId, string nickname)
+        {
+            if (CurrentRoomConfig == null)
+            {
+                Debug.LogWarning("[RoomManager] Cannot add simple player before room exists.");
+                return false;
+            }
+
+            PlayerInfo existing = Players.Find(p => p.player_id == playerId);
+            if (existing != null)
+            {
+                existing.is_connected = true;
+                UpsertRuntimePlayer(existing, GetKnownPosition(playerId), GetKnownRotation(playerId), GetKnownPoseTime(playerId));
+                Debug.Log($"[RoomManager] Simple player reconnected: {playerId}");
+                return true;
+            }
+
+            if (Players.Count >= CurrentRoomConfig.max_players)
+            {
+                Debug.LogWarning($"[RoomManager] Room full, rejecting simple player: {playerId}");
+                return false;
+            }
+
+            var playerInfo = new PlayerInfo
+            {
+                player_id = playerId,
+                nickname = nickname,
+                team = TeamType.None,
+                state = PlayerState.Alive,
+                hp = CurrentRoomConfig.player_max_hp,
+                max_hp = CurrentRoomConfig.player_max_hp,
+                is_connected = true,
+                carried_treasure_id = ""
+            };
+
+            Players.Add(playerInfo);
+            UpsertRuntimePlayer(playerInfo, Vector3.zero, 0f, 0L);
+            OnPlayerJoined?.Invoke(playerInfo);
+            Debug.Log($"[RoomManager] Simple player added: {playerId} ({nickname}), total={Players.Count}/{CurrentRoomConfig.max_players}");
+            AutoAssignTeam(playerId);
+            return true;
+        }
+
+        public void RemoveSimplePlayer(string playerId)
+        {
+            PlayerInfo player = Players.Find(p => p.player_id == playerId);
+            if (player != null)
+            {
+                player.is_connected = false;
+                SyncRuntimeFromPlayerInfo(player);
+            }
+
+            OnPlayerLeft?.Invoke(player);
+            Debug.Log($"[RoomManager] Simple player disconnected: {playerId}");
+        }
+
+        public void UpdatePlayerPose(string playerId, Vector3 position, float rotationY, long serverTimeMs)
+        {
+            if (string.IsNullOrEmpty(playerId))
+                return;
+
+            PlayerInfo player = Players.Find(p => p.player_id == playerId);
+            if (player == null)
+                return;
+
+            UpsertRuntimePlayer(player, position, rotationY, serverTimeMs);
+        }
+
+        public bool TryGetPlayerRuntimeState(string playerId, out ServerPlayerRuntimeState state)
+        {
+            state = null;
+            if (string.IsNullOrEmpty(playerId))
+                return false;
+
+            if (_runtimePlayers.TryGetValue(playerId, out state))
+            {
+                SyncRuntimeFromPlayerInfo(Players.Find(p => p.player_id == playerId));
+                return true;
+            }
+
+            PlayerInfo player = Players.Find(p => p.player_id == playerId);
+            if (player == null)
+                return false;
+
+            state = UpsertRuntimePlayer(player, Vector3.zero, 0f, 0L);
+            return true;
+        }
+
+        public bool TryGetPlayerPosition(string playerId, out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (!TryGetPlayerRuntimeState(playerId, out ServerPlayerRuntimeState state))
+                return false;
+
+            position = state.position;
+            return true;
+        }
+
+        public IReadOnlyList<ServerPlayerRuntimeState> GetRuntimePlayersSnapshot()
+        {
+            for (int i = 0; i < Players.Count; i++)
+                SyncRuntimeFromPlayerInfo(Players[i]);
+
+            return new List<ServerPlayerRuntimeState>(_runtimePlayers.Values);
         }
 
         // ---- Room management ----
@@ -166,9 +281,12 @@ namespace TreasureArenaMR.Server
 
             Players.Clear();
             _netickPlayers.Clear();
+            _runtimePlayers.Clear();
+            _respawnTimers.Clear();
             CurrentRoomState = RoomState.Waiting;
             RedScore = 0;
             BlueScore = 0;
+            RemainingTime = _defaultMatchTime;
             Debug.Log($"[RoomManager] Room created: {roomId}");
             return CurrentRoomConfig;
         }
@@ -187,6 +305,7 @@ namespace TreasureArenaMR.Server
             if (player == null) return false;
 
             player.team = targetTeam;
+            SyncRuntimeFromPlayerInfo(player);
             OnTeamChanged?.Invoke(player, targetTeam);
             Debug.Log($"[RoomManager] Player {playerId} switched to {targetTeam}");
             return true;
@@ -274,16 +393,13 @@ namespace TreasureArenaMR.Server
                 var player = Players[i];
                 if (player.state != PlayerState.GhostRetreat && player.state != PlayerState.Respawning) continue;
 
-                var netPlayer = GetNetickPlayer(player.player_id);
-                if (netPlayer == null) continue;
-
-                var playerObj = netPlayer.PlayerObject as GameObject;
-                if (playerObj == null) continue;
-
                 var respawnZone = MapData.GetRespawnZone(player.team);
                 if (respawnZone == null) continue;
 
-                float dist = Vector3.Distance(playerObj.transform.position, respawnZone.Position);
+                if (!TryGetPlayerPosition(player.player_id, out Vector3 playerPosition))
+                    continue;
+
+                float dist = Vector3.Distance(playerPosition, respawnZone.Position);
 
                 if (dist <= respawnZone.Radius)
                 {
@@ -300,6 +416,7 @@ namespace TreasureArenaMR.Server
                     {
                         player.hp = CurrentRoomConfig.player_max_hp;
                         player.state = PlayerState.Alive;
+                        SyncRuntimeFromPlayerInfo(player);
                         _respawnTimers.Remove(player.player_id);
                         Debug.Log($"[RoomManager] Player {player.player_id} respawned");
                     }
@@ -310,6 +427,7 @@ namespace TreasureArenaMR.Server
                     {
                         _respawnTimers.Remove(player.player_id);
                         player.state = PlayerState.GhostRetreat;
+                        SyncRuntimeFromPlayerInfo(player);
                         Debug.Log($"[RoomManager] Player {player.player_id} left respawn zone, countdown reset");
                     }
                 }
@@ -335,6 +453,59 @@ namespace TreasureArenaMR.Server
                 RemainingTime = 0f;
                 SetRoomState(RoomState.Finished);
             }
+        }
+
+        private ServerPlayerRuntimeState UpsertRuntimePlayer(PlayerInfo player, Vector3 position, float rotationY, long poseServerTimeMs)
+        {
+            if (player == null || string.IsNullOrEmpty(player.player_id))
+                return null;
+
+            if (!_runtimePlayers.TryGetValue(player.player_id, out ServerPlayerRuntimeState runtime))
+            {
+                runtime = new ServerPlayerRuntimeState { playerId = player.player_id };
+                _runtimePlayers[player.player_id] = runtime;
+            }
+
+            runtime.nickname = player.nickname;
+            runtime.team = player.team;
+            runtime.state = player.state;
+            runtime.hp = player.hp;
+            runtime.maxHp = player.max_hp;
+            runtime.isConnected = player.is_connected;
+            runtime.carriedTreasureId = player.carried_treasure_id ?? "";
+            runtime.position = position;
+            runtime.rotationY = rotationY;
+            runtime.lastPoseServerTimeMs = poseServerTimeMs;
+            return runtime;
+        }
+
+        private void SyncRuntimeFromPlayerInfo(PlayerInfo player)
+        {
+            if (player == null || !_runtimePlayers.TryGetValue(player.player_id, out ServerPlayerRuntimeState runtime))
+                return;
+
+            runtime.nickname = player.nickname;
+            runtime.team = player.team;
+            runtime.state = player.state;
+            runtime.hp = player.hp;
+            runtime.maxHp = player.max_hp;
+            runtime.isConnected = player.is_connected;
+            runtime.carriedTreasureId = player.carried_treasure_id ?? "";
+        }
+
+        private Vector3 GetKnownPosition(string playerId)
+        {
+            return _runtimePlayers.TryGetValue(playerId, out ServerPlayerRuntimeState runtime) ? runtime.position : Vector3.zero;
+        }
+
+        private float GetKnownRotation(string playerId)
+        {
+            return _runtimePlayers.TryGetValue(playerId, out ServerPlayerRuntimeState runtime) ? runtime.rotationY : 0f;
+        }
+
+        private long GetKnownPoseTime(string playerId)
+        {
+            return _runtimePlayers.TryGetValue(playerId, out ServerPlayerRuntimeState runtime) ? runtime.lastPoseServerTimeMs : 0L;
         }
     }
 }

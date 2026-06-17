@@ -21,35 +21,26 @@ namespace TreasureArenaMR.Map
             }
 
             string fileName = mapId + ".json";
-            string streamingPath = Path.Combine(Application.streamingAssetsPath, "Maps", fileName);
-            Debug.Log($"{LogPrefix} MapLoader LoadFromMapId mapId={mapId} streamingPath={streamingPath} " +
-                $"platform={Application.platform}");
+            string runtimePath = MapPathUtility.GetRuntimeMapPath(fileName);
+            Debug.Log($"{LogPrefix} MapLoader LoadFromMapId mapId={mapId} runtimePath={runtimePath} " +
+                $"projectMaps={MapPathUtility.ProjectMapsAssetFolder} " +
+                $"packagedMaps={MapPathUtility.PackagedMapsRelativeFolder} platform={Application.platform}");
 
-            MapLoadResult streamingResult = LoadFromPath(streamingPath);
-            if (streamingResult.ok)
+            MapLoadResult runtimeResult = LoadFromPath(runtimePath);
+            if (runtimeResult.ok)
             {
-                Debug.Log($"{LogPrefix} MapLoader loaded from StreamingAssets mapId={mapId} path={streamingResult.path}");
-                return streamingResult;
+                Debug.Log($"{LogPrefix} MapLoader loaded mapId={mapId} path={runtimeResult.path}");
+                return runtimeResult;
             }
 
 #if UNITY_EDITOR
-            string editorPath = Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps", fileName);
-            Debug.Log($"{LogPrefix} MapLoader StreamingAssets read failed, trying editor fallback. " +
-                $"mapId={mapId} error={streamingResult.error} editorPath={editorPath}");
-
-            MapLoadResult editorResult = LoadFromPath(editorPath);
-            if (editorResult.ok)
-            {
-                Debug.Log($"{LogPrefix} MapLoader loaded from editor fallback mapId={mapId} path={editorResult.path}");
-                return editorResult;
-            }
-
-            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} " +
-                $"streamingError={streamingResult.error} editorError={editorResult.error}");
-            return MapLoadResult.Fail(streamingResult.error + "; editor_fallback:" + editorResult.error);
+            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={runtimeResult.error} " +
+                $"expectedProjectPath={MapPathUtility.GetEditorMapPath(fileName)}");
+            return runtimeResult;
 #else
-            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={streamingResult.error}");
-            return streamingResult;
+            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={runtimeResult.error} " +
+                $"expectedPackagedPath={MapPathUtility.GetPackagedMapPath(fileName)}");
+            return runtimeResult;
 #endif
         }
 
