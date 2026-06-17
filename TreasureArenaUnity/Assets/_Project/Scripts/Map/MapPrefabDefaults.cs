@@ -2,21 +2,6 @@ using UnityEngine;
 
 namespace TreasureArenaMR.Map
 {
-    public enum MapObjectType
-    {
-        StaticFloor,
-        StaticObstacle,
-        PhysicsProp,
-        OpenableObject
-    }
-
-    public enum MapInteractionType
-    {
-        None,
-        Grab,
-        Openable
-    }
-
     public sealed class MapPrefabDefaults : MonoBehaviour
     {
         public MapObjectType object_type = MapObjectType.StaticObstacle;

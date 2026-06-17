@@ -5,52 +5,57 @@ using UnityEngine;
 namespace TreasureArenaMR.Map
 {
     /// <summary>
-    /// Maps map JSON prefab IDs to Unity prefab assets.
+    /// Maps frozen map JSON prefab IDs to Unity prefabs included in the client build.
     /// </summary>
+    [CreateAssetMenu(menuName = "TreasureArena/Map/Prefab Registry", fileName = "MapPrefabRegistry")]
     public sealed class PrefabRegistry : ScriptableObject
     {
         [SerializeField] private List<Entry> entries = new List<Entry>();
+        private Dictionary<string, GameObject> lookup;
 
         public IReadOnlyList<Entry> Entries => entries;
-        public int Count => entries != null ? entries.Count : 0;
 
         public bool TryGetPrefab(string prefabId, out GameObject prefab)
         {
-            prefab = null;
-            if (string.IsNullOrEmpty(prefabId) || entries == null)
+            EnsureLookup();
+            if (string.IsNullOrEmpty(prefabId))
             {
+                prefab = null;
                 return false;
             }
 
+            return lookup.TryGetValue(prefabId, out prefab) && prefab != null;
+        }
+
+        public void SetEntries(IEnumerable<Entry> newEntries)
+        {
+            entries.Clear();
+            if (newEntries != null)
+            {
+                entries.AddRange(newEntries);
+            }
+
+            lookup = null;
+        }
+
+        private void EnsureLookup()
+        {
+            if (lookup != null)
+            {
+                return;
+            }
+
+            lookup = new Dictionary<string, GameObject>(StringComparer.Ordinal);
             for (int i = 0; i < entries.Count; i++)
             {
                 Entry entry = entries[i];
-                if (entry == null || entry.prefab == null)
+                if (entry == null || string.IsNullOrEmpty(entry.prefab_id) || entry.prefab == null)
                 {
                     continue;
                 }
 
-                if (entry.prefab_id == prefabId)
-                {
-                    prefab = entry.prefab;
-                    return true;
-                }
+                lookup[entry.prefab_id] = entry.prefab;
             }
-
-            return false;
-        }
-
-        public GameObject GetPrefab(string prefabId)
-        {
-            TryGetPrefab(prefabId, out GameObject prefab);
-            return prefab;
-        }
-
-        public void SetEntries(IEnumerable<Entry> nextEntries)
-        {
-            entries = nextEntries != null
-                ? new List<Entry>(nextEntries)
-                : new List<Entry>();
         }
 
         [Serializable]
@@ -61,7 +66,7 @@ namespace TreasureArenaMR.Map
 
             public Entry(string prefabId, GameObject prefab)
             {
-                prefab_id = prefabId;
+                this.prefab_id = prefabId;
                 this.prefab = prefab;
             }
         }

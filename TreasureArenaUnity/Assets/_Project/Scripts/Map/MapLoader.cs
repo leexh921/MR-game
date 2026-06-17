@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using System.IO;
+using TreasureArenaMR.Gameplay;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -9,8 +12,6 @@ namespace TreasureArenaMR.Map
     /// </summary>
     public sealed class MapLoader
     {
-        private const string LogPrefix = "[PicoMapSync]";
-
         private readonly MapValidator validator = new MapValidator();
 
         public MapLoadResult LoadFromMapId(string mapId)
@@ -20,28 +21,15 @@ namespace TreasureArenaMR.Map
                 return MapLoadResult.Fail("missing_map_id");
             }
 
-            string fileName = mapId + ".json";
-            string runtimePath = MapPathUtility.GetRuntimeMapPath(fileName);
-            Debug.Log($"{LogPrefix} MapLoader LoadFromMapId mapId={mapId} runtimePath={runtimePath} " +
-                $"projectMaps={MapPathUtility.ProjectMapsAssetFolder} " +
-                $"packagedMaps={MapPathUtility.PackagedMapsRelativeFolder} platform={Application.platform}");
+            string projectPath = Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps");
+            projectPath = Path.Combine(projectPath, mapId + ".json");
+            MapLoadResult projectResult = LoadFromPath(projectPath);
+            if (projectResult.ok)
+                return projectResult;
 
-            MapLoadResult runtimeResult = LoadFromPath(runtimePath);
-            if (runtimeResult.ok)
-            {
-                Debug.Log($"{LogPrefix} MapLoader loaded mapId={mapId} path={runtimeResult.path}");
-                return runtimeResult;
-            }
-
-#if UNITY_EDITOR
-            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={runtimeResult.error} " +
-                $"expectedProjectPath={MapPathUtility.GetEditorMapPath(fileName)}");
-            return runtimeResult;
-#else
-            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={runtimeResult.error} " +
-                $"expectedPackagedPath={MapPathUtility.GetPackagedMapPath(fileName)}");
-            return runtimeResult;
-#endif
+            string streamingPath = Path.Combine(Application.streamingAssetsPath, "Maps");
+            streamingPath = Path.Combine(streamingPath, mapId + ".json");
+            return LoadFromPath(streamingPath);
         }
 
         public MapLoadResult LoadFromPath(string path)
@@ -51,130 +39,293 @@ namespace TreasureArenaMR.Map
                 return MapLoadResult.Fail("missing_path");
             }
 
-            if (!TryReadText(path, out string json, out string error))
+            string json = ReadAllText(path, out string readError);
+            if (string.IsNullOrEmpty(json))
             {
-                Debug.LogWarning($"{LogPrefix} MapLoader read failed path={path} error={error}");
-                return MapLoadResult.Fail(error);
+                return MapLoadResult.Fail(readError);
             }
 
             MapJsonModels.MapJson map = JsonUtility.FromJson<MapJsonModels.MapJson>(json);
             MapValidationResult validation = validator.Validate(map);
             if (!validation.ok)
             {
-                Debug.LogError($"{LogPrefix} MapLoader validation failed path={path} " +
-                    $"errors={validation.GetErrorText()}");
                 return MapLoadResult.Fail("map_validation_failed:" + validation.GetErrorText(), map, validation);
             }
 
-            Debug.Log($"{LogPrefix} MapLoader validation ok path={path} mapId={map.map_id} " +
-                $"objects={(map.objects != null ? map.objects.Count : 0)}");
             return MapLoadResult.Success(map, validation, path);
         }
 
-        public MapInstantiationResult InstantiateObjects(
-            MapJsonModels.MapJson map,
-            PrefabRegistry prefabRegistry,
-            Transform parent)
+        public MapInstantiationResult InstantiateObjects(MapJsonModels.MapJson map, PrefabRegistry registry, Transform parent)
         {
             if (map == null)
             {
-                Debug.LogError($"{LogPrefix} InstantiateObjects failed: map_is_null");
-                return MapInstantiationResult.Fail("map_is_null");
+                return MapInstantiationResult.Fail("missing_map");
             }
 
-            MapInstantiationResult registryValidation = ValidatePrefabRegistry(map, prefabRegistry);
-            if (!registryValidation.ok)
+            if (registry == null)
             {
-                Debug.LogError($"{LogPrefix} InstantiateObjects registry validation failed " +
-                    $"mapId={map.map_id} error={registryValidation.error}");
-                return registryValidation;
+                return MapInstantiationResult.Fail("missing_prefab_registry");
             }
 
-            GameObject root = new MapRuntimeBuilder().Build(map, prefabRegistry);
+            GameObject root = new GameObject(string.IsNullOrEmpty(map.map_id) ? "LoadedMap" : "LoadedMap_" + map.map_id);
             if (parent != null)
             {
                 root.transform.SetParent(parent, false);
             }
 
-            return MapInstantiationResult.Success(root, map.objects != null ? map.objects.Count : 0);
-        }
-
-        private static bool TryReadText(string path, out string text, out string error)
-        {
-            text = null;
-            error = null;
-
-            if (CanReadDirectly(path))
-            {
-                if (!File.Exists(path))
-                {
-                    error = "map_file_not_found:" + path;
-                    return false;
-                }
-
-                text = File.ReadAllText(path);
-                return true;
-            }
-
-            using (UnityWebRequest request = UnityWebRequest.Get(path))
-            {
-                UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-                while (!operation.isDone)
-                {
-                }
-
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    error = "map_file_read_failed:" + path + ":" + request.error;
-                    return false;
-                }
-
-                text = request.downloadHandler.text;
-                return true;
-            }
-        }
-
-        private static bool CanReadDirectly(string path)
-        {
-            return !path.Contains("://") && !path.Contains(":///");
-        }
-
-        private static MapInstantiationResult ValidatePrefabRegistry(MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
-        {
-            if (prefabRegistry == null)
-            {
-                Debug.LogError($"{LogPrefix} PrefabRegistry missing.");
-                return MapInstantiationResult.Fail("missing_map_prefab_registry");
-            }
-
             if (map.objects == null)
             {
-                return MapInstantiationResult.Success(null, 0);
+                return MapInstantiationResult.Success(root, 0);
             }
 
+            int created = 0;
             for (int i = 0; i < map.objects.Count; i++)
             {
-                MapJsonModels.MapObjectJson item = map.objects[i];
-                if (item == null)
+                MapJsonModels.MapObjectJson mapObject = map.objects[i];
+                if (mapObject == null)
                 {
                     continue;
                 }
 
-                if (string.IsNullOrEmpty(item.prefab_id))
+                if (!registry.TryGetPrefab(mapObject.prefab_id, out GameObject prefab))
                 {
-                    Debug.LogError($"{LogPrefix} Prefab id missing objectId={item.object_id}");
-                    return MapInstantiationResult.Fail("missing_prefab_id:" + item.object_id);
+                    UnityEngine.Object.Destroy(root);
+                    return MapInstantiationResult.Fail("Missing map prefab: " + mapObject.prefab_id);
                 }
 
-                if (!prefabRegistry.TryGetPrefab(item.prefab_id, out GameObject prefab) || prefab == null)
+                GameObject instance = UnityEngine.Object.Instantiate(prefab, root.transform);
+                instance.name = string.IsNullOrEmpty(mapObject.object_id) ? mapObject.prefab_id : mapObject.object_id;
+                instance.transform.SetPositionAndRotation(ToVector3(mapObject.position), Quaternion.Euler(ToVector3(mapObject.rotation)));
+                instance.transform.localScale = ToVector3(mapObject.scale, Vector3.one);
+                ConfigureRuntimeObject(instance, mapObject);
+                created++;
+            }
+
+            return MapInstantiationResult.Success(root, created);
+        }
+
+        private static void ConfigureRuntimeObject(GameObject instance, MapJsonModels.MapObjectJson mapObject)
+        {
+            MapRuntimeObject runtimeObject = instance.GetComponent<MapRuntimeObject>();
+            if (runtimeObject == null)
+            {
+                runtimeObject = instance.AddComponent<MapRuntimeObject>();
+            }
+
+            runtimeObject.object_id = mapObject.object_id;
+            runtimeObject.prefab_id = mapObject.prefab_id;
+            runtimeObject.object_type = ParseObjectType(mapObject.object_type);
+            runtimeObject.interaction_type = ParseInteractionType(mapObject.interaction_type);
+            runtimeObject.is_movable = mapObject.is_movable;
+            runtimeObject.is_grabbable = mapObject.is_grabbable;
+            runtimeObject.is_openable = mapObject.is_openable;
+            runtimeObject.is_shootable = mapObject.is_shootable;
+            runtimeObject.blocks_bullet = mapObject.blocks_bullet;
+            runtimeObject.decal_enabled = mapObject.decal_enabled;
+            runtimeObject.mass = mapObject.mass;
+
+            Collider[] colliders = instance.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                colliders[i].enabled = mapObject.has_collider;
+            }
+
+            if (mapObject.is_shootable)
+            {
+                BulletSurface surface = instance.GetComponent<BulletSurface>();
+                if (surface == null)
                 {
-                    Debug.LogError($"{LogPrefix} Prefab not registered prefabId={item.prefab_id} " +
-                        $"objectId={item.object_id}");
-                    return MapInstantiationResult.Fail("prefab_not_registered:" + item.prefab_id);
+                    surface = instance.AddComponent<BulletSurface>();
+                }
+
+                surface.blocks_bullet = mapObject.blocks_bullet;
+                surface.decal_enabled = mapObject.decal_enabled;
+            }
+
+            if (mapObject.is_movable || mapObject.is_grabbable)
+            {
+                Rigidbody body = instance.GetComponent<Rigidbody>();
+                if (body == null)
+                {
+                    body = instance.AddComponent<Rigidbody>();
+                }
+
+                body.mass = Mathf.Max(0.01f, mapObject.mass);
+                body.isKinematic = false;
+            }
+
+            if (mapObject.is_grabbable)
+            {
+                AddComponentIfTypeExists(instance, "UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable, Unity.XR.Interaction.Toolkit");
+                AddComponentIfTypeExists(instance, "UnityEngine.XR.Interaction.Toolkit.XRGrabInteractable, Unity.XR.Interaction.Toolkit");
+            }
+
+            if (mapObject.is_openable || ParseObjectType(mapObject.object_type) == MapObjectType.OpenableObject)
+            {
+                OpenableBox openable = instance.GetComponent<OpenableBox>();
+                if (openable == null)
+                {
+                    openable = instance.AddComponent<OpenableBox>();
+                }
+
+                openable.object_id = mapObject.object_id;
+            }
+        }
+
+        private static void AddComponentIfTypeExists(GameObject instance, string typeName)
+        {
+            Type type = Type.GetType(typeName);
+            if (type == null || instance.GetComponent(type) != null)
+            {
+                return;
+            }
+
+            instance.AddComponent(type);
+        }
+
+        private static MapObjectType ParseObjectType(string value)
+        {
+            if (Enum.TryParse(value, true, out MapObjectType parsed))
+            {
+                return parsed;
+            }
+
+            return MapObjectType.StaticObstacle;
+        }
+
+        private static MapInteractionType ParseInteractionType(string value)
+        {
+            if (Enum.TryParse(value, true, out MapInteractionType parsed))
+            {
+                return parsed;
+            }
+
+            return MapInteractionType.None;
+        }
+
+        public MapLoadResult LoadAndInstantiateFromMapId(string mapId, PrefabRegistry registry, Transform parent, out MapInstantiationResult instantiation)
+        {
+            MapLoadResult load = LoadFromMapId(mapId);
+            instantiation = load.ok ? InstantiateObjects(load.map, registry, parent) : MapInstantiationResult.Fail(load.error);
+            return load;
+        }
+
+        private static Vector3 ToVector3(MapJsonModels.Vector3Json value)
+        {
+            if (value == null)
+            {
+                return Vector3.zero;
+            }
+
+            return new Vector3(value.x, value.y, value.z);
+        }
+
+        private static Vector3 ToVector3(MapJsonModels.RotationJson value)
+        {
+            if (value == null)
+            {
+                return Vector3.zero;
+            }
+
+            return new Vector3(value.x, value.y, value.z);
+        }
+
+        private static Vector3 ToVector3(MapJsonModels.ScaleJson value, Vector3 fallback)
+        {
+            if (value == null)
+            {
+                return fallback;
+            }
+
+            return new Vector3(value.x, value.y, value.z);
+        }
+
+        private static string ReadAllText(string path, out string error)
+        {
+            error = null;
+            if (string.IsNullOrEmpty(path))
+            {
+                error = "missing_path";
+                return null;
+            }
+
+            if (path.Contains("://") || path.Contains(":///"))
+            {
+                using (UnityWebRequest request = UnityWebRequest.Get(path))
+                {
+                    UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+                    while (!operation.isDone)
+                    {
+                    }
+
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        error = "map_file_not_found:" + path + ":" + request.error;
+                        return null;
+                    }
+
+                    return request.downloadHandler.text;
                 }
             }
 
-            return MapInstantiationResult.Success(null, map.objects.Count);
+            if (!File.Exists(path))
+            {
+                error = "map_file_not_found:" + path;
+                return null;
+            }
+
+            return File.ReadAllText(path);
+        }
+
+        /// <summary>
+        /// Non-blocking variant for platforms where StreamingAssets uses jar: URIs (Android).
+        /// The caller must StartCoroutine this from a MonoBehaviour.
+        /// onComplete receives (json, error) — exactly one will be non-null.
+        /// </summary>
+        public static IEnumerator ReadAllTextCoroutine(string path, Action<string, string> onComplete)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                onComplete?.Invoke(null, "missing_path");
+                yield break;
+            }
+
+            if (path.Contains("://") || path.Contains(":///"))
+            {
+                using (UnityWebRequest request = UnityWebRequest.Get(path))
+                {
+                    yield return request.SendWebRequest();
+
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        onComplete?.Invoke(null, "map_file_not_found:" + path + ":" + request.error);
+                        yield break;
+                    }
+
+                    onComplete?.Invoke(request.downloadHandler.text, null);
+                }
+
+                yield break;
+            }
+
+            if (!File.Exists(path))
+            {
+                onComplete?.Invoke(null, "map_file_not_found:" + path);
+                yield break;
+            }
+
+            onComplete?.Invoke(File.ReadAllText(path), null);
+        }
+
+        public static string ResolveMapPath(string mapId)
+        {
+            string projectPath = Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps");
+            projectPath = Path.Combine(projectPath, mapId + ".json");
+            if (File.Exists(projectPath))
+                return projectPath;
+
+            string streamingPath = Path.Combine(Application.streamingAssetsPath, "Maps");
+            return Path.Combine(streamingPath, mapId + ".json");
         }
     }
 

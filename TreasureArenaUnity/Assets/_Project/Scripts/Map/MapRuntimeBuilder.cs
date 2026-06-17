@@ -1,19 +1,14 @@
-using System;
 using UnityEngine;
+using TreasureArenaMR.Gameplay;
 
 namespace TreasureArenaMR.Map
 {
     /// <summary>
-    /// Builds runtime map objects from validated map JSON.
+    /// Builds primitive runtime map placeholders from validated map JSON.
     /// </summary>
     public sealed class MapRuntimeBuilder
     {
         public GameObject Build(MapJsonModels.MapJson map)
-        {
-            throw new InvalidOperationException("MapRuntimeBuilder requires a PrefabRegistry for runtime object instantiation.");
-        }
-
-        public GameObject Build(MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             GameObject root = new GameObject("MapRuntimeRoot");
             if (map == null)
@@ -21,15 +16,30 @@ namespace TreasureArenaMR.Map
                 return root;
             }
 
-            BuildObjects(root.transform, map, prefabRegistry);
+            BuildObjects(root.transform, map);
             BuildTeamBases(root.transform, map);
             BuildTreasurePoints(root.transform, map);
             BuildSupplyBoxes(root.transform, map);
-            BuildBounds(root.transform, map);
+            BuildBoundary(root.transform, map);
             return root;
         }
 
-        private static void BuildObjects(Transform root, MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
+        public GameObject BuildGameplayOverlay(MapJsonModels.MapJson map)
+        {
+            GameObject root = new GameObject("MapGameplayOverlay");
+            if (map == null)
+            {
+                return root;
+            }
+
+            BuildTeamBases(root.transform, map);
+            BuildTreasurePoints(root.transform, map);
+            BuildSupplyBoxes(root.transform, map);
+            BuildBoundary(root.transform, map);
+            return root;
+        }
+
+        private static void BuildObjects(Transform root, MapJsonModels.MapJson map)
         {
             if (map.objects == null)
             {
@@ -45,49 +55,21 @@ namespace TreasureArenaMR.Map
                     continue;
                 }
 
-                GameObject go = CreateMapObject(item, prefabRegistry, parent);
+                PrimitiveType type = IsFloor(item.prefab_id) ? PrimitiveType.Plane : PrimitiveType.Cube;
+                GameObject go = CreatePrimitive(item.object_id, type, parent);
                 go.transform.position = ToVector3(item.position);
                 go.transform.eulerAngles = ToVector3(item.rotation);
                 go.transform.localScale = ToVector3(item.scale, Vector3.one);
+                SetColor(go, ObjectColor(item.object_type));
 
                 Collider collider = go.GetComponent<Collider>();
                 if (collider != null)
                 {
                     collider.enabled = item.has_collider;
                 }
+
+                ConfigureRuntimeObject(go, item);
             }
-        }
-
-        private static GameObject CreateMapObject(
-            MapJsonModels.MapObjectJson item,
-            PrefabRegistry prefabRegistry,
-            Transform parent)
-        {
-            if (prefabRegistry == null)
-            {
-                throw new InvalidOperationException("Cannot instantiate map object without MapPrefabRegistry: " + item.object_id);
-            }
-
-            if (!prefabRegistry.TryGetPrefab(item.prefab_id, out GameObject prefab) || prefab == null)
-            {
-                throw new InvalidOperationException("Map prefab id is not registered: " + item.prefab_id);
-            }
-
-            GameObject go = UnityEngine.Object.Instantiate(prefab, parent);
-            go.name = string.IsNullOrEmpty(item.object_id) ? prefab.name : item.object_id;
-
-            MapRuntimeObject runtimeObject = go.GetComponent<MapRuntimeObject>();
-            if (runtimeObject == null)
-            {
-                runtimeObject = go.AddComponent<MapRuntimeObject>();
-            }
-
-            runtimeObject.object_id = item.object_id;
-            runtimeObject.prefab_id = item.prefab_id;
-            runtimeObject.is_shootable = true;
-            runtimeObject.blocks_bullet = true;
-            runtimeObject.decal_enabled = true;
-            return go;
         }
 
         private static void BuildTeamBases(Transform root, MapJsonModels.MapJson map)
@@ -165,17 +147,37 @@ namespace TreasureArenaMR.Map
             }
         }
 
-        private static void BuildBounds(Transform root, MapJsonModels.MapJson map)
+        private static void BuildBoundary(Transform root, MapJsonModels.MapJson map)
         {
-            if (map.bounds == null)
-            {
+            if (map.map_boundary == null || map.map_boundary.points == null || map.map_boundary.points.Count < 3)
                 return;
-            }
 
-            GameObject go = new GameObject("bounds");
-            go.transform.SetParent(root, false);
-            go.transform.position = ToVector3(map.bounds.center);
-            go.transform.localScale = ToVector3(map.bounds.size, Vector3.one);
+            Transform parent = CreateGroup(root, "MapBoundary");
+            int pointCount = map.map_boundary.points.Count;
+            for (int i = 0; i < pointCount; i++)
+            {
+                Vector3 start = ToVector3(map.map_boundary.points[i]);
+                Vector3 end = ToVector3(map.map_boundary.points[(i + 1) % pointCount]);
+                CreateBoundarySegment("Boundary_" + i, start, end, parent);
+            }
+        }
+
+        private static void CreateBoundarySegment(string name, Vector3 start, Vector3 end, Transform parent)
+        {
+            Vector3 delta = end - start;
+            float length = delta.magnitude;
+            if (length <= 0.001f)
+                return;
+
+            GameObject go = CreatePrimitive(name, PrimitiveType.Cube, parent);
+            go.transform.position = (start + end) * 0.5f + Vector3.up * 0.05f;
+            go.transform.rotation = Quaternion.LookRotation(delta.normalized, Vector3.up);
+            go.transform.localScale = new Vector3(0.04f, 0.1f, length);
+            SetColor(go, new Color(0.9f, 0.9f, 0.15f, 0.9f));
+
+            Collider collider = go.GetComponent<Collider>();
+            if (collider != null)
+                collider.isTrigger = true;
         }
 
         private static Transform CreateGroup(Transform root, string name)
@@ -193,6 +195,11 @@ namespace TreasureArenaMR.Map
             return go;
         }
 
+        private static bool IsFloor(string prefabId)
+        {
+            return !string.IsNullOrEmpty(prefabId) && prefabId.ToLowerInvariant().Contains("floor");
+        }
+
         private static Color TreasureColor(string treasureType)
         {
             if (treasureType == "Rare")
@@ -206,6 +213,81 @@ namespace TreasureArenaMR.Map
             }
 
             return new Color(1f, 0.72f, 0.08f, 1f);
+        }
+
+        private static Color ObjectColor(string objectType)
+        {
+            if (objectType == MapObjectType.StaticFloor.ToString())
+            {
+                return new Color(0.22f, 0.45f, 0.35f, 1f);
+            }
+
+            if (objectType == MapObjectType.PhysicsProp.ToString())
+            {
+                return new Color(0.75f, 0.45f, 0.18f, 1f);
+            }
+
+            if (objectType == MapObjectType.OpenableObject.ToString())
+            {
+                return new Color(0.65f, 0.35f, 0.8f, 1f);
+            }
+
+            return new Color(0.28f, 0.3f, 0.32f, 1f);
+        }
+
+        private static void ConfigureRuntimeObject(GameObject go, MapJsonModels.MapObjectJson item)
+        {
+            MapRuntimeObject runtimeObject = go.AddComponent<MapRuntimeObject>();
+            runtimeObject.object_id = item.object_id;
+            runtimeObject.prefab_id = item.prefab_id;
+            runtimeObject.object_type = ParseObjectType(item.object_type);
+            runtimeObject.interaction_type = ParseInteractionType(item.interaction_type);
+            runtimeObject.is_movable = item.is_movable;
+            runtimeObject.is_grabbable = item.is_grabbable;
+            runtimeObject.is_openable = item.is_openable;
+            runtimeObject.is_shootable = item.is_shootable;
+            runtimeObject.blocks_bullet = item.blocks_bullet;
+            runtimeObject.decal_enabled = item.decal_enabled;
+            runtimeObject.mass = item.mass;
+
+            if (item.is_shootable)
+            {
+                BulletSurface surface = go.AddComponent<BulletSurface>();
+                surface.blocks_bullet = item.blocks_bullet;
+                surface.decal_enabled = item.decal_enabled;
+            }
+
+            if (item.is_movable || item.is_grabbable)
+            {
+                Rigidbody body = go.AddComponent<Rigidbody>();
+                body.mass = Mathf.Max(0.01f, item.mass);
+            }
+
+            if (item.is_openable || item.object_type == MapObjectType.OpenableObject.ToString())
+            {
+                OpenableBox openable = go.AddComponent<OpenableBox>();
+                openable.object_id = item.object_id;
+            }
+        }
+
+        private static MapObjectType ParseObjectType(string value)
+        {
+            if (System.Enum.TryParse(value, true, out MapObjectType parsed))
+            {
+                return parsed;
+            }
+
+            return MapObjectType.StaticObstacle;
+        }
+
+        private static MapInteractionType ParseInteractionType(string value)
+        {
+            if (System.Enum.TryParse(value, true, out MapInteractionType parsed))
+            {
+                return parsed;
+            }
+
+            return MapInteractionType.None;
         }
 
         private static void SetColor(GameObject go, Color color)
