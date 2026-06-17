@@ -1,4 +1,5 @@
 using TreasureArenaMR.Server;
+using TreasureArenaMR.Shared;
 using UnityEngine;
 
 namespace TreasureArenaMR.Network
@@ -9,12 +10,20 @@ namespace TreasureArenaMR.Network
     /// </summary>
     public sealed class RoomStateSynchronizer : MonoBehaviour
     {
+        private const float StateLogInterval = 1f;
+        private const string LogPrefix = "[ServerStateSync]";
+
         [SerializeField] private float _syncInterval = 0.5f;
         [SerializeField] private RoomManager _roomManager;
         [SerializeField] private NetworkManager _networkManager;
 
         private NetworkMatchState _networkMatchState;
         private float _syncTimer;
+        private float _stateLogTimer;
+        private RoomState _lastLoggedRoomState;
+        private int _lastLoggedMapIndex = -1;
+        private int _lastLoggedRemainingSecond = -1;
+        private bool _hasLoggedState;
 
         private void Start()
         {
@@ -22,6 +31,9 @@ namespace TreasureArenaMR.Network
                 _roomManager = FindObjectOfType<RoomManager>();
             if (_networkManager == null)
                 _networkManager = FindObjectOfType<NetworkManager>();
+
+            Debug.Log($"{LogPrefix} Start roomManager={_roomManager != null} " +
+                $"networkManager={_networkManager != null}");
         }
 
         private void Update()
@@ -44,9 +56,13 @@ namespace TreasureArenaMR.Network
 
             if (_networkMatchState == null)
             {
-                Debug.LogWarning("[RoomStateSynchronizer] NetworkMatchState not found yet");
+                Debug.LogWarning($"{LogPrefix} NetworkMatchState not found yet " +
+                    $"roomManager={_roomManager != null} networkManager={_networkManager != null}");
                 return;
             }
+
+            int mapIndex = -1;
+            string mapId = "-";
 
             _networkMatchState.Sync(
                 _roomManager.CurrentRoomState,
@@ -57,13 +73,37 @@ namespace TreasureArenaMR.Network
             var config = _roomManager.CurrentRoomConfig;
             if (config != null)
             {
-                int mapIndex = Map.RuntimeMapCatalog.GetIndex(config.map_id);
+                mapId = config.map_id;
+                mapIndex = Map.RuntimeMapCatalog.GetIndex(config.map_id);
                 _networkMatchState.SetMap(mapIndex, 1);
             }
 
-            Debug.Log($"[RoomStateSynchronizer] Synced: State={_roomManager.CurrentRoomState}, " +
-                $"Red={_roomManager.RedScore}, Blue={_roomManager.BlueScore}, " +
-                $"Time={_roomManager.RemainingTime:F0}, Players={_roomManager.Players.Count}");
+            LogSyncedState(mapId, mapIndex);
+        }
+
+        private void LogSyncedState(string mapId, int mapIndex)
+        {
+            _stateLogTimer -= _syncInterval;
+
+            int remainingSecond = Mathf.CeilToInt(Mathf.Max(0f, _roomManager.RemainingTime));
+            bool stateChanged = !_hasLoggedState || _lastLoggedRoomState != _roomManager.CurrentRoomState;
+            bool mapChanged = !_hasLoggedState || _lastLoggedMapIndex != mapIndex;
+            bool secondChanged = !_hasLoggedState || _lastLoggedRemainingSecond != remainingSecond;
+            bool intervalElapsed = _stateLogTimer <= 0f;
+
+            if (!stateChanged && !mapChanged && !(secondChanged && intervalElapsed))
+                return;
+
+            _hasLoggedState = true;
+            _stateLogTimer = StateLogInterval;
+            _lastLoggedRoomState = _roomManager.CurrentRoomState;
+            _lastLoggedMapIndex = mapIndex;
+            _lastLoggedRemainingSecond = remainingSecond;
+
+            Debug.Log($"{LogPrefix} State={_roomManager.CurrentRoomState} " +
+                $"Time={_roomManager.RemainingTime:F1} Red={_roomManager.RedScore} Blue={_roomManager.BlueScore} " +
+                $"Players={_roomManager.Players.Count} mapId={mapId} mapIndex={mapIndex} " +
+                $"mapRevision={_networkMatchState.MapRevision} mapConfigured={_networkMatchState.MapConfigured}");
         }
     }
 }

@@ -90,7 +90,7 @@ namespace TreasureArenaMR.Network
             EnsureReferences();
             LocalPlayerId = playerId;
             Debug.Log($"[NetworkManager] Starting Netick client, connecting to {_serverAddress}:{_serverPort}");
-            var sandbox = NetickNetwork.StartAsClient(_transport, _sandboxPrefab, _netickConfig);
+            var sandbox = NetickNetwork.StartAsClient(_transport, _serverPort, _sandboxPrefab, _netickConfig);
             sandbox.Connect(_serverPort, _serverAddress);
             _sandbox = sandbox;
             OnClientConnected?.Invoke();

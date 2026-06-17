@@ -13,6 +13,8 @@ namespace TreasureArenaMR.Network
     /// </summary>
     public sealed class SandboxNetworkListener : NetworkEventsListener
     {
+        private const string LogPrefix = "[NetickSpawnSync]";
+
         [Header("Player Spawn")]
         [SerializeField] private GameObject _playerPrefab;
 
@@ -33,23 +35,32 @@ namespace TreasureArenaMR.Network
 
         public override void OnStartup(NetworkSandbox sandbox)
         {
-            Debug.Log($"[SandboxNetworkListener] Netick sandbox started. IsServer={sandbox.IsServer}, IsClient={sandbox.IsClient}");
+            Debug.Log($"{LogPrefix} Sandbox started isServer={sandbox.IsServer} isClient={sandbox.IsClient} " +
+                $"playerPrefab={(_playerPrefab != null ? _playerPrefab.name : "null")} " +
+                $"networkMatchStatePrefab={(_networkMatchStatePrefab != null ? _networkMatchStatePrefab.name : "null")}");
             CacheReferences();
 
             if (_networkManager != null)
                 _networkManager.OnSandboxStarted(sandbox);
+            else
+                Debug.LogWarning($"{LogPrefix} NetworkManager missing on startup.");
 
             if (sandbox.IsServer && _networkMatchStatePrefab != null)
             {
                 var obj = sandbox.NetworkInstantiate(_networkMatchStatePrefab, Vector3.zero, Quaternion.identity);
                 _networkMatchStateInstance = obj.GetComponent<NetworkMatchState>();
-                Debug.Log($"[SandboxNetworkListener] NetworkMatchState spawned: {_networkMatchStateInstance != null}");
+                Debug.Log($"{LogPrefix} NetworkMatchState spawn requested " +
+                    $"object={(obj != null ? obj.name : "null")} component={_networkMatchStateInstance != null}");
+            }
+            else if (sandbox.IsServer)
+            {
+                Debug.LogError($"{LogPrefix} NetworkMatchState spawn blocked: prefab is null.");
             }
         }
 
         public override void OnShutdown(NetworkSandbox sandbox)
         {
-            Debug.Log("[SandboxNetworkListener] Netick sandbox shutting down");
+            Debug.Log($"{LogPrefix} Sandbox shutting down isServer={sandbox.IsServer} isClient={sandbox.IsClient}");
 
             if (_networkManager != null)
                 _networkManager.OnSandboxShutdown();
@@ -63,11 +74,16 @@ namespace TreasureArenaMR.Network
             CacheReferences();
             string playerId = networkPlayer.PlayerId.ToString();
 
-            Debug.Log($"[SandboxNetworkListener] Player connected: {playerId}");
+            Debug.Log($"{LogPrefix} Player connected playerId={playerId} " +
+                $"roomManager={_roomManager != null} mapData={(_roomManager != null && _roomManager.MapData != null)}");
 
             if (_roomManager != null)
             {
                 _roomManager.AddNetworkPlayer(playerId, $"Player_{playerId}", networkPlayer);
+            }
+            else
+            {
+                Debug.LogError($"{LogPrefix} Player add blocked: RoomManager missing.");
             }
 
             // Spawn player at team spawn position
@@ -81,38 +97,42 @@ namespace TreasureArenaMR.Network
         {
             if (_roomManager?.MapData == null)
             {
-                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: MapData is null (roomManager={_roomManager != null})");
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: MapData is null " +
+                    $"roomManager={_roomManager != null} playerId={playerId}");
                 return;
             }
 
             var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
             if (playerInfo == null)
             {
-                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: playerInfo not found for {playerId}. Players count={_roomManager.Players.Count}");
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: playerInfo not found " +
+                    $"playerId={playerId} players={_roomManager.Players.Count}");
                 return;
             }
 
             var teamType = playerInfo.team;
             if (teamType == TeamType.None)
             {
-                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: team is None for {playerId}");
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: team is None playerId={playerId}");
                 return;
             }
 
             var spawnZones = _roomManager.MapData.GetSpawnZones(teamType);
             if (spawnZones == null || spawnZones.Count == 0)
             {
-                Debug.LogWarning($"[SandboxNetworkListener] SpawnPlayer blocked: no spawn zones for team {teamType}");
+                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: no spawn zones " +
+                    $"playerId={playerId} team={teamType}");
                 return;
             }
 
             Vector3 spawnPos = spawnZones[0]; // First available spawn point
 
-            Debug.Log($"[SandboxNetworkListener] Spawning player {playerId} ({teamType}) at {spawnPos}");
+            Debug.Log($"{LogPrefix} Spawning player playerId={playerId} team={teamType} " +
+                $"spawnPos={spawnPos} prefab={(_playerPrefab != null ? _playerPrefab.name : "null")}");
 
             if (_playerPrefab == null)
             {
-                Debug.LogError("[SandboxNetworkListener] SpawnPlayer blocked: _playerPrefab is not assigned in inspector!");
+                Debug.LogError($"{LogPrefix} SpawnPlayer blocked: _playerPrefab is not assigned.");
                 return;
             }
 
@@ -120,11 +140,28 @@ namespace TreasureArenaMR.Network
                 spawnPos, Quaternion.identity, netPlayer);
             sandbox.SetPlayerObject(netPlayer.PlayerId, playerObj);
 
+            Debug.Log($"{LogPrefix} Player NetworkInstantiate done playerId={playerId} " +
+                $"object={(playerObj != null ? playerObj.name : "null")}");
+
+            if (playerObj == null)
+            {
+                Debug.LogError($"{LogPrefix} SpawnPlayer failed: NetworkInstantiate returned null " +
+                    $"playerId={playerId} prefab={_playerPrefab.name}");
+                return;
+            }
+
             var netComp = playerObj.GetComponent<NetworkPlayer>();
             if (netComp != null)
             {
                 netComp.Initialize(playerId, $"Player_{playerId}", teamType);
                 netComp.NetickPlayerId = netPlayer.PlayerId;
+                Debug.Log($"{LogPrefix} NetworkPlayer initialized playerId={playerId} " +
+                    $"netickPlayerId={netPlayer.PlayerId}");
+            }
+            else
+            {
+                Debug.LogWarning($"{LogPrefix} Spawned player missing NetworkPlayer component " +
+                    $"playerId={playerId} object={(playerObj != null ? playerObj.name : "null")}");
             }
         }
 
@@ -135,16 +172,16 @@ namespace TreasureArenaMR.Network
 
             CacheReferences();
             string playerId = networkPlayer.PlayerId.ToString();
-            Debug.Log($"[SandboxNetworkListener] Player disconnected: {playerId}, reason={reason}");
+            Debug.Log($"{LogPrefix} Player disconnected playerId={playerId} reason={reason}");
 
             if (sandbox.TryGetPlayerObject(networkPlayer.PlayerId, out var playerObj))
             {
                 sandbox.Destroy(playerObj);
-                Debug.Log($"[SandboxNetworkListener] Despawned player object for {playerId}");
+                Debug.Log($"{LogPrefix} Despawned player object playerId={playerId}");
             }
             else
             {
-                Debug.LogWarning($"[SandboxNetworkListener] No player object found to despawn for {playerId}");
+                Debug.LogWarning($"{LogPrefix} No player object found to despawn playerId={playerId}");
             }
 
             if (_roomManager != null)
@@ -160,14 +197,14 @@ namespace TreasureArenaMR.Network
 
             if (_roomManager != null && _roomManager.IsFull)
             {
-                Debug.Log("[SandboxNetworkListener] Connection refused: room full");
+                Debug.Log($"{LogPrefix} Connection refused: room full");
                 request.Refuse();
                 return;
             }
 
             if (_roomManager != null && !_roomManager.CanJoin)
             {
-                Debug.Log($"[SandboxNetworkListener] Connection refused: room state={_roomManager.CurrentRoomState}");
+                Debug.Log($"{LogPrefix} Connection refused: room state={_roomManager.CurrentRoomState}");
                 request.Refuse();
                 return;
             }
@@ -175,7 +212,9 @@ namespace TreasureArenaMR.Network
 
         public override void OnConnectedToServer(NetworkSandbox sandbox, NetworkConnection connection)
         {
-            Debug.Log("[SandboxNetworkListener] Connected to server");
+            CacheReferences();
+            Debug.Log($"{LogPrefix} Client OnConnectedToServer endpoint={sandbox.ServerEndPoint} " +
+                $"networkManager={_networkManager != null}");
 
             if (_networkManager != null)
                 _networkManager.OnConnectedToServer();
@@ -184,7 +223,8 @@ namespace TreasureArenaMR.Network
         public override void OnDisconnectedFromServer(
             NetworkSandbox sandbox, NetworkConnection connection, TransportDisconnectReason reason)
         {
-            Debug.Log($"[SandboxNetworkListener] Disconnected from server: {reason}");
+            CacheReferences();
+            Debug.Log($"{LogPrefix} Client disconnected reason={reason}");
 
             if (_networkManager != null)
                 _networkManager.OnDisconnectedFromServer(reason);
@@ -192,7 +232,8 @@ namespace TreasureArenaMR.Network
 
         public override void OnSceneLoaded(NetworkSandbox sandbox)
         {
-            Debug.Log($"[SandboxNetworkListener] Scene loaded: {sandbox.Scene}");
+            Debug.Log($"{LogPrefix} Scene loaded scene={sandbox.Scene} " +
+                $"isServer={sandbox.IsServer} isClient={sandbox.IsClient}");
 
             if (_networkManager != null)
                 _networkManager.OnSceneLoaded();

@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace TreasureArenaMR.Map
 {
@@ -8,6 +9,8 @@ namespace TreasureArenaMR.Map
     /// </summary>
     public sealed class MapLoader
     {
+        private const string LogPrefix = "[PicoMapSync]";
+
         private readonly MapValidator validator = new MapValidator();
 
         public MapLoadResult LoadFromMapId(string mapId)
@@ -17,9 +20,37 @@ namespace TreasureArenaMR.Map
                 return MapLoadResult.Fail("missing_map_id");
             }
 
-            string path = Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps");
-            path = Path.Combine(path, mapId + ".json");
-            return LoadFromPath(path);
+            string fileName = mapId + ".json";
+            string streamingPath = Path.Combine(Application.streamingAssetsPath, "Maps", fileName);
+            Debug.Log($"{LogPrefix} MapLoader LoadFromMapId mapId={mapId} streamingPath={streamingPath} " +
+                $"platform={Application.platform}");
+
+            MapLoadResult streamingResult = LoadFromPath(streamingPath);
+            if (streamingResult.ok)
+            {
+                Debug.Log($"{LogPrefix} MapLoader loaded from StreamingAssets mapId={mapId} path={streamingResult.path}");
+                return streamingResult;
+            }
+
+#if UNITY_EDITOR
+            string editorPath = Path.Combine(Application.dataPath, "_Project/StreamingAssets/Maps", fileName);
+            Debug.Log($"{LogPrefix} MapLoader StreamingAssets read failed, trying editor fallback. " +
+                $"mapId={mapId} error={streamingResult.error} editorPath={editorPath}");
+
+            MapLoadResult editorResult = LoadFromPath(editorPath);
+            if (editorResult.ok)
+            {
+                Debug.Log($"{LogPrefix} MapLoader loaded from editor fallback mapId={mapId} path={editorResult.path}");
+                return editorResult;
+            }
+
+            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} " +
+                $"streamingError={streamingResult.error} editorError={editorResult.error}");
+            return MapLoadResult.Fail(streamingResult.error + "; editor_fallback:" + editorResult.error);
+#else
+            Debug.LogError($"{LogPrefix} MapLoader failed mapId={mapId} error={streamingResult.error}");
+            return streamingResult;
+#endif
         }
 
         public MapLoadResult LoadFromPath(string path)
@@ -29,19 +60,23 @@ namespace TreasureArenaMR.Map
                 return MapLoadResult.Fail("missing_path");
             }
 
-            if (!File.Exists(path))
+            if (!TryReadText(path, out string json, out string error))
             {
-                return MapLoadResult.Fail("map_file_not_found:" + path);
+                Debug.LogWarning($"{LogPrefix} MapLoader read failed path={path} error={error}");
+                return MapLoadResult.Fail(error);
             }
 
-            string json = File.ReadAllText(path);
             MapJsonModels.MapJson map = JsonUtility.FromJson<MapJsonModels.MapJson>(json);
             MapValidationResult validation = validator.Validate(map);
             if (!validation.ok)
             {
+                Debug.LogError($"{LogPrefix} MapLoader validation failed path={path} " +
+                    $"errors={validation.GetErrorText()}");
                 return MapLoadResult.Fail("map_validation_failed:" + validation.GetErrorText(), map, validation);
             }
 
+            Debug.Log($"{LogPrefix} MapLoader validation ok path={path} mapId={map.map_id} " +
+                $"objects={(map.objects != null ? map.objects.Count : 0)}");
             return MapLoadResult.Success(map, validation, path);
         }
 
@@ -52,12 +87,15 @@ namespace TreasureArenaMR.Map
         {
             if (map == null)
             {
+                Debug.LogError($"{LogPrefix} InstantiateObjects failed: map_is_null");
                 return MapInstantiationResult.Fail("map_is_null");
             }
 
             MapInstantiationResult registryValidation = ValidatePrefabRegistry(map, prefabRegistry);
             if (!registryValidation.ok)
             {
+                Debug.LogError($"{LogPrefix} InstantiateObjects registry validation failed " +
+                    $"mapId={map.map_id} error={registryValidation.error}");
                 return registryValidation;
             }
 
@@ -70,10 +108,51 @@ namespace TreasureArenaMR.Map
             return MapInstantiationResult.Success(root, map.objects != null ? map.objects.Count : 0);
         }
 
+        private static bool TryReadText(string path, out string text, out string error)
+        {
+            text = null;
+            error = null;
+
+            if (CanReadDirectly(path))
+            {
+                if (!File.Exists(path))
+                {
+                    error = "map_file_not_found:" + path;
+                    return false;
+                }
+
+                text = File.ReadAllText(path);
+                return true;
+            }
+
+            using (UnityWebRequest request = UnityWebRequest.Get(path))
+            {
+                UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+                while (!operation.isDone)
+                {
+                }
+
+                if (request.result != UnityWebRequest.Result.Success)
+                {
+                    error = "map_file_read_failed:" + path + ":" + request.error;
+                    return false;
+                }
+
+                text = request.downloadHandler.text;
+                return true;
+            }
+        }
+
+        private static bool CanReadDirectly(string path)
+        {
+            return !path.Contains("://") && !path.Contains(":///");
+        }
+
         private static MapInstantiationResult ValidatePrefabRegistry(MapJsonModels.MapJson map, PrefabRegistry prefabRegistry)
         {
             if (prefabRegistry == null)
             {
+                Debug.LogError($"{LogPrefix} PrefabRegistry missing.");
                 return MapInstantiationResult.Fail("missing_map_prefab_registry");
             }
 
@@ -92,11 +171,14 @@ namespace TreasureArenaMR.Map
 
                 if (string.IsNullOrEmpty(item.prefab_id))
                 {
+                    Debug.LogError($"{LogPrefix} Prefab id missing objectId={item.object_id}");
                     return MapInstantiationResult.Fail("missing_prefab_id:" + item.object_id);
                 }
 
                 if (!prefabRegistry.TryGetPrefab(item.prefab_id, out GameObject prefab) || prefab == null)
                 {
+                    Debug.LogError($"{LogPrefix} Prefab not registered prefabId={item.prefab_id} " +
+                        $"objectId={item.object_id}");
                     return MapInstantiationResult.Fail("prefab_not_registered:" + item.prefab_id);
                 }
             }
