@@ -11,32 +11,57 @@ namespace TreasureArenaMR.Client
         private const float StaleSeconds = 1f;
 
         [SerializeField] private GameObject _playerPrefab;
-        [SerializeField] private string _resourcesPrefabPath = "PlayerPrefab";
         [SerializeField] private float _heightOffset = -2f;
+        [SerializeField] private Transform _localPoseSource;
 
-        private readonly Dictionary<string, RemotePlayer> _players = new Dictionary<string, RemotePlayer>();
+        private readonly Dictionary<string, PresentedPlayer> _players = new Dictionary<string, PresentedPlayer>();
         private ClientMatchStateStore _store;
+        private SharedSpaceManager _sharedSpace;
         private Transform _root;
+        private bool _loggedMissingPrefab;
 
         private void Awake()
         {
-            _store = ClientMatchStateStore.Instance;
-            if (_store == null)
-                _store = new GameObject("ClientMatchStateStore").AddComponent<ClientMatchStateStore>();
-
-            if (_playerPrefab == null)
-                _playerPrefab = Resources.Load<GameObject>(_resourcesPrefabPath);
-
-            _root = new GameObject("RemotePlayers").transform;
-            _root.SetParent(transform, false);
-
-            if (_playerPrefab == null)
-                Debug.LogError($"{LogPrefix} Player prefab missing. Expected Resources/{_resourcesPrefabPath}.prefab");
+            CacheReferences();
+            EnsureRoot();
         }
 
         private void Update()
         {
-            if (_store == null || !_store.HasPoseSnapshot)
+            CacheReferences();
+            EnsureRoot();
+
+            if (_store == null || _sharedSpace == null || !_sharedSpace.IsReady || _playerPrefab == null)
+            {
+                if (_playerPrefab == null && !_loggedMissingPrefab)
+                {
+                    _loggedMissingPrefab = true;
+                    Debug.LogError($"{LogPrefix} Player prefab is not assigned.");
+                }
+                return;
+            }
+
+            UpdateLocalAvatar();
+            UpdateRemoteAvatars();
+        }
+
+        private void UpdateLocalAvatar()
+        {
+            if (_localPoseSource == null || string.IsNullOrEmpty(_store.LocalPlayerId))
+                return;
+
+            PresentedPlayer local = GetOrCreatePlayer(_store.LocalPlayerId, true);
+            if (local == null)
+                return;
+
+            Vector3 sharedPosition = _sharedSpace.WorldToSharedPosition(_localPoseSource.position);
+            float sharedYaw = _sharedSpace.WorldYawToSharedYaw(_localPoseSource.eulerAngles.y);
+            local.ApplyLocal(sharedPosition, sharedYaw);
+        }
+
+        private void UpdateRemoteAvatars()
+        {
+            if (!_store.HasPoseSnapshot)
                 return;
 
             PoseSnapshotPayload snapshot = _store.PoseSnapshot;
@@ -45,7 +70,10 @@ namespace TreasureArenaMR.Client
                 PlayerPoseSnapshot pose = snapshot.players[i];
                 if (pose == null || string.IsNullOrEmpty(pose.player_id))
                     continue;
-                RemotePlayer remote = GetOrCreateRemote(pose.player_id);
+                if (pose.player_id == _store.LocalPlayerId)
+                    continue;
+
+                PresentedPlayer remote = GetOrCreatePlayer(pose.player_id, false);
                 if (remote == null)
                     continue;
 
@@ -53,27 +81,60 @@ namespace TreasureArenaMR.Client
             }
 
             float renderTime = Time.time - InterpolationDelaySeconds;
-            foreach (RemotePlayer remote in _players.Values)
-                remote.Render(renderTime);
+            foreach (PresentedPlayer player in _players.Values)
+            {
+                if (!player.IsLocal)
+                    player.Render(renderTime);
+            }
         }
 
-        private RemotePlayer GetOrCreateRemote(string playerId)
+        private PresentedPlayer GetOrCreatePlayer(string playerId, bool isLocal)
         {
-            if (_players.TryGetValue(playerId, out RemotePlayer remote))
-                return remote;
+            if (_players.TryGetValue(playerId, out PresentedPlayer existing))
+                return existing;
 
-            if (_playerPrefab == null)
+            if (_playerPrefab == null || _root == null)
                 return null;
 
             GameObject instance = Instantiate(_playerPrefab, _root);
-            instance.name = "RemotePlayer_" + playerId;
-            remote = new RemotePlayer(playerId, instance.transform, _heightOffset);
-            _players[playerId] = remote;
-            Debug.Log($"{LogPrefix} spawned player={playerId} prefab={_playerPrefab.name}");
-            return remote;
+            instance.name = (isLocal ? "LocalPlayer_" : "RemotePlayer_") + playerId;
+            PresentedPlayer player = new PresentedPlayer(playerId, isLocal, instance.transform, _heightOffset);
+            _players[playerId] = player;
+            Debug.Log($"{LogPrefix} spawned player={playerId} local={isLocal} prefab={_playerPrefab.name}");
+            return player;
         }
 
-        private sealed class RemotePlayer
+        private void CacheReferences()
+        {
+            if (_store == null)
+                _store = ClientMatchStateStore.Instance != null
+                    ? ClientMatchStateStore.Instance
+                    : FindObjectOfType<ClientMatchStateStore>();
+            if (_sharedSpace == null)
+                _sharedSpace = SharedSpaceManager.Instance != null
+                    ? SharedSpaceManager.Instance
+                    : FindObjectOfType<SharedSpaceManager>();
+            if (_localPoseSource == null && Camera.main != null)
+                _localPoseSource = Camera.main.transform;
+        }
+
+        private void EnsureRoot()
+        {
+            if (_sharedSpace == null || _sharedSpace.SharedRoot == null)
+                return;
+
+            if (_root != null && _root.parent == _sharedSpace.SharedRoot)
+                return;
+
+            if (_root == null)
+                _root = new GameObject("NetworkPlayerAvatars").transform;
+            _root.SetParent(_sharedSpace.SharedRoot, false);
+            _root.localPosition = Vector3.zero;
+            _root.localRotation = Quaternion.identity;
+            _root.localScale = Vector3.one;
+        }
+
+        private sealed class PresentedPlayer
         {
             private readonly string _playerId;
             private readonly Transform _transform;
@@ -81,11 +142,19 @@ namespace TreasureArenaMR.Client
             private readonly List<Sample> _samples = new List<Sample>();
             private bool _loggedStale;
 
-            public RemotePlayer(string playerId, Transform transform, float heightOffset)
+            public PresentedPlayer(string playerId, bool isLocal, Transform transform, float heightOffset)
             {
                 _playerId = playerId;
+                IsLocal = isLocal;
                 _transform = transform;
                 _heightOffset = heightOffset;
+            }
+
+            public bool IsLocal { get; }
+
+            public void ApplyLocal(Vector3 sharedPosition, float sharedYaw)
+            {
+                Apply(sharedPosition, sharedYaw);
             }
 
             public void AddSample(PlayerPoseSnapshot pose)
@@ -122,7 +191,7 @@ namespace TreasureArenaMR.Client
                 _loggedStale = false;
                 if (_samples.Count == 1)
                 {
-                    Apply(latest);
+                    Apply(latest.position, latest.rotationY);
                     return;
                 }
 
@@ -140,14 +209,15 @@ namespace TreasureArenaMR.Client
 
                 float range = after.receivedTime - before.receivedTime;
                 float t = range > 0.0001f ? Mathf.Clamp01((renderTime - before.receivedTime) / range) : 1f;
-                _transform.position = Vector3.Lerp(before.position, after.position, t) + Vector3.up * _heightOffset;
-                _transform.rotation = Quaternion.Euler(0f, Mathf.LerpAngle(before.rotationY, after.rotationY, t), 0f);
+                Vector3 position = Vector3.Lerp(before.position, after.position, t);
+                float yaw = Mathf.LerpAngle(before.rotationY, after.rotationY, t);
+                Apply(position, yaw);
             }
 
-            private void Apply(Sample sample)
+            private void Apply(Vector3 sharedPosition, float sharedYaw)
             {
-                _transform.position = sample.position + Vector3.up * _heightOffset;
-                _transform.rotation = Quaternion.Euler(0f, sample.rotationY, 0f);
+                _transform.localPosition = sharedPosition + Vector3.up * _heightOffset;
+                _transform.localRotation = Quaternion.Euler(0f, sharedYaw, 0f);
             }
         }
 

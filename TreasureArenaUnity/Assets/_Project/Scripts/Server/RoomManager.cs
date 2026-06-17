@@ -45,6 +45,8 @@ namespace TreasureArenaMR.Server
             new Dictionary<string, float>();
         private readonly Dictionary<string, ServerPlayerRuntimeState> _runtimePlayers =
             new Dictionary<string, ServerPlayerRuntimeState>();
+        private readonly List<TreasureRuntimeState> _runtimeTreasures =
+            new List<TreasureRuntimeState>();
 
         public event Action<RoomState> OnRoomStateChanged;
         public event Action<PlayerInfo> OnPlayerJoined;
@@ -60,6 +62,7 @@ namespace TreasureArenaMR.Server
             Players = new List<PlayerInfo>();
             _respawnTimers.Clear();
             _runtimePlayers.Clear();
+            _runtimeTreasures.Clear();
             CurrentRoomState = RoomState.Waiting;
             RedScore = 0;
             BlueScore = 0;
@@ -72,6 +75,7 @@ namespace TreasureArenaMR.Server
             _netickPlayers.Clear();
             _respawnTimers.Clear();
             _runtimePlayers.Clear();
+            _runtimeTreasures.Clear();
             CurrentRoomState = RoomState.Waiting;
             Debug.Log("[RoomManager] Shutdown");
         }
@@ -282,6 +286,7 @@ namespace TreasureArenaMR.Server
             Players.Clear();
             _netickPlayers.Clear();
             _runtimePlayers.Clear();
+            _runtimeTreasures.Clear();
             _respawnTimers.Clear();
             CurrentRoomState = RoomState.Waiting;
             RedScore = 0;
@@ -294,7 +299,81 @@ namespace TreasureArenaMR.Server
         public void SetMapData(MapData mapData)
         {
             MapData = mapData;
-            Debug.Log($"[RoomManager] MapData loaded");
+            InitializeTreasuresFromMap();
+            Debug.Log($"[RoomManager] MapData loaded treasures={_runtimeTreasures.Count}");
+        }
+
+        public IReadOnlyList<TreasureRuntimeState> GetTreasuresSnapshot()
+        {
+            return new List<TreasureRuntimeState>(_runtimeTreasures);
+        }
+
+        public bool TryGetTreasure(string treasureId, out TreasureRuntimeState treasure)
+        {
+            treasure = null;
+            if (string.IsNullOrEmpty(treasureId))
+                return false;
+
+            for (int i = 0; i < _runtimeTreasures.Count; i++)
+            {
+                if (_runtimeTreasures[i].treasure_id == treasureId)
+                {
+                    treasure = _runtimeTreasures[i];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool TryFindNearestAvailableTreasure(Vector3 playerPosition, out TreasureRuntimeState treasure, out float distance)
+        {
+            treasure = null;
+            distance = float.MaxValue;
+
+            for (int i = 0; i < _runtimeTreasures.Count; i++)
+            {
+                TreasureRuntimeState candidate = _runtimeTreasures[i];
+                if (candidate.state != TreasureState.Spawned && candidate.state != TreasureState.Dropped)
+                    continue;
+
+                float candidateDistance = Vector3.Distance(playerPosition, candidate.position);
+                if (candidateDistance < distance)
+                {
+                    treasure = candidate;
+                    distance = candidateDistance;
+                }
+            }
+
+            return treasure != null;
+        }
+
+        public void MarkTreasureCarried(string treasureId, string carrierPlayerId)
+        {
+            if (!TryGetTreasure(treasureId, out TreasureRuntimeState treasure))
+                return;
+
+            treasure.state = TreasureState.Carried;
+            treasure.carrier_player_id = carrierPlayerId;
+        }
+
+        public void MarkTreasureSubmitted(string treasureId)
+        {
+            if (!TryGetTreasure(treasureId, out TreasureRuntimeState treasure))
+                return;
+
+            treasure.state = TreasureState.Submitted;
+            treasure.carrier_player_id = "";
+        }
+
+        public void MarkTreasureDropped(string treasureId, Vector3 position)
+        {
+            if (!TryGetTreasure(treasureId, out TreasureRuntimeState treasure))
+                return;
+
+            treasure.state = TreasureState.Dropped;
+            treasure.position = position;
+            treasure.carrier_player_id = "";
         }
 
         public bool SwitchTeam(string playerId, TeamType targetTeam)
@@ -453,6 +532,41 @@ namespace TreasureArenaMR.Server
                 RemainingTime = 0f;
                 SetRoomState(RoomState.Finished);
             }
+        }
+
+        private void InitializeTreasuresFromMap()
+        {
+            _runtimeTreasures.Clear();
+            if (MapData == null || CurrentRoomConfig == null)
+                return;
+
+            List<MapTreasureSpawnPoint> points = MapData.GetTreasureSpawnPoints();
+            for (int i = 0; i < points.Count; i++)
+            {
+                MapTreasureSpawnPoint point = points[i];
+                string treasureId = string.IsNullOrEmpty(point.PointId) ? "treasure_" + i : point.PointId;
+                _runtimeTreasures.Add(new TreasureRuntimeState
+                {
+                    treasure_id = treasureId,
+                    treasure_type = point.TreasureType,
+                    state = TreasureState.Spawned,
+                    score_value = GetTreasureScore(point.TreasureType),
+                    position = point.Position,
+                    carrier_player_id = ""
+                });
+            }
+        }
+
+        private int GetTreasureScore(TreasureType type)
+        {
+            TreasureScores scores = CurrentRoomConfig != null ? CurrentRoomConfig.treasure_scores : null;
+            if (scores == null)
+                return 0;
+            if (type == TreasureType.Rare)
+                return scores.Rare;
+            if (type == TreasureType.Final)
+                return scores.Final;
+            return scores.Normal;
         }
 
         private ServerPlayerRuntimeState UpsertRuntimePlayer(PlayerInfo player, Vector3 position, float rotationY, long poseServerTimeMs)

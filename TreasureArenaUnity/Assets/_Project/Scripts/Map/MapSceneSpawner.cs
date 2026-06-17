@@ -1,3 +1,4 @@
+using TreasureArenaMR.Client;
 using TreasureArenaMR.Network;
 using TreasureArenaMR.Server;
 using UnityEngine;
@@ -35,6 +36,7 @@ namespace TreasureArenaMR.Map
 
         private void Update()
         {
+            AttachMapToSharedRootIfAvailable();
             LogStatusHeartbeat();
 
             MapSpawnSource source = ResolveMapSource();
@@ -119,6 +121,25 @@ namespace TreasureArenaMR.Map
             {
                 Destroy(_mapParent.GetChild(i).gameObject);
             }
+        }
+
+        private void AttachMapToSharedRootIfAvailable()
+        {
+            if (_mapParent == null)
+                return;
+
+            SharedSpaceManager sharedSpace = SharedSpaceManager.Instance;
+            if (sharedSpace == null || sharedSpace.SharedRoot == null)
+                return;
+
+            if (_mapParent.parent == sharedSpace.SharedRoot)
+                return;
+
+            _mapParent.SetParent(sharedSpace.SharedRoot, false);
+            _mapParent.localPosition = Vector3.zero;
+            _mapParent.localRotation = Quaternion.identity;
+            _mapParent.localScale = Vector3.one;
+            Debug.Log($"{LogPrefix} MapRoot attached to SharedSpaceRoot ready={sharedSpace.IsReady} status={sharedSpace.Status}");
         }
 
         private void LogWaitingForNetworkMap(ClientMatchStateStore store)

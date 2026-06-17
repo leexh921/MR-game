@@ -21,7 +21,7 @@ namespace TreasureArenaMR.Server
         /// Validates: player is Alive, not already carrying, treasure is Spawned,
         /// player is within pickup range.
         /// </summary>
-        public bool TryPickup(string playerId, string treasureId, Vector3 treasurePosition, RoomManager roomManager)
+        public bool TryPickup(string playerId, string treasureId, RoomManager roomManager)
         {
             var player = roomManager.Players.Find(p => p.player_id == playerId);
             if (player == null)
@@ -42,13 +42,25 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
+            if (!roomManager.TryGetTreasure(treasureId, out TreasureRuntimeState treasure))
+            {
+                Debug.LogWarning($"[ServerTreasureAuthority] Treasure not found: {treasureId}");
+                return false;
+            }
+
+            if (treasure.state != TreasureState.Spawned && treasure.state != TreasureState.Dropped)
+            {
+                Debug.LogWarning($"[ServerTreasureAuthority] Treasure not available: {treasureId} state={treasure.state}");
+                return false;
+            }
+
             if (!roomManager.TryGetPlayerPosition(playerId, out Vector3 playerPosition))
             {
                 Debug.LogWarning($"[ServerTreasureAuthority] Missing authoritative pose for player: {playerId}");
                 return false;
             }
 
-            float dist = Vector3.Distance(playerPosition, treasurePosition);
+            float dist = Vector3.Distance(playerPosition, treasure.position);
             if (dist > _pickupDistance)
             {
                 Debug.LogWarning($"[ServerTreasureAuthority] Player {playerId} too far from treasure ({dist:F1} > {_pickupDistance})");
@@ -56,6 +68,7 @@ namespace TreasureArenaMR.Server
             }
 
             player.carried_treasure_id = treasureId;
+            roomManager.MarkTreasureCarried(treasureId, playerId);
             Debug.Log($"[ServerTreasureAuthority] Player {playerId} picked up treasure {treasureId}");
             return true;
         }
@@ -72,36 +85,31 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
-            var points = roomManager.MapData.GetTreasureSpawnPoints();
-            MapTreasureSpawnPoint nearest = null;
-            float nearestDistance = float.MaxValue;
-            for (int i = 0; i < points.Count; i++)
-            {
-                MapTreasureSpawnPoint point = points[i];
-                float distance = Vector3.Distance(playerPosition, point.Position);
-                if (distance < nearestDistance)
-                {
-                    nearest = point;
-                    nearestDistance = distance;
-                }
-            }
+            if (!roomManager.TryFindNearestAvailableTreasure(playerPosition, out TreasureRuntimeState nearest, out float nearestDistance))
+                return false;
 
-            if (nearest == null || nearestDistance > nearest.Radius + _pickupDistance)
+            if (nearestDistance > _pickupDistance)
             {
+                Debug.LogWarning($"[ServerTreasureAuthority] Nearest treasure too far player={playerId} distance={nearestDistance:F1} max={_pickupDistance}");
                 return false;
             }
 
-            string treasureId = string.IsNullOrEmpty(nearest.PointId) ? nearest.TreasureType.ToString() : nearest.PointId;
-            return TryPickup(playerId, treasureId, nearest.Position, roomManager);
+            return TryPickup(playerId, nearest.treasure_id, roomManager);
         }
 
         /// <summary>
         /// Drop a treasure at a world position (called when player enters GhostRetreat).
         /// </summary>
-        public void DropTreasure(string treasureId, Vector3 dropPosition)
+        public void DropTreasure(string treasureId, Vector3 dropPosition, RoomManager roomManager)
         {
+            if (roomManager == null)
+            {
+                Debug.LogError($"[ServerTreasureAuthority] Cannot drop treasure {treasureId}: RoomManager is null.");
+                return;
+            }
+
+            roomManager.MarkTreasureDropped(treasureId, dropPosition);
             Debug.Log($"[ServerTreasureAuthority] Treasure {treasureId} dropped at {dropPosition}");
-            // TODO: Set treasure state to Dropped and position to dropPosition
         }
 
         /// <summary>
@@ -140,11 +148,15 @@ namespace TreasureArenaMR.Server
                 }
             }
 
-            int scoreValue = GetTreasureScore(player.carried_treasure_id, roomManager);
+            string treasureId = player.carried_treasure_id;
+            if (!roomManager.TryGetTreasure(treasureId, out TreasureRuntimeState treasure))
+                return false;
+
+            int scoreValue = treasure.score_value;
             roomManager.AddScore(playerTeam, scoreValue);
 
-            string treasureId = player.carried_treasure_id;
             player.carried_treasure_id = "";
+            roomManager.MarkTreasureSubmitted(treasureId);
 
             int totalScore = playerTeam == TeamType.Red ? roomManager.RedScore : roomManager.BlueScore;
             Debug.Log($"[ServerTreasureAuthority] Player {playerId} submitted {treasureId}, " +
@@ -161,11 +173,6 @@ namespace TreasureArenaMR.Server
         {
             Debug.Log($"[ServerTreasureAuthority] Respawning treasure {treasureId} at {spawnPosition}");
             // TODO: Create NetworkTreasure instance or reactivate existing
-        }
-
-        private int GetTreasureScore(string treasureId, RoomManager roomManager)
-        {
-            return roomManager.CurrentRoomConfig?.treasure_scores?.Normal ?? 10;
         }
     }
 }

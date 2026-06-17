@@ -14,8 +14,10 @@ namespace TreasureArenaMR.Network
         public string RoomId { get; private set; } = SimpleNetworkProtocol.DefaultRoomId;
         public MatchSnapshotPayload MatchSnapshot { get; private set; }
         public PoseSnapshotPayload PoseSnapshot { get; private set; }
+        public SpaceAnchorStatePayload SpaceAnchorState { get; private set; }
         public bool HasMatchSnapshot => MatchSnapshot != null;
         public bool HasPoseSnapshot => PoseSnapshot != null;
+        public bool HasSpaceAnchorState => SpaceAnchorState != null;
 
         public event Action OnChanged;
 
@@ -81,6 +83,12 @@ namespace TreasureArenaMR.Network
                 }
             }
 
+            OnChanged?.Invoke();
+        }
+
+        public void ApplySpaceAnchorState(SpaceAnchorStatePayload state)
+        {
+            SpaceAnchorState = state;
             OnChanged?.Invoke();
         }
 

@@ -136,6 +136,13 @@ namespace TreasureArenaMR.Server
                 return false;
             }
 
+            if (_simpleNetworkServer == null || !_simpleNetworkServer.SpaceAnchorsReadyForMatch)
+            {
+                string summary = _simpleNetworkServer != null ? _simpleNetworkServer.SpaceAnchorSummary : "server_missing";
+                Debug.LogWarning("[ServerBootstrap] Cannot start match before shared space is ready: " + summary);
+                return false;
+            }
+
             _roomManager.SetRoomState(RoomState.Playing);
             OnStatusChanged?.Invoke();
             return true;

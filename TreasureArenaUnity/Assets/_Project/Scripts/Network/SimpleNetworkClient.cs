@@ -37,6 +37,7 @@ namespace TreasureArenaMR.Network
         private readonly object _sendLock = new object();
         private ClientMatchStateStore _store;
         private bool _connectInProgress;
+        private string _lastSpaceAnchorLogKey = "";
 
         private void Awake()
         {
@@ -159,6 +160,20 @@ namespace TreasureArenaMR.Network
         public void SendStartMatch()
         {
             SendEnvelope("start_match_request", new StartMatchRequestPayload());
+        }
+
+        public void SendSpaceAnchorPublish(string anchorUuid)
+        {
+            SendEnvelope("space_anchor_publish", new SpaceAnchorPublishPayload { anchor_uuid = anchorUuid ?? string.Empty });
+        }
+
+        public void SendSpaceAnchorReady(bool ready, string status)
+        {
+            SendEnvelope("space_anchor_ready", new SpaceAnchorReadyPayload
+            {
+                ready = ready,
+                status = status ?? string.Empty
+            });
         }
 
         private void SendEnvelope(string type, object payload)
@@ -316,6 +331,20 @@ namespace TreasureArenaMR.Network
             if (envelope.type == "pose_snapshot")
             {
                 _store.ApplyPoseSnapshot(SimpleNetworkJson.ReadPayload<PoseSnapshotPayload>(envelope));
+                return;
+            }
+
+            if (envelope.type == "space_anchor_state")
+            {
+                SpaceAnchorStatePayload payload = SimpleNetworkJson.ReadPayload<SpaceAnchorStatePayload>(envelope);
+                _store.ApplySpaceAnchorState(payload);
+                string logKey = $"{payload.owner_player_id}|{payload.has_anchor}|{payload.all_players_ready}|{payload.state}|{payload.anchor_uuid}|{payload.error}";
+                if (_lastSpaceAnchorLogKey != logKey)
+                {
+                    _lastSpaceAnchorLogKey = logKey;
+                    Debug.Log($"{LogPrefix} space_anchor_state owner={payload.owner_player_id} hasAnchor={payload.has_anchor} " +
+                        $"ready={payload.all_players_ready} state={payload.state} uuid={payload.anchor_uuid} error={payload.error}");
+                }
                 return;
             }
 

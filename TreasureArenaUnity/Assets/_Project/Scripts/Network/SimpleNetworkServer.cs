@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using TreasureArenaMR.Map;
 using TreasureArenaMR.Server;
 using TreasureArenaMR.Shared;
 using UnityEngine;
@@ -20,11 +19,11 @@ namespace TreasureArenaMR.Network
 
         [SerializeField] private int _tcpPort = SimpleNetworkProtocol.TcpPort;
         [SerializeField] private int _udpPort = SimpleNetworkProtocol.UdpPort;
-        [SerializeField] private GameObject _playerPrefab;
-
         public bool IsRunning { get; private set; }
         public int TcpPort => _tcpPort;
         public int UdpPort => _udpPort;
+        public bool SpaceAnchorsReadyForMatch => AreAllJoinedPlayersAnchorReady();
+        public string SpaceAnchorSummary => GetSpaceAnchorSummary();
 
         private readonly ConcurrentQueue<TcpMessage> _tcpMessages = new ConcurrentQueue<TcpMessage>();
         private readonly ConcurrentQueue<UdpMessage> _udpMessages = new ConcurrentQueue<UdpMessage>();
@@ -43,6 +42,10 @@ namespace TreasureArenaMR.Network
         private float _matchSnapshotTimer;
         private float _poseSnapshotTimer;
         private int _mapRevision = 1;
+        private string _spaceAnchorOwnerPlayerId = "";
+        private string _spaceAnchorUuid = "";
+        private string _spaceAnchorState = "WaitingForOwner";
+        private string _spaceAnchorError = "";
 
         private void Update()
         {
@@ -282,7 +285,9 @@ namespace TreasureArenaMR.Network
                 session.playerId = playerId;
                 session.roomId = envelope.room_id;
                 SendJoinResult(session, true, "", "Joined.", playerId);
-                SpawnPlayerForSession(playerId);
+                AssignAnchorOwnerIfNeeded();
+                SendSpaceAnchorState(session);
+                BroadcastSpaceAnchorState();
                 Debug.Log($"{LogPrefix} join_room_request accepted player={playerId} nickname={nickname} clientType={payload.client_type}");
                 return;
             }
@@ -303,10 +308,61 @@ namespace TreasureArenaMR.Network
 
             if (envelope.type == "start_match_request")
             {
-                bool ok = _roomManager.CurrentRoomState == RoomState.Waiting && _roomManager.MapData != null;
+                bool anchorsReady = AreAllJoinedPlayersAnchorReady();
+                bool ok = _roomManager.CurrentRoomState == RoomState.Waiting && _roomManager.MapData != null && anchorsReady;
                 if (ok)
                     _roomManager.SetRoomState(RoomState.Playing);
-                SendCommandResult(session, ok, ok ? "" : "start_match_failed", ok ? "Match started." : "Room not ready.");
+                SendCommandResult(session, ok, ok ? "" : "start_match_failed", ok ? "Match started." : "Room/map/space anchor not ready.");
+                if (!anchorsReady)
+                    Debug.LogWarning($"[SharedSpace] start rejected: {GetSpaceAnchorSummary()}");
+                return;
+            }
+
+            if (envelope.type == "space_anchor_publish")
+            {
+                SpaceAnchorPublishPayload payload = SimpleNetworkJson.ReadPayload<SpaceAnchorPublishPayload>(envelope);
+                if (session.playerId != _spaceAnchorOwnerPlayerId)
+                {
+                    SendCommandResult(session, false, "not_anchor_owner", "Only anchor owner can publish shared anchor.");
+                    Debug.LogWarning($"[SharedSpace] publish rejected player={session.playerId} owner={_spaceAnchorOwnerPlayerId}");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(payload.anchor_uuid))
+                {
+                    _spaceAnchorState = "Failed";
+                    _spaceAnchorError = "missing_anchor_uuid";
+                    SendCommandResult(session, false, _spaceAnchorError, "Anchor uuid is required.");
+                    BroadcastSpaceAnchorState();
+                    return;
+                }
+
+                _spaceAnchorUuid = payload.anchor_uuid;
+                _spaceAnchorState = "Published";
+                _spaceAnchorError = "";
+                SendCommandResult(session, true, "", "Anchor published.");
+                BroadcastSpaceAnchorState();
+                Debug.Log($"[SharedSpace] anchor published owner={session.playerId} uuid={_spaceAnchorUuid}");
+                return;
+            }
+
+            if (envelope.type == "space_anchor_ready")
+            {
+                SpaceAnchorReadyPayload payload = SimpleNetworkJson.ReadPayload<SpaceAnchorReadyPayload>(envelope);
+                session.anchorReady = payload.ready;
+                if (!payload.ready)
+                {
+                    _spaceAnchorState = "Failed";
+                    _spaceAnchorError = payload.status;
+                }
+                else if (AreAllJoinedPlayersAnchorReady())
+                {
+                    _spaceAnchorState = "AllPlayersReady";
+                    _spaceAnchorError = "";
+                }
+
+                BroadcastSpaceAnchorState();
+                Debug.Log($"[SharedSpace] anchor_ready player={session.playerId} ready={payload.ready} status={payload.status}");
                 return;
             }
 
@@ -347,19 +403,10 @@ namespace TreasureArenaMR.Network
             if (_treasureAuthority == null || _roomManager == null || _roomManager.MapData == null)
                 return false;
 
-            if (!string.IsNullOrEmpty(treasureId))
-            {
-                List<MapTreasureSpawnPoint> points = _roomManager.MapData.GetTreasureSpawnPoints();
-                for (int i = 0; i < points.Count; i++)
-                {
-                    MapTreasureSpawnPoint point = points[i];
-                    string pointId = string.IsNullOrEmpty(point.PointId) ? point.TreasureType.ToString() : point.PointId;
-                    if (pointId == treasureId)
-                        return _treasureAuthority.TryPickup(playerId, treasureId, point.Position, _roomManager);
-                }
-            }
+            if (string.IsNullOrEmpty(treasureId))
+                return _treasureAuthority.TryPickupNearest(playerId, _roomManager);
 
-            return _treasureAuthority.TryPickupNearest(playerId, _roomManager);
+            return _treasureAuthority.TryPickup(playerId, treasureId, _roomManager);
         }
 
         private bool HandleAttack(string playerId, AttackRequestPayload payload)
@@ -383,43 +430,6 @@ namespace TreasureArenaMR.Network
 
             result.target_hp_after = _combatAuthority.ApplyDamage(result.target_player_id, result.damage, _roomManager);
             return result.target_hp_after >= 0;
-        }
-
-        private void SpawnPlayerForSession(string playerId)
-        {
-            GameObject prefab = _playerPrefab;
-            if (prefab == null)
-                prefab = Resources.Load<GameObject>("SM_Ranger_Male_Shirt_01");
-
-            if (prefab == null)
-            {
-                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: player prefab not found playerId={playerId}");
-                return;
-            }
-
-            if (_roomManager?.MapData == null)
-            {
-                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: MapData is null playerId={playerId}");
-                return;
-            }
-
-            var playerInfo = _roomManager.Players.Find(p => p.player_id == playerId);
-            if (playerInfo == null || playerInfo.team == TeamType.None)
-            {
-                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: playerInfo not found or team None playerId={playerId}");
-                return;
-            }
-
-            var spawnZones = _roomManager.MapData.GetSpawnZones(playerInfo.team);
-            if (spawnZones == null || spawnZones.Count == 0)
-            {
-                Debug.LogWarning($"{LogPrefix} SpawnPlayer blocked: no spawn zones team={playerInfo.team}");
-                return;
-            }
-
-            Vector3 spawnPos = spawnZones[0];
-            Instantiate(prefab, spawnPos, Quaternion.identity);
-            Debug.Log($"{LogPrefix} Player spawned playerId={playerId} team={playerInfo.team} pos={spawnPos}");
         }
 
         private void BroadcastTicks()
@@ -475,23 +485,19 @@ namespace TreasureArenaMR.Network
                 });
             }
 
-            if (_roomManager.MapData != null)
+            IReadOnlyList<TreasureRuntimeState> treasures = _roomManager.GetTreasuresSnapshot();
+            for (int i = 0; i < treasures.Count; i++)
             {
-                List<MapTreasureSpawnPoint> points = _roomManager.MapData.GetTreasureSpawnPoints();
-                for (int i = 0; i < points.Count; i++)
+                TreasureRuntimeState treasure = treasures[i];
+                snapshot.treasures.Add(new TreasureSnapshot
                 {
-                    MapTreasureSpawnPoint point = points[i];
-                    string treasureId = string.IsNullOrEmpty(point.PointId) ? point.TreasureType.ToString() : point.PointId;
-                    snapshot.treasures.Add(new TreasureSnapshot
-                    {
-                        treasure_id = treasureId,
-                        treasure_type = point.TreasureType.ToString(),
-                        state = TreasureState.Spawned.ToString(),
-                        score_value = GetTreasureScore(point.TreasureType),
-                        position = new SimpleVector3(point.Position),
-                        carrier_player_id = ""
-                    });
-                }
+                    treasure_id = treasure.treasure_id,
+                    treasure_type = treasure.treasure_type.ToString(),
+                    state = treasure.state.ToString(),
+                    score_value = treasure.score_value,
+                    position = new SimpleVector3(treasure.position),
+                    carrier_player_id = treasure.carrier_player_id
+                });
             }
 
             return snapshot;
@@ -523,18 +529,6 @@ namespace TreasureArenaMR.Network
             }
 
             return snapshot;
-        }
-
-        private int GetTreasureScore(TreasureType type)
-        {
-            TreasureScores scores = _roomManager.CurrentRoomConfig != null ? _roomManager.CurrentRoomConfig.treasure_scores : null;
-            if (scores == null)
-                return 10;
-            if (type == TreasureType.Rare)
-                return scores.Rare;
-            if (type == TreasureType.Final)
-                return scores.Final;
-            return scores.Normal;
         }
 
         private void BroadcastTcp(string type, object payload)
@@ -603,6 +597,47 @@ namespace TreasureArenaMR.Network
             });
         }
 
+        private void BroadcastSpaceAnchorState()
+        {
+            List<ClientSession> sessions = SnapshotSessions();
+            SpaceAnchorStatePayload payload = BuildSpaceAnchorState();
+            for (int i = 0; i < sessions.Count; i++)
+                SendEnvelope(sessions[i], "space_anchor_state", payload);
+        }
+
+        private void SendSpaceAnchorState(ClientSession session)
+        {
+            SendEnvelope(session, "space_anchor_state", BuildSpaceAnchorState());
+        }
+
+        private SpaceAnchorStatePayload BuildSpaceAnchorState()
+        {
+            var payload = new SpaceAnchorStatePayload
+            {
+                has_anchor = !string.IsNullOrEmpty(_spaceAnchorUuid),
+                anchor_uuid = _spaceAnchorUuid,
+                owner_player_id = _spaceAnchorOwnerPlayerId,
+                all_players_ready = AreAllJoinedPlayersAnchorReady(),
+                state = _spaceAnchorState,
+                error = _spaceAnchorError
+            };
+
+            List<ClientSession> sessions = SnapshotSessions();
+            for (int i = 0; i < sessions.Count; i++)
+            {
+                if (string.IsNullOrEmpty(sessions[i].playerId))
+                    continue;
+
+                payload.players.Add(new SpaceAnchorPlayerState
+                {
+                    player_id = sessions[i].playerId,
+                    anchor_ready = sessions[i].anchorReady
+                });
+            }
+
+            return payload;
+        }
+
         private void SendEnvelope(ClientSession session, string type, object payload)
         {
             if (session == null || session.stream == null)
@@ -638,6 +673,13 @@ namespace TreasureArenaMR.Network
             if (!string.IsNullOrEmpty(session.playerId))
             {
                 _roomManager.RemoveSimplePlayer(session.playerId);
+                if (session.playerId == _spaceAnchorOwnerPlayerId)
+                {
+                    _spaceAnchorOwnerPlayerId = "";
+                    if (string.IsNullOrEmpty(_spaceAnchorUuid))
+                        AssignAnchorOwnerIfNeeded();
+                    BroadcastSpaceAnchorState();
+                }
                 BroadcastTcp("disconnect_notice", new DisconnectNoticePayload
                 {
                     player_id = session.playerId,
@@ -669,6 +711,49 @@ namespace TreasureArenaMR.Network
         {
             lock (_sessionsLock)
                 return new List<ClientSession>(_sessions);
+        }
+
+        private void AssignAnchorOwnerIfNeeded()
+        {
+            if (!string.IsNullOrEmpty(_spaceAnchorOwnerPlayerId))
+                return;
+
+            List<ClientSession> sessions = SnapshotSessions();
+            for (int i = 0; i < sessions.Count; i++)
+            {
+                if (string.IsNullOrEmpty(sessions[i].playerId))
+                    continue;
+
+                _spaceAnchorOwnerPlayerId = sessions[i].playerId;
+                _spaceAnchorState = string.IsNullOrEmpty(_spaceAnchorUuid) ? "WaitingForPublish" : "Published";
+                _spaceAnchorError = "";
+                Debug.Log($"[SharedSpace] anchor owner assigned player={_spaceAnchorOwnerPlayerId}");
+                return;
+            }
+
+            _spaceAnchorState = "WaitingForOwner";
+        }
+
+        private bool AreAllJoinedPlayersAnchorReady()
+        {
+            List<ClientSession> sessions = SnapshotSessions();
+            bool hasJoinedPlayer = false;
+            for (int i = 0; i < sessions.Count; i++)
+            {
+                if (string.IsNullOrEmpty(sessions[i].playerId))
+                    continue;
+
+                hasJoinedPlayer = true;
+                if (!sessions[i].anchorReady)
+                    return false;
+            }
+
+            return hasJoinedPlayer;
+        }
+
+        private string GetSpaceAnchorSummary()
+        {
+            return $"owner={_spaceAnchorOwnerPlayerId} hasAnchor={!string.IsNullOrEmpty(_spaceAnchorUuid)} state={_spaceAnchorState} error={_spaceAnchorError}";
         }
 
         private int NextSeq()
@@ -719,6 +804,7 @@ namespace TreasureArenaMR.Network
             public Thread readerThread;
             public IPEndPoint udpEndPoint;
             public long lastTcpServerTimeMs;
+            public bool anchorReady;
             public readonly object sendLock = new object();
 
             public void Close()

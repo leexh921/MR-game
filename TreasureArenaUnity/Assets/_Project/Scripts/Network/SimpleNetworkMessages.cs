@@ -83,6 +83,38 @@ namespace TreasureArenaMR.Network
     }
 
     [Serializable]
+    public sealed class SpaceAnchorPublishPayload
+    {
+        public string anchor_uuid;
+    }
+
+    [Serializable]
+    public sealed class SpaceAnchorReadyPayload
+    {
+        public bool ready;
+        public string status;
+    }
+
+    [Serializable]
+    public sealed class SpaceAnchorStatePayload
+    {
+        public bool has_anchor;
+        public string anchor_uuid;
+        public string owner_player_id;
+        public bool all_players_ready;
+        public string state;
+        public string error;
+        public List<SpaceAnchorPlayerState> players = new List<SpaceAnchorPlayerState>();
+    }
+
+    [Serializable]
+    public sealed class SpaceAnchorPlayerState
+    {
+        public string player_id;
+        public bool anchor_ready;
+    }
+
+    [Serializable]
     public sealed class DisconnectNoticePayload
     {
         public string player_id;

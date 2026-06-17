@@ -770,7 +770,67 @@ UDP 使用端口 `7778`，一包一个 UTF-8 JSON。UDP 承载 `player_pose` 和
 }
 ```
 
-### 7.13 对局结束
+### 7.13 共享空间锚点
+
+Pico 多人 MR 对局必须先建立共享空间坐标系。服务端不创建空间锚点，只保存并广播由 Pico 客户端发布的 PICO Shared Spatial Anchor UUID。
+
+第一台加入房间且仍在线的 Pico 为锚点 owner。owner 创建、持久化并上传共享空间锚点后发送：
+
+```json
+{
+  "type": "space_anchor_publish",
+  "payload_json": {
+    "anchor_uuid": "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+客户端完成创建/下载/定位同一个锚点后发送 ready 状态：
+
+```json
+{
+  "type": "space_anchor_ready",
+  "payload_json": {
+    "ready": true,
+    "status": "OwnerReady"
+  }
+}
+```
+
+服务端在玩家加入、锚点发布、ready 状态变化时广播：
+
+```json
+{
+  "type": "space_anchor_state",
+  "payload_json": {
+    "has_anchor": true,
+    "anchor_uuid": "00000000-0000-0000-0000-000000000000",
+    "owner_player_id": "p_001",
+    "all_players_ready": true,
+    "state": "AllPlayersReady",
+    "error": "",
+    "players": [
+      {
+        "player_id": "p_001",
+        "anchor_ready": true
+      }
+    ]
+  }
+}
+```
+
+对局开始前置条件：
+
+```text
+1. 至少有一个已加入玩家。
+2. 已发布有效 anchor_uuid。
+3. 所有已加入玩家的 anchor_ready 均为 true。
+4. 位姿、地图、宝物和基地坐标均解释为 SharedSpaceRoot 局部坐标。
+```
+
+不满足前置条件时，服务端拒绝开始对局，并输出明确错误日志；不使用本地 world 坐标静默代替共享空间坐标。
+
+### 7.14 对局结束
 
 服务端广播：
 

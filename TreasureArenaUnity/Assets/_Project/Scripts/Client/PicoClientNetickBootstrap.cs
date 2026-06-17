@@ -14,6 +14,9 @@ namespace TreasureArenaMR.Client
         [SerializeField] private SimpleNetworkClient simpleNetworkClient;
         [SerializeField] private LocalPlayerPoseSender poseSender;
         [SerializeField] private RemotePlayerPresenter remotePlayerPresenter;
+        [SerializeField] private SharedSpaceManager sharedSpaceManager;
+        [SerializeField] private TreasureInteractionController treasureInteractionController;
+        [SerializeField] private TreasurePresenter treasurePresenter;
         [SerializeField] private string serverAddress = "192.168.61.128";
         [SerializeField] private int tcpPort = SimpleNetworkProtocol.TcpPort;
         [SerializeField] private int udpPort = SimpleNetworkProtocol.UdpPort;
@@ -43,6 +46,18 @@ namespace TreasureArenaMR.Client
                 remotePlayerPresenter = FindObjectOfType<RemotePlayerPresenter>();
             if (remotePlayerPresenter == null)
                 remotePlayerPresenter = gameObject.AddComponent<RemotePlayerPresenter>();
+            if (sharedSpaceManager == null)
+                sharedSpaceManager = FindObjectOfType<SharedSpaceManager>();
+            if (sharedSpaceManager == null)
+                sharedSpaceManager = gameObject.AddComponent<SharedSpaceManager>();
+            if (treasureInteractionController == null)
+                treasureInteractionController = FindObjectOfType<TreasureInteractionController>();
+            if (treasureInteractionController == null)
+                treasureInteractionController = gameObject.AddComponent<TreasureInteractionController>();
+            if (treasurePresenter == null)
+                treasurePresenter = FindObjectOfType<TreasurePresenter>();
+            if (treasurePresenter == null)
+                treasurePresenter = gameObject.AddComponent<TreasurePresenter>();
 
             BindButton(connectButton, Connect);
             BindButton(disconnectButton, Disconnect);
