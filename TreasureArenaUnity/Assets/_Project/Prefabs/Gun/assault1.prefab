@@ -323,7 +323,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   holdPoint: {fileID: 0}
-  shootDistance: 100
+  muzzlePoint: {fileID: 0}
+  bulletPrefab: {fileID: 3097240257558460186, guid: 91596434569e14f4f877133d49dd77c4, type: 3}
+  bulletSpeed: 50
 --- !u!1 &6801192228442851097
 GameObject:
   m_ObjectHideFlags: 0

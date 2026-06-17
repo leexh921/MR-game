@@ -13,6 +13,20 @@ MonoBehaviour:
   m_Name: MapPrefabRegistry
   m_EditorClassIdentifier: 
   entries:
+  - prefab_id: Bounds
+    prefab: {fileID: 6598205527205639137, guid: 0d48a4ad4f311f34887aee265755c4ab, type: 3}
+  - prefab_id: SupplyBox
+    prefab: {fileID: 4240290477946123665, guid: abe2c9fa89a6d3c4f8589425f205425d, type: 3}
+  - prefab_id: TeamBase_Blue
+    prefab: {fileID: 1980459450998137952, guid: 9d684635c65068b44aad53f33eff4193, type: 3}
+  - prefab_id: TeamBase_Red
+    prefab: {fileID: 8636342711630143907, guid: 88bcc22830a48274f89294a8f19f35f3, type: 3}
+  - prefab_id: Treasure_Final
+    prefab: {fileID: 1672738836372403990, guid: d58745fa076c8d444902660ffc37938d, type: 3}
+  - prefab_id: Treasure_Normal
+    prefab: {fileID: 3842835427040088677, guid: 36623bf26eef3a5458e46f93bfffde73, type: 3}
+  - prefab_id: Treasure_Rare
+    prefab: {fileID: 2102418813598125714, guid: 69f65eb3382ef514a8050adb5720d769, type: 3}
   - prefab_id: antique_light
     prefab: {fileID: 3817291492257878440, guid: af1e992e086f33c468d592bca3775939, type: 3}
   - prefab_id: book_1
@@ -129,11 +143,3 @@ MonoBehaviour:
     prefab: {fileID: 3806619352732832944, guid: d385c519a2e71a74899ddf539825e79e, type: 3}
   - prefab_id: wall_with_two_window
     prefab: {fileID: 567362939508772860, guid: 3b3574bbb2392ab49b0ba2d669475f72, type: 3}
-  - prefab_id: maproot
-    prefab: {fileID: 7111921777654563730, guid: 9c97a7a54e66d7149b108517063213b2, type: 3}
-  - prefab_id: Wall
-    prefab: {fileID: 4859803648155879129, guid: 5bfbe84c32bf48a45a4fd0362650c4ea, type: 3}
-  - prefab_id: Floor
-    prefab: {fileID: 2812800884119236220, guid: 7dc4f0d6ac4f8a0438e0ea799f36060f, type: 3}
-  - prefab_id: Cover
-    prefab: {fileID: 6425221460339284544, guid: e398a17cc1e85824a81ed06be4a2a750, type: 3}
