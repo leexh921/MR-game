@@ -143,3 +143,7 @@ MonoBehaviour:
     prefab: {fileID: 3806619352732832944, guid: d385c519a2e71a74899ddf539825e79e, type: 3}
   - prefab_id: wall_with_two_window
     prefab: {fileID: 567362939508772860, guid: 3b3574bbb2392ab49b0ba2d669475f72, type: 3}
+  - prefab_id: bluebase
+    prefab: {fileID: 3567052296558539335, guid: 7830b8e649076634b8f607e97995e76e, type: 3}
+  - prefab_id: redbase
+    prefab: {fileID: 2862036531734814385, guid: 399479cbbd2bccf49ae1bdbbe224937b, type: 3}

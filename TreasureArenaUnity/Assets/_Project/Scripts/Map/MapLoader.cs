@@ -89,8 +89,8 @@ namespace TreasureArenaMR.Map
 
                 if (!registry.TryGetPrefab(mapObject.prefab_id, out GameObject prefab))
                 {
-                    UnityEngine.Object.Destroy(root);
-                    return MapInstantiationResult.Fail("Missing map prefab: " + mapObject.prefab_id);
+                    Debug.LogWarning($"[MapLoader] Missing map prefab: {mapObject.prefab_id}, skipping object {mapObject.object_id}");
+                    continue;
                 }
 
                 GameObject instance = UnityEngine.Object.Instantiate(prefab, root.transform);
@@ -203,6 +203,40 @@ namespace TreasureArenaMR.Map
             return MapInteractionType.None;
         }
 
+        public MapInstantiationResult InstantiateTeamBases(MapJsonModels.MapJson map, PrefabRegistry registry, Transform parent)
+        {
+            if (map == null)
+                return MapInstantiationResult.Fail("missing_map");
+
+            if (registry == null)
+                return MapInstantiationResult.Fail("missing_prefab_registry");
+
+            if (map.team_bases == null || map.team_bases.Count == 0)
+                return MapInstantiationResult.Success(null, 0);
+
+            int created = 0;
+            for (int i = 0; i < map.team_bases.Count; i++)
+            {
+                MapJsonModels.TeamBaseJson tb = map.team_bases[i];
+                if (tb == null)
+                    continue;
+
+                string prefabId = tb.team == "Red" ? "redbase" : "bluebase";
+                if (!registry.TryGetPrefab(prefabId, out GameObject prefab))
+                {
+                    Debug.LogWarning($"[MapLoader] Missing team base prefab: {prefabId}");
+                    continue;
+                }
+
+                GameObject instance = UnityEngine.Object.Instantiate(prefab, parent);
+                instance.name = string.IsNullOrEmpty(tb.base_id) ? prefabId : tb.base_id;
+                instance.transform.position = ToVector3(tb.position);
+                created++;
+            }
+
+            return MapInstantiationResult.Success(null, created);
+        }
+
         public MapLoadResult LoadAndInstantiateFromMapId(string mapId, PrefabRegistry registry, Transform parent, out MapInstantiationResult instantiation)
         {
             MapLoadResult load = LoadFromMapId(mapId);
@@ -249,7 +283,10 @@ namespace TreasureArenaMR.Map
                 return null;
             }
 
-            if (path.Contains("://") || path.Contains(":///"))
+            bool isAndroid = Application.platform == RuntimePlatform.Android;
+            Debug.Log($"[MapLoader] ReadAllText platform={Application.platform} streamingAssetsPath={Application.streamingAssetsPath} requestedPath={path}");
+
+            if (isAndroid || path.Contains("://") || path.Contains(":///"))
             {
                 using (UnityWebRequest request = UnityWebRequest.Get(path))
                 {
@@ -258,13 +295,17 @@ namespace TreasureArenaMR.Map
                     {
                     }
 
+                    Debug.Log($"[MapLoader] UnityWebRequest result={request.result} responseCode={request.responseCode} path={path}");
+
                     if (request.result != UnityWebRequest.Result.Success)
                     {
                         error = "map_file_not_found:" + path + ":" + request.error;
                         return null;
                     }
 
-                    return request.downloadHandler.text;
+                    string json = request.downloadHandler.text;
+                    Debug.Log($"[MapLoader] loaded json length={(json != null ? json.Length : 0)}");
+                    return json;
                 }
             }
 
@@ -274,7 +315,9 @@ namespace TreasureArenaMR.Map
                 return null;
             }
 
-            return File.ReadAllText(path);
+            string result = File.ReadAllText(path);
+            Debug.Log($"[MapLoader] File.ReadAllText length={(result != null ? result.Length : 0)}");
+            return result;
         }
 
         /// <summary>

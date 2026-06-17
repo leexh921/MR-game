@@ -8,6 +8,11 @@ namespace TreasureArenaMR.MapEditor.Editor
     public static class MapPrefabRegistryBuilder
     {
         private const string UserPrefabsDir = "Assets/_Project/Prefabs/MapEditor/Palette/Prefabs";
+        private static readonly string[] ScanDirectories = {
+            "Assets/_Project/Prefabs/MapEditor/Palette/Prefabs",
+            "Assets/_Project/Prefabs/Map",
+            "Assets/_Project/Prefabs/Gun"
+        };
         private const string RegistryFolder = "Assets/_Project/ScriptableObjects/Map";
         private const string RegistryPath = RegistryFolder + "/MapPrefabRegistry.asset";
 
@@ -25,7 +30,7 @@ namespace TreasureArenaMR.MapEditor.Editor
                 AssetDatabase.CreateAsset(registry, RegistryPath);
             }
 
-            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { UserPrefabsDir });
+            string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", ScanDirectories);
             string[] prefabPaths = new string[prefabGuids.Length];
             for (int i = 0; i < prefabGuids.Length; i++)
             {
@@ -66,7 +71,7 @@ namespace TreasureArenaMR.MapEditor.Editor
             EditorUtility.SetDirty(registry);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("MapPrefabRegistry rebuilt: " + entries.Count + " prefabs from " + UserPrefabsDir);
+            Debug.Log("MapPrefabRegistry rebuilt: " + entries.Count + " prefabs from " + ScanDirectories.Length + " directories");
         }
 
         private static string GetPrefabId(GameObject prefab)

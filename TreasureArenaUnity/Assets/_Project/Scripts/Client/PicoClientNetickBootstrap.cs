@@ -17,6 +17,11 @@ namespace TreasureArenaMR.Client
         [SerializeField] private SharedSpaceManager sharedSpaceManager;
         [SerializeField] private TreasureInteractionController treasureInteractionController;
         [SerializeField] private TreasurePresenter treasurePresenter;
+        [Header("Treasure")]
+        [SerializeField] private Transform localRightHandCarryAnchor;
+        [SerializeField] private GameObject normalTreasurePrefab;
+        [SerializeField] private GameObject rareTreasurePrefab;
+        [SerializeField] private GameObject finalTreasurePrefab;
         [SerializeField] private string serverAddress = "192.168.61.128";
         [SerializeField] private int tcpPort = SimpleNetworkProtocol.TcpPort;
         [SerializeField] private int udpPort = SimpleNetworkProtocol.UdpPort;
@@ -56,8 +61,11 @@ namespace TreasureArenaMR.Client
                 treasureInteractionController = gameObject.AddComponent<TreasureInteractionController>();
             if (treasurePresenter == null)
                 treasurePresenter = FindObjectOfType<TreasurePresenter>();
+            bool createdNew = treasurePresenter == null;
             if (treasurePresenter == null)
                 treasurePresenter = gameObject.AddComponent<TreasurePresenter>();
+            if (createdNew || localRightHandCarryAnchor != null || normalTreasurePrefab != null || rareTreasurePrefab != null || finalTreasurePrefab != null)
+                treasurePresenter.Initialize(localRightHandCarryAnchor, normalTreasurePrefab, rareTreasurePrefab, finalTreasurePrefab);
 
             BindButton(connectButton, Connect);
             BindButton(disconnectButton, Disconnect);

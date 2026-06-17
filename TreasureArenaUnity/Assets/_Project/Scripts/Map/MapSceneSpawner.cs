@@ -102,12 +102,14 @@ namespace TreasureArenaMR.Map
             var instResult = loader.InstantiateObjects(loadResult.map, _prefabRegistry, _mapParent);
             if (!instResult.ok)
             {
-                Debug.LogError($"{LogPrefix} Instantiate failed mapId={mapId} error={instResult.error} " +
+                Debug.LogError($"{LogPrefix} Instantiate objects failed mapId={mapId} error={instResult.error} " +
                     $"prefabRegistry={_prefabRegistry != null}");
                 return false;
             }
 
+            var baseResult = loader.InstantiateTeamBases(loadResult.map, _prefabRegistry, _mapParent);
             Debug.Log($"{LogPrefix} Map spawned: {mapId}, objects={instResult.objectCount}, " +
+                $"teamBases={baseResult.objectCount}, " +
                 $"root={(instResult.root != null ? instResult.root.name : "null")}");
             return true;
         }

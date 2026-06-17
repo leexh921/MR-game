@@ -104,6 +104,19 @@ namespace TreasureArenaMR.Client
             return player;
         }
 
+        public bool TryGetCarryAnchor(string playerId, out Transform anchor)
+        {
+            anchor = null;
+            if (string.IsNullOrEmpty(playerId))
+                return false;
+
+            if (!_players.TryGetValue(playerId, out PresentedPlayer player))
+                return false;
+
+            anchor = player.CarryAnchor;
+            return anchor != null;
+        }
+
         private void CacheReferences()
         {
             if (_store == null)
@@ -138,6 +151,7 @@ namespace TreasureArenaMR.Client
         {
             private readonly string _playerId;
             private readonly Transform _transform;
+            private readonly Transform _carryAnchor;
             private readonly float _heightOffset;
             private readonly List<Sample> _samples = new List<Sample>();
             private bool _loggedStale;
@@ -147,10 +161,12 @@ namespace TreasureArenaMR.Client
                 _playerId = playerId;
                 IsLocal = isLocal;
                 _transform = transform;
+                _carryAnchor = EnsureCarryAnchor(transform);
                 _heightOffset = heightOffset;
             }
 
             public bool IsLocal { get; }
+            public Transform CarryAnchor => _carryAnchor;
 
             public void ApplyLocal(Vector3 sharedPosition, float sharedYaw)
             {
@@ -218,6 +234,21 @@ namespace TreasureArenaMR.Client
             {
                 _transform.localPosition = sharedPosition + Vector3.up * _heightOffset;
                 _transform.localRotation = Quaternion.Euler(0f, sharedYaw, 0f);
+            }
+
+            private static Transform EnsureCarryAnchor(Transform avatarRoot)
+            {
+                Transform existing = avatarRoot.Find("RightHandCarryAnchor");
+                if (existing != null)
+                    return existing;
+
+                GameObject anchor = new GameObject("RightHandCarryAnchor");
+                Transform anchorTransform = anchor.transform;
+                anchorTransform.SetParent(avatarRoot, false);
+                anchorTransform.localPosition = new Vector3(0.35f, 1.35f, 0.25f);
+                anchorTransform.localRotation = Quaternion.identity;
+                anchorTransform.localScale = Vector3.one;
+                return anchorTransform;
             }
         }
 

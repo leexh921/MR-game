@@ -29,6 +29,7 @@ namespace TreasureArenaMR.Client
         private Transform _anchorTransform;
         private bool _operationStarted;
         private bool _readySent;
+        private bool _providerStarted;
         private float _logTimer;
 
         private void Awake()
@@ -42,6 +43,7 @@ namespace TreasureArenaMR.Client
             Instance = this;
             EnsureRoot();
             CacheReferences();
+            StartSenseDataProviderOnce();
         }
 
         private void Update()
@@ -88,7 +90,8 @@ namespace TreasureArenaMR.Client
 
             if (Application.platform != RuntimePlatform.Android)
             {
-                Fail("unsupported_platform_for_shared_anchor:" + Application.platform);
+                Debug.Log($"{LogPrefix} Editor or non-Android platform, bypassing spatial anchor. platform={Application.platform}");
+                MarkLocatedReady("EditorBypass");
                 return;
             }
 
@@ -106,6 +109,22 @@ namespace TreasureArenaMR.Client
             }
         }
 
+        private async void StartSenseDataProviderOnce()
+        {
+            if (_providerStarted)
+                return;
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!await EnsureSpatialDataPermissionAsync())
+                return;
+
+            PxrResult providerResult = await PXR_MixedReality.StartSenseDataProvider(PxrSenseDataProviderType.SpatialAnchor);
+            if (providerResult == PxrResult.SUCCESS)
+                _providerStarted = true;
+            Debug.Log($"{LogPrefix} StartSenseDataProvider: {providerResult}");
+#endif
+        }
+
         private async Task CreateAndPublishAnchorAsync()
         {
             Status = "Creating";
@@ -118,14 +137,10 @@ namespace TreasureArenaMR.Client
                 return;
             }
 
-            PxrResult providerResult = await PXR_MixedReality.StartSenseDataProvider(PxrSenseDataProviderType.SpatialAnchor);
-            if (providerResult != PxrResult.SUCCESS)
-            {
-                Fail("start_provider_failed:" + providerResult);
-                return;
-            }
+            Vector3 anchorPos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+            anchorPos.y = 0f;
 
-            var createResult = await PXR_MixedReality.CreateSpatialAnchorAsync(Vector3.zero, Quaternion.identity);
+            var createResult = await PXR_MixedReality.CreateSpatialAnchorAsync(anchorPos, Quaternion.identity);
             if (createResult.result != PxrResult.SUCCESS)
             {
                 Fail("create_failed:" + createResult.result);
@@ -177,13 +192,6 @@ namespace TreasureArenaMR.Client
             if (!await EnsureSpatialDataPermissionAsync())
             {
                 Fail("permission_denied:SPATIAL_DATA");
-                return;
-            }
-
-            PxrResult providerResult = await PXR_MixedReality.StartSenseDataProvider(PxrSenseDataProviderType.SpatialAnchor);
-            if (providerResult != PxrResult.SUCCESS)
-            {
-                Fail("start_provider_failed:" + providerResult);
                 return;
             }
 
