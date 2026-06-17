@@ -8161,7 +8161,7 @@ MonoBehaviour:
   workbenchTiltDegrees: 28
   workbenchYawOffset: 180
   workbenchDesignSize: {x: 1200, y: 560}
-  workbenchWorldScale: 0.001
+  workbenchWorldScale: 0.0015
   leftInfoPanel: {fileID: 6110001972267474626}
   mainBrushPanel: {fileID: 3673525882550100794}
   rightInspectorPanel: {fileID: 7858707203454240564}
