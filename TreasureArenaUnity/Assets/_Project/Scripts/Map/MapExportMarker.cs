@@ -44,6 +44,15 @@ namespace TreasureArenaMR.Map
         public float refresh_interval = 20f;
         public float radius = 1f;
         public bool has_collider = true;
+        public MapObjectType object_type = MapObjectType.StaticObstacle;
+        public MapInteractionType interaction_type = MapInteractionType.None;
+        public bool is_movable;
+        public bool is_grabbable;
+        public bool is_openable;
+        public bool is_shootable = true;
+        public bool blocks_bullet = true;
+        public bool decal_enabled = true;
+        public float mass;
 
         public string GetDefaultId()
         {

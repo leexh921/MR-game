@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace TreasureArenaMR.Map
             {
                 map_id = ToMapId(mapName),
                 map_name = mapName,
-                version = "1.0.0",
+                map_version = "1.0.0",
                 description = description
             };
 
@@ -56,6 +57,30 @@ namespace TreasureArenaMR.Map
 
             string mapId = builder.ToString().Trim('_');
             return string.IsNullOrEmpty(mapId) ? "untitled_map" : mapId;
+        }
+
+        public static MapJsonModels.MapBoundaryJson ToMapBoundaryJson(
+            IReadOnlyList<Vector3> points,
+            float height,
+            string boundaryType = "Polygon")
+        {
+            MapJsonModels.MapBoundaryJson boundary = new MapJsonModels.MapBoundaryJson
+            {
+                boundary_type = string.IsNullOrEmpty(boundaryType) ? "Polygon" : boundaryType,
+                height = height
+            };
+
+            if (points == null)
+            {
+                return boundary;
+            }
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                boundary.points.Add(ToVector3Json(points[i]));
+            }
+
+            return boundary;
         }
 
         private static void AddMarker(MapJsonModels.MapJson map, MapExportMarker marker)
@@ -110,10 +135,19 @@ namespace TreasureArenaMR.Map
                     {
                         object_id = marker.GetDefaultId(),
                         prefab_id = string.IsNullOrEmpty(marker.prefab_id) ? marker.gameObject.name : marker.prefab_id,
+                        object_type = marker.object_type.ToString(),
+                        interaction_type = marker.interaction_type.ToString(),
                         position = ToVector3Json(marker.transform.position),
                         rotation = ToRotationJson(marker.transform.eulerAngles),
                         scale = ToScaleJson(marker.transform.localScale),
-                        has_collider = marker.has_collider
+                        has_collider = marker.has_collider,
+                        is_movable = marker.is_movable,
+                        is_grabbable = marker.is_grabbable,
+                        is_openable = marker.is_openable,
+                        is_shootable = marker.is_shootable,
+                        blocks_bullet = marker.blocks_bullet,
+                        decal_enabled = marker.decal_enabled,
+                        mass = marker.mass
                     });
                     break;
             }

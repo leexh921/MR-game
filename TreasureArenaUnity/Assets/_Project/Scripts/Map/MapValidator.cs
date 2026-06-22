@@ -18,7 +18,7 @@ namespace TreasureArenaMR.Map
 
             RequireText(result, map.map_id, "missing_map_id");
             RequireText(result, map.map_name, "missing_map_name");
-            RequireText(result, map.version, "missing_version");
+            RequireText(result, map.map_version, "missing_version");
             ValidateTeamBases(result, map.team_bases);
             ValidateTreasureSpawnPoints(result, map.treasure_spawn_points);
             ValidateSupplyBoxes(result, map.supply_boxes);
