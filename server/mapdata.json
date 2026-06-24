@@ -1,0 +1,37 @@
+{
+  "room_id": "room_default",
+  "room_name": "默认房间",
+  "game_mode": "TeamTreasure",
+  "map_id": "test_map_01",
+  "max_players": 4,
+  "match_time": 300,
+  "round_count": 1,
+  "player_max_hp": 100,
+  "respawn_countdown": 5,
+  "weapon_config": {
+    "weapon_id": "energy_gun",
+    "damage": 25,
+    "range": 15,
+    "cooldown": 0.5
+  },
+  "treasure_scores": { "Normal": 10, "Rare": 30, "Final": 50 },
+  "treasure_refresh_interval": 10,
+  "supply_refresh_interval": 20,
+  "bases": {
+    "Red": { "x": -10.0, "y": 0.0, "z": 0.0, "radius": 3.0 },
+    "Blue": { "x": 10.0, "y": 0.0, "z": 0.0, "radius": 3.0 }
+  },
+  "respawn_zones": [
+    { "x": -10.0, "y": 0.0, "z": 2.0, "radius": 2.0 },
+    { "x": 10.0, "y": 0.0, "z": -2.0, "radius": 2.0 }
+  ],
+  "treasures": [
+    { "treasure_id": "treasure_normal_01", "treasure_type": "Normal", "position": { "x": -3.0, "y": 0.5, "z": 3.0 } },
+    { "treasure_id": "treasure_normal_02", "treasure_type": "Normal", "position": { "x": 3.0, "y": 0.5, "z": -3.0 } },
+    { "treasure_id": "treasure_normal_03", "treasure_type": "Normal", "position": { "x": 0.0, "y": 0.5, "z": 5.0 } },
+    { "treasure_id": "treasure_normal_04", "treasure_type": "Normal", "position": { "x": 0.0, "y": 0.5, "z": -5.0 } },
+    { "treasure_id": "treasure_rare_01", "treasure_type": "Rare", "position": { "x": -5.0, "y": 0.5, "z": 0.0 } },
+    { "treasure_id": "treasure_rare_02", "treasure_type": "Rare", "position": { "x": 5.0, "y": 0.5, "z": 0.0 } },
+    { "treasure_id": "treasure_final_01", "treasure_type": "Final", "position": { "x": 0.0, "y": 0.5, "z": 0.0 } }
+  ]
+}
